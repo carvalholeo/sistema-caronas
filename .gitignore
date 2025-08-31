@@ -1,0 +1,65 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+lib-cov
+coverage/
+.nyc_output/
+*.lcov
+
+# Dependency directories
+node_modules/
+jspm_packages/
+bower_components/
+.cache/
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+*.swp
+
+# Optional npm cache directory
+.npm
+.eslintcache
+.next/
+out/
+*.tsbuildinfo
+*.tgz
+.cache/
+
+# Mac system files
+.DS_Store
+Thumbs.db
+
+# Environment files
+.env
+.env*
+.env.*
+!.env.example
+
+# Build output
+build/
+dist/
+
+# Misc
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+
+# Ignore coverage reports
+coverage/
+.nyc_output/
+*.lcov
+*.lcov.info
+coverage-final.json
+coverage.json
