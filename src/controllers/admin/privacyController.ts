@@ -62,7 +62,8 @@ class AdminPrivacyController {
     try {
       const { targetUserId } = req.params;
       const logs = await adminPrivacyService.viewPrivacyLogs(
-        targetUserId as unknown as Types.ObjectId
+        targetUserId as unknown as Types.ObjectId,
+        req.user!
       );
       return res.status(200).json(logs);
     } catch (error: any) {

@@ -30,7 +30,7 @@ const AuditLogSchema = new Schema<IAuditLog>({
   details: {
     ipAddress: {
       type: String,
-      required: true,
+      required: false,
       validate: {
         validator: function(ip: string) {
           // Basic IP validation (IPv4 and IPv6)

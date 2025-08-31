@@ -1,5 +1,5 @@
 // Lógica de negócio para todos os relatórios do painel administrativo.
-import { UserModel, UserStatus, UserRole } from '../../models/user';
+import { UserModel, UserStatus } from '../../models/user';
 import { VehicleModel, VehicleStatus } from '../../models/vehicle';
 import { RideModel, RideStatus } from '../../models/ride';
 import { ChatMessageModel } from '../../models/chat';
@@ -8,12 +8,8 @@ import { RideViewEventModel } from '../../models/rideViewEvent';
 import { LoginAttemptModel } from '../../models/loginAttempt';
 import { PasswordResetModel } from '../../models/passwordReset';
 import { AuditLogModel } from '../../models/auditLog';
-import { NotificationSubscriptionModel } from '../../models/notificationSubscription';
-import { NotificationEventModel } from '../../models/notificationEvent';
-import { SuppressedNotificationModel } from '../../models/suppressedNotification';
 import { AccessDenialLogModel } from '../../models/denialLog';
 import { PrivacyRequestModel } from '../../models/privacyRequest';
-import { FormalNotificationModel } from '../../models/formalNotification';
 import { DataReportModel } from '../../models/dataReport';
 import { SessionEventModel } from '../../models/sessionEvent';
 import { BlockModel } from '../../models/block';

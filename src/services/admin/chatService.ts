@@ -9,10 +9,10 @@ import { User } from 'types';
 class AdminChatService {
   public async readConversation(rideId: Types.ObjectId, senderId: Types.ObjectId, adminId: IUser): Promise<IChatMessage[]> {
     await new AuditLogModel({
-      adminUser: adminId,
+      adminUser: adminId._id,
       action: 'chat:ler',
       target: { type: 'chat', id: `${rideId}` },
-      details: { message: "Admin leu a conversa." }
+      details: { extra: { mensagem: 'Admin leu a conversa' }  }
     }).save();
 
     return ChatMessageModel.find({

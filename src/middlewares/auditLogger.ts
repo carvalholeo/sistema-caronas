@@ -4,9 +4,21 @@ import {AuditLogModel as AuditLog} from '../models/auditLog';
 const auditLogger = async (req: Request, res: Response, next: NextFunction) => {
     const { method, originalUrl, user } = req;
     const logEntry = new AuditLog({
-        userId: user ? user.id : null,
+        adminUser: user ? user.id : null,
         action: `${method} ${originalUrl}`,
-        timestamp: new Date(),
+        details: {
+            ipAddress: req.ip,
+            userAgent: req.headers['user-agent'] || 'Unknown',
+            extra: {
+                body: req.body,
+                query: req.query,
+                params: req.params
+            }
+        },
+        target: {
+            type: 'Request',
+            id: ''
+        }
     });
 
     try {

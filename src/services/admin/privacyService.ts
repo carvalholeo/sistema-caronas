@@ -28,7 +28,11 @@ class AdminPrivacyService {
       includedDataPoints: Object.keys(reportData)
     }).save();
 
-    await new AuditLogModel({ adminUser: adminUser._id, action: 'privacidade:emitir_relatorio', target: { type: 'user', id: targetUserId } }).save();
+    await new AuditLogModel({
+      adminUser: adminUser._id,
+      action: 'privacidade:emitir_relatorio',
+      target: { type: 'user', id: targetUserId }
+    }).save();
 
     return { reportData, hash };
   }
@@ -45,12 +49,21 @@ class AdminPrivacyService {
     targetUser.sessionVersion += 1; // Invalida sessões
 
     await targetUser.save();
-    await new AuditLogModel({ adminUser: adminUser._id, action: 'privacidade:solicitacao_remocao', target: { type: 'user', id: targetUserId } }).save();
+    await new AuditLogModel({
+      adminUser: adminUser._id,
+      action: 'privacidade:solicitacao_remocao',
+      target: { type: 'user', id: targetUserId }
+    }).save();
 
     return { message: "Usuário anonimizado com sucesso." };
   }
 
-  public async viewPrivacyLogs(targetUserId: Types.ObjectId): Promise<IAuditLog[]> {
+  public async viewPrivacyLogs(targetUserId: Types.ObjectId, adminUser: IUser): Promise<IAuditLog[]> {
+    await new AuditLogModel({
+      adminUser: adminUser._id,
+      action: 'privacidade:ver_logs',
+      target: { type: 'logs', id: targetUserId }
+    }).save();
     return AuditLogModel.find({ 'target.id': targetUserId, action: { $regex: /^privacidade:/ } });
   }
 
@@ -83,8 +96,8 @@ class AdminPrivacyService {
     const auditLog = new AuditLogModel({
       action: 'privacidade:notificar_usuario',
       adminUser: adminUser._id,
-      target: { kind: 'User', id: targetUserId },
-      details: `Notificação enviada com assunto: "${subject}"`
+      target: { type: 'user', id: targetUserId },
+      details: { extra: { mensagem: `Notificação enviada com assunto: "${subject}"`}}
     });
     await auditLog.save();
 
