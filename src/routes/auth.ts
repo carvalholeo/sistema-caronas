@@ -8,6 +8,6 @@ const authRouter = Router();
 authRouter.post('/register', registerValidator, authController.register);
 authRouter.post('/login', loginValidator, authController.login);
 authRouter.post('/2fa/generate', authMiddleware, authController.generate2FA);
-authRouter.post('/2fa/verify', twoFactorValidator, authController.verify2FA);
+authRouter.post('/2fa/verify', twoFactorValidator, authMiddleware, authController.verify2FA);
 
 export default authRouter;

@@ -5,9 +5,10 @@ import {
     approveUserRegistration
 } from '../controllers/userController';
 import { authMiddleware } from '../middlewares/auth';
-import { validateUserUpdate } from '../middlewares/validation';
+
 import requirePermission from '../middlewares/rbac';
 import { UserRole } from 'models/user';
+import { userUpdateValidator } from 'middlewares/validators/users';
 
 const router = Router();
 
@@ -15,7 +16,7 @@ const router = Router();
 router.get('/:id', authMiddleware, getUserProfile);
 
 // Route to update user profile
-router.put('/:id', authMiddleware, validateUserUpdate, updateUserProfile);
+router.put('/:id', authMiddleware, userUpdateValidator, updateUserProfile);
 
 // Route to approve user registration
 router.post('/:id/approve', authMiddleware, requirePermission([UserRole.Admin]), approveUserRegistration);
