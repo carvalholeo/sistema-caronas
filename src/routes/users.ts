@@ -5,20 +5,19 @@ import {
     approveUserRegistration
 } from '../controllers/userController';
 import { authMiddleware } from '../middlewares/auth';
-
-import requirePermission from '../middlewares/rbac';
-import { UserRole } from 'models/user';
 import { userUpdateValidator } from 'middlewares/validators/users';
 
 const router = Router();
 
+router.use(authMiddleware);
+
 // Route to get user profile
-router.get('/:id', authMiddleware, getUserProfile);
+router.get('/:id', getUserProfile);
 
 // Route to update user profile
-router.put('/:id', authMiddleware, userUpdateValidator, updateUserProfile);
+router.put('/:id', userUpdateValidator, updateUserProfile);
 
 // Route to approve user registration
-router.post('/:id/approve', authMiddleware, requirePermission([UserRole.Admin]), approveUserRegistration);
+router.post('/:id/approve', approveUserRegistration);
 
 export default router;

@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { authMiddleware } from '../middlewares/auth';
-import { checkPermission } from '../middlewares/permission';
+import { checkPermission } from '../middlewares/checkPermissions';
 import { adminUsersController } from '../controllers/admin/usersController';
 import { adminRidesController } from '../controllers/admin/ridesController';
 import { adminChatController } from '../controllers/admin/chatController';
@@ -12,11 +12,14 @@ import * as rideValidators from '../middlewares/validators/admin/rides';
 import * as chatValidators from '../middlewares/validators/admin/chat';
 import * as privacyValidators from '../middlewares/validators/admin/privacy';
 import * as securityValidators from '../middlewares/validators/admin/security';
-import * as reportValidators from '../middlewares/validators/admin/reports';
 import { dateRangeValidator, singleDateValidator } from '../middlewares/validators/admin/reports';
+import checkUserRoles from 'middlewares/checkUserRoles';
+import { UserRole } from 'models/user';
 
 const adminRouter = Router();
 adminRouter.use(authMiddleware);
+adminRouter.use(checkUserRoles([UserRole.Admin]));
+adminRouter.use(checkPermission('painel:acesso'));
 
 // --- Rotas de Usuários ---
 adminRouter.get('/users', checkPermission('usuarios:ler'), adminUsersController.listUsers);

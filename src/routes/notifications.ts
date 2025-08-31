@@ -4,13 +4,15 @@ import { authMiddleware } from '../middlewares/auth';
 
 const router = Router();
 
+router.use(authMiddleware);
+
 // Route to send a notification
-router.post('/', authMiddleware, sendNotification);
+router.post('/', sendNotification);
 
 // Route to get notifications for a user
-router.get('/:userId', authMiddleware, getUserNotifications);
+router.get('/:userId', getUserNotifications);
 
 // Route to update notification preferences
-router.put('/preferences', authMiddleware, updateNotificationPreferences);
+router.put('/preferences', updateNotificationPreferences);
 
 export default router;
