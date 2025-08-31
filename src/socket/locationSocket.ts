@@ -29,8 +29,8 @@ export const setupLocationSockets = (io: Server) => {
         } else {
           socket.emit('locationError', 'Você não tem permissão para acessar a localização desta carona.');
         }
-      } catch (error) {
-        socket.emit('locationError', 'Ocorreu um erro ao entrar na sala de localização.');
+      } catch (error: Error | any) {
+        socket.emit('locationError', 'Ocorreu um erro ao entrar na sala de localização ' + error.message);
       }
     });
 
@@ -57,8 +57,9 @@ export const setupLocationSockets = (io: Server) => {
         {
           rideId,
           lat,
-          lng }
-        );
+          lng
+        }
+      );
 
       // Verifica se o socket está na sala correta
       if (socket.rooms.has(room)) {

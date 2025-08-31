@@ -58,7 +58,7 @@ adminRouter.get('/reports/user-blocks', dateRangeValidator, checkPermission('rel
 
 // --- Relatórios de Veículos ---
 adminRouter.get('/reports/vehicle-inventory', dateRangeValidator, checkPermission('relatorios:veiculos:inventario'), adminReportsController.getVehicleInventoryReport);
-adminRouter.get('/reports/vehicle-conflicts', dateRangeValidator, checkPermission('relatorios:veiculos:conflitos'), adminReportsController.getVehicleConflictReport);
+// adminRouter.get('/reports/vehicle-conflicts', dateRangeValidator, checkPermission('relatorios:veiculos:conflitos'), adminReportsController.getVehicleConflictReport);
 
 // --- Relatórios de Caronas ---
 adminRouter.get('/reports/ride-offers', dateRangeValidator, checkPermission('relatorios:caronas:ofertas'), adminReportsController.getRideOfferReport);
@@ -72,13 +72,13 @@ adminRouter.get('/reports/geo-performance', dateRangeValidator, checkPermission(
 
 // --- Relatórios de Chat ---
 adminRouter.get('/reports/chat-usage', dateRangeValidator, checkPermission('relatorios:chat:uso'), adminReportsController.getChatUsageReport);
-adminRouter.get('/reports/chat-presence', dateRangeValidator, checkPermission('relatorios:chat:presenca_online'), adminReportsController.getChatPresenceReport);
+// adminRouter.get('/reports/chat-presence', dateRangeValidator, checkPermission('relatorios:chat:presenca_online'), adminReportsController.getChatPresenceReport);
 adminRouter.get('/reports/chat-administration', dateRangeValidator, checkPermission('relatorios:chat:administracao'), adminReportsController.getChatAdminReport);
 adminRouter.get('/reports/chat-moderation', dateRangeValidator, checkPermission('relatorios:chat:moderacao'), adminReportsController.getChatModerationReport);
 
 // --- Relatórios de Notificações ---
-adminRouter.get('/reports/notification-delivery', dateRangeValidator, checkPermission('relatorios:notificacoes:entrega'), adminReportsController.getNotificationDeliveryReport);
-adminRouter.get('/reports/notification-limits', dateRangeValidator, checkPermission('relatorios:notificacoes:limites'), adminReportsController.getNotificationLimitsReport);
+// adminRouter.get('/reports/notification-delivery', dateRangeValidator, checkPermission('relatorios:notificacoes:entrega'), adminReportsController.getNotificationDeliveryReport);
+// adminRouter.get('/reports/notification-limits', dateRangeValidator, checkPermission('relatorios:notificacoes:limites'), adminReportsController.getNotificationLimitsReport);
 
 // --- Relatórios de Acessibilidade ---
 adminRouter.get('/reports/accessibility-usage', checkPermission('relatorios:acessibilidade:acessbilidade'), adminReportsController.getAccessibilityReport);

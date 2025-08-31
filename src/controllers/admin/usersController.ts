@@ -12,7 +12,7 @@ class AdminUsersController {
     try {
       const users = await adminUsersService.listUsers(req.query);
       return res.status(200).json(users);
-    } catch (error: any) {
+    } catch (error: Error | any) {
       return res.status(500).json({ message: 'Erro ao listar usuários.', error: error.message });
     }
   }
@@ -38,7 +38,7 @@ class AdminUsersController {
         twoFactorCode
       );
       return res.status(200).json(updatedUser);
-    } catch (error: any) {
+    } catch (error: Error | any) {
       return res.status(403).json({ message: error.message });
     }
   }
@@ -57,7 +57,7 @@ class AdminUsersController {
 
       const updatedUser = await adminUsersService.updateUser(targetUserId as unknown as Types.ObjectId, adminUser, req.body);
       return res.status(200).json(updatedUser);
-    } catch (error: any) {
+    } catch (error: Error | any) {
       return res.status(403).json({ message: error.message });
     }
   }
@@ -81,7 +81,7 @@ class AdminUsersController {
         promoterTwoFactorCode
       );
       return res.status(200).json({ message: 'Usuário promovido a administrador com sucesso.', user: promotedUser });
-    } catch (error: any) {
+    } catch (error: Error | any) {
       return res.status(403).json({ message: error.message });
     }
   }
@@ -105,7 +105,7 @@ class AdminUsersController {
         permissions
       );
       return res.status(200).json(updatedUser);
-    } catch (error: any) {
+    } catch (error: Error | any) {
       return res.status(403).json({ message: error.message });
     }
   }
@@ -118,7 +118,7 @@ class AdminUsersController {
       const { targetUserId } = req.params;
       const permissions = await adminUsersService.getAdminPermissions(targetUserId as unknown as Types.ObjectId);
       return res.status(200).json(permissions);
-    } catch (error: any) {
+    } catch (error: Error | any) {
       return res.status(404).json({ message: error.message });
     }
   }
@@ -143,7 +143,7 @@ class AdminUsersController {
         twoFactorCode
       );
       return res.status(200).json({ message: 'Administrador rebaixado com sucesso.', user: demotedUser });
-    } catch (error: any) {
+    } catch (error: Error | any) {
       return res.status(403).json({ message: error.message });
     }
   }

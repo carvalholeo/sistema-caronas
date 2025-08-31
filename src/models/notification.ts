@@ -46,7 +46,7 @@ const notificationSchema = new Schema<INotification>({
   data: {
     type: Schema.Types.Mixed,
     validate: {
-      validator: function(data: any) {
+      validator: function(data: object) {
         // Ensure data doesn't contain sensitive information
         if (typeof data === 'object' && data !== null) {
           const sensitiveFields = ['password', 'token', 'secret', 'key'];

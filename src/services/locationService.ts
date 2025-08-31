@@ -1,5 +1,5 @@
 import { Server, Socket } from 'socket.io';
-import { IRide, RideModel, RideStatus } from '../models/ride';
+import { RideModel, RideStatus } from '../models/ride';
 import { LocationLogModel, LocationLogAction } from '../models/locationLog';
 import { BlockModel } from '../models/block';
 import mongoose, { Types } from 'mongoose';

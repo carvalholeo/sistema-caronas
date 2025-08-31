@@ -152,7 +152,7 @@ class AdminUsersService {
     targetUser.sessionVersion += 1;
     targetUser.auditHistory.push({
       action: 'admin_permissions_updated',
-      adminUser,
+      adminUser: adminUser._id,
       details: { from: oldPermissions, to: permissions }
     });
 

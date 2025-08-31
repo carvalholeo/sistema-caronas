@@ -11,9 +11,9 @@ class AuthController {
         const errors = validationResult(req);
         if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
         try {
-            const user = await authService.register(req.body);
+            await authService.register(req.body);
             return res.status(201).json({ message: "Cadastro realizado com sucesso. Aguardando aprovação." });
-        } catch (error: any) {
+        } catch (error: Error | any) {
             return res.status(409).json({ message: error.message });
         }
     }
@@ -26,7 +26,7 @@ class AuthController {
             const device = req.headers['user-agent'] || 'unknown';
             const result = await authService.login(req.body, ipAddress, device);
             return res.status(200).json(result);
-        } catch (error: any) {
+        } catch (error: Error | any) {
             return res.status(401).json({ message: error.message });
         }
     }
@@ -43,7 +43,7 @@ class AuthController {
                 return res.status(200).json({ secret, qrCodeUrl: data_url });
             });
             return res.status(200);
-        } catch (error: any) {
+        } catch (error: Error | any) {
             return res.status(500).json({ message: 'Erro ao gerar segredo 2FA.', error: error.message });
         }
     }
@@ -67,7 +67,7 @@ class AuthController {
             const token = security.generateToken(payload as IUser, authConfig.jwtExpiration);
 
             return res.status(200).json({ token });
-        } catch (error: any) {
+        } catch (error: Error | any) {
             return res.status(401).json({ message: error.message });
         }
     }

@@ -7,8 +7,18 @@ import crypto from 'crypto';
 import { Types } from 'mongoose';
 import { FormalNotificationModel } from 'models/formalNotification';
 
+interface IReportData {
+  profile: object;
+  // Outros dados relacionados (veículos, caronas, etc) poderiam ser adicionados aqui
+}
+
+interface IReport {
+  reportData: IReportData;
+  hash: string;
+}
+
 class AdminPrivacyService {
-  public async generateDataReport(targetUserId: Types.ObjectId, adminUser: IUser, twoFactorCode: string): Promise<any> {
+  public async generateDataReport(targetUserId: Types.ObjectId, adminUser: IUser, twoFactorCode: string): Promise<IReport> {
     if (!authService.verifyTwoFactorCode(adminUser.twoFactorSecret, twoFactorCode)) throw new Error("Código 2FA inválido.");
 
     const targetUser = await UserModel.findById(targetUserId);
@@ -37,7 +47,7 @@ class AdminPrivacyService {
     return { reportData, hash };
   }
 
-  public async processUserRemoval(targetUserId: Types.ObjectId, adminUser: IUser, twoFactorCode: string): Promise<any> {
+  public async processUserRemoval(targetUserId: Types.ObjectId, adminUser: IUser, twoFactorCode: string): Promise<{ message: string }> {
     if (!authService.verifyTwoFactorCode(adminUser.twoFactorSecret, twoFactorCode)) throw new Error("Código 2FA inválido.");
     const targetUser = await UserModel.findById(targetUserId);
     if (!targetUser) throw new Error("Usuário não encontrado.");

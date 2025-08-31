@@ -11,7 +11,7 @@ class AdminRidesController {
     try {
       const rides = await adminRidesService.listRides(req.query);
       return res.status(200).json(rides);
-    } catch (error: any) {
+    } catch (error: Error | any) {
       return res.status(500).json({ message: 'Erro ao listar caronas.', error: error.message });
     }
   }
@@ -28,7 +28,7 @@ class AdminRidesController {
         adminUser._id
       );
       return res.status(200).json(rideDetails);
-    } catch (error: any) {
+    } catch (error: Error | any) {
       return res.status(404).json({ message: error.message });
     }
   }
@@ -52,7 +52,7 @@ class AdminRidesController {
         updateData
       );
       return res.status(200).json(updatedRide);
-    } catch (error: any) {
+    } catch (error: Error | any) {
       return res.status(403).json({ message: error.message });
     }
   }
@@ -74,7 +74,7 @@ class AdminRidesController {
         adminUser._id,
         reason);
       return res.status(200).json(cancelledRide);
-    } catch (error: any) {
+    } catch (error: Error | any) {
       return res.status(403).json({ message: error.message });
     }
   }
@@ -96,7 +96,7 @@ class AdminRidesController {
         adminUser._id,
         reason);
       return res.status(200).json(publishedRide);
-    } catch (error: any) {
+    } catch (error: Error | any) {
       return res.status(403).json({ message: error.message });
     }
   }

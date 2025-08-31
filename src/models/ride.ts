@@ -10,12 +10,20 @@ export enum RideStatus {
   Cancelled = 'cancelled',
 }
 
+interface AuditLog {
+  action: string;
+  adminUser?: Types.ObjectId;
+  timestamp?: Date;
+  reason?: string;
+  details?: any;
+}
+
 
 // Subdocumento de auditoria
-const AuditLogSchema = new Schema({
+const AuditLogSchema = new Schema<AuditLog>({
   action: { type: String, required: true },
   adminUser: { type: Schema.Types.ObjectId, ref: 'User' },
-  timestamp: { type: Date, default: Date.now },
+  timestamp: { type: Date, default: Date.now, immutable: true },
   reason: { type: String },
   details: { type: Schema.Types.Mixed },
 });
@@ -62,7 +70,7 @@ export interface IRide extends Document {
   }[];
   isRecurrent: boolean;
   recurrenceId?: string;
-  auditHistory: any[];
+  auditHistory: AuditLog[];
   distanceKm?: number;
   createdAt: Date;
   updatedAt: Date;

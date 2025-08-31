@@ -6,53 +6,53 @@ import logger from 'utils/logger';
 import { locationService } from 'services/locationService';
 
 export const initializeChatSockets = (io: Server) => {
-    io.use(async (socket, next) => {
-      try {
-        const token = socket.handshake.auth.token;
-        if (!token) {
-          throw new Error('No token provided');
-        }
-
-        // Verify JWT token (implement in auth service)
-        const decoded = await verifyToken(token);
-        socket.userId = decoded.userId;
-        socket.sessionId = decoded.sessionId;
-        next();
-      } catch (error) {
-        next(new Error('Authentication error'));
+  io.use(async (socket, next) => {
+    try {
+      const token = socket.handshake.auth.token;
+      if (!token) {
+        throw new Error('No token provided');
       }
+
+      // Verify JWT token (implement in auth service)
+      const decoded = await verifyToken(token);
+      socket.userId = decoded.userId;
+      socket.sessionId = decoded.sessionId;
+      next();
+    } catch (error: Error | any) {
+      next(new Error('Authentication error: ' + error.message));
+    }
+  });
+
+  io.on('connection', (socket) => {
+    logger.info(`User ${socket.userId} connected with session ${socket.sessionId}`);
+
+    // Join user to their personal room
+    socket.join(`user:${socket.userId}`);
+
+    // Location sharing
+    socket.on('share_location', (data) => {
+      locationService.validateUserForLocationRoom(socket.userId!, data);
     });
 
-    io.on('connection', (socket) => {
-      logger.info(`User ${socket.userId} connected with session ${socket.sessionId}`);
+    // Chat events
+    socket.on('join_chat', (rideId) => {
+      socket.join(`ride:${rideId}`);
+    });
 
-      // Join user to their personal room
-      socket.join(`user:${socket.userId}`);
+    socket.on('leave_chat', (rideId) => {
+      socket.leave(`ride:${rideId}`);
+    });
 
-      // Location sharing
-      socket.on('share_location', (data) => {
-        locationService.validateUserForLocationRoom(socket.userId!, data);
-      });
-
-      // Chat events
-      socket.on('join_chat', (rideId) => {
-        socket.join(`ride:${rideId}`);
-      });
-
-      socket.on('leave_chat', (rideId) => {
-        socket.leave(`ride:${rideId}`);
-      });
-
-      socket.on('typing', (data) => {
-        socket.to(`ride:${data.rideId}`).emit('user_typing', {
-          userId: socket.userId,
-          isTyping: data.isTyping
-        });
-      });
-
-      socket.on('disconnect', () => {
-        logger.info(`User ${socket.userId} disconnected`);
-        locationService.removeUserLocation(socket);
+    socket.on('typing', (data) => {
+      socket.to(`ride:${data.rideId}`).emit('user_typing', {
+        userId: socket.userId,
+        isTyping: data.isTyping
       });
     });
+
+    socket.on('disconnect', () => {
+      logger.info(`User ${socket.userId} disconnected`);
+      locationService.removeUserLocation(socket);
+    });
+  });
 };

@@ -12,7 +12,7 @@ class AdminSecurityController {
     try {
       const blocks = await adminSecurityService.listAllBlocks();
       return res.status(200).json(blocks);
-    } catch (error: any) {
+    } catch (error: Error | any) {
       return res.status(500).json({ message: 'Erro ao visualizar bloqueios.', error: error.message });
     }
   }
@@ -37,7 +37,7 @@ class AdminSecurityController {
         twoFactorCode
       );
       return res.status(200).json(block);
-    } catch (error: any) {
+    } catch (error: Error | any) {
       return res.status(500).json({ message: 'Erro ao visualizar motivo do bloqueio.', error: error.message });
     }
   }
@@ -54,7 +54,7 @@ class AdminSecurityController {
 
     try {
       const { targetUserId } = req.params;
-      const { reason, twoFactorCode } = req.body;
+      const { twoFactorCode } = req.body;
       const adminUser = req.user!;
       await adminSecurityService.forceGlobalLogout(
         targetUserId as unknown as Types.ObjectId,
@@ -62,7 +62,7 @@ class AdminSecurityController {
         twoFactorCode
       );
       return res.status(200).json({ message: 'Logout global forçado com sucesso. Todas as sessões do usuário foram revogadas.' });
-    } catch (error: any) {
+    } catch (error: Error | any) {
       return res.status(500).json({ message: 'Erro ao forçar logout global.', error: error.message });
     }
   }

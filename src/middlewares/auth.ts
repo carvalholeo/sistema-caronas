@@ -12,7 +12,7 @@ export const authMiddleware = async (req: Request, res: Response, next: NextFunc
   const token = authHeader.split(' ')[1];
 
   try {
-    const decoded: any = verifyToken(token);
+    const decoded = await verifyToken(token);
     const user = await UserModel.findById(decoded.id);
 
     if (!user) {
@@ -26,7 +26,7 @@ export const authMiddleware = async (req: Request, res: Response, next: NextFunc
 
     req.user = user;
     next();
-  } catch (error) {
+  } catch (_) {
     return res.status(401).json({ message: 'Token inválido.' });
   }
 };

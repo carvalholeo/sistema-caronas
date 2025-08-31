@@ -9,7 +9,7 @@ class VehicleController {
     try {
       const vehicle = await vehicleService.createVehicle(req.user!._id, req.body);
       return res.status(201).json(vehicle);
-    } catch (error: any) {
+    } catch (error: Error | any) {
       return res.status(500).json({ message: 'Erro ao cadastrar veículo.', error: error.message });
     }
   }
@@ -18,7 +18,7 @@ class VehicleController {
     try {
       const vehicles = await vehicleService.getVehiclesByOwner(req.user!._id);
       return res.status(200).json(vehicles);
-    } catch (error: any) {
+    } catch (error: Error | any) {
       return res.status(500).json({ message: 'Erro ao buscar veículos.', error: error.message });
     }
   }

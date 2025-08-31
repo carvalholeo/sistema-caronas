@@ -46,7 +46,7 @@ const AuditLogSchema = new Schema<IAuditLog>({
     extra: {
       type: Schema.Types.Mixed,
       validate: {
-        validator: function(extras: any) {
+        validator: function(extras: object) {
           // Ensure details don't contain sensitive information
           if (typeof extras === 'object' && extras !== null) {
             const sensitiveFields = ['password', 'token', 'secret', 'key'];

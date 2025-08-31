@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from 'express';
+import { Request, Response } from 'express';
 
 interface CustomError extends Error {
   statusCode?: number;
@@ -9,7 +9,7 @@ interface CustomError extends Error {
  * Middleware de tratamento de erros centralizado.
  * Captura todos os erros que ocorrem na aplicação e envia uma resposta JSON padronizada.
  */
-export const errorHandler = (err: CustomError, req: Request, res: Response, next: NextFunction) => {
+export const errorHandler = (err: CustomError, req: Request, res: Response) => {
   // Define o status code do erro. Padrão para 500 (Internal Server Error) se não especificado.
   const statusCode = err.statusCode || 500;
 

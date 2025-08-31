@@ -8,7 +8,7 @@ class ChatController {
       const { rideId } = req.params;
       const history = await chatService.getChatHistory(rideId as unknown as Types.ObjectId, req.user!._id);
       return res.status(200).json(history);
-    } catch (error: any) {
+    } catch (error: Error | any) {
       return res.status(500).json({ message: 'Erro ao buscar histórico.', error: error.message });
     }
   }
@@ -22,7 +22,7 @@ class ChatController {
       res.charset = 'UTF-8';
       res.write(txtContent);
       res.end();
-    } catch (error: any) {
+    } catch (error: Error | any) {
       res.status(500).json({ message: 'Erro ao exportar histórico.', error: error.message });
     }
   }

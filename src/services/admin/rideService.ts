@@ -17,7 +17,7 @@ class AdminRidesService {
     return ride;
   }
 
-  public async editRide(rideId: Types.ObjectId, adminId: Types.ObjectId, reason: string, updateData: any): Promise<IRide | null> {
+  public async editRide(rideId: Types.ObjectId, adminId: Types.ObjectId, reason: string, updateData: object): Promise<IRide | null> {
     const ride = await RideModel.findById(rideId);
     if (!ride) throw new Error("Carona não encontrada.");
     if ([RideStatus.InProgress, RideStatus.Completed].includes(ride.status)) throw new Error("Não é possível editar caronas em andamento ou finalizadas.");
@@ -25,7 +25,6 @@ class AdminRidesService {
     const oldData = { ...ride.toObject() };
     Object.assign(ride, updateData);
     ride.auditHistory.push({ action: 'edited_by_admin', adminUser: adminId, reason, details: { from: oldData, to: updateData } });
-
     await ride.save();
     return ride;
   }

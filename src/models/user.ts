@@ -17,8 +17,16 @@ export enum UserRole {
   Admin = 'admin',
 }
 
+interface AuditLog {
+  action: string;
+  adminUser?: Types.ObjectId;
+  timestamp?: Date;
+  reason?: string;
+  details?: any;
+}
+
 // Subdocumento para auditoria interna do usuário
-const AuditLogSchema = new Schema({
+const AuditLogSchema = new Schema<AuditLog>({
   action: { type: String, required: true },
   adminUser: { type: Schema.Types.ObjectId, ref: 'User' },
   timestamp: { type: Date, default: Date.now },
@@ -47,7 +55,7 @@ export interface IUser extends Document {
   twoFactorEnabled: boolean;
   forcePasswordChangeOnNextLogin: boolean;
   sessionVersion: number;
-  auditHistory: any[];
+  auditHistory: AuditLog[];
   lastLogin?: Date;
   accessibilitySettings: {
     highContrast: boolean;

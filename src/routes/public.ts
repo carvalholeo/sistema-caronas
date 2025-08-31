@@ -16,7 +16,7 @@ publicRouter.get('/reports/verify/:hash', verifyReportValidator, async (req: Req
             issuedAt: report.createdAt,
             includedDataPoints: report.includedDataPoints
         });
-    } catch (error: any) {
+    } catch (error: Error | any) {
         return res.status(500).json({ message: 'Erro ao verificar o relatório.', error: error.message });
     }
 });

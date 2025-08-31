@@ -65,8 +65,8 @@ ChatMessageSchema.pre<IChatMessage>('save', async function(next) {
     }
 
     const isDriverOrPassenger = ride.driver.toString() === this.sender.toString() ||
-                                ride.passengers.some((p: any) =>
-                                  p.user.toString() === this.sender.toString()
+                                ride.passengers.some((p: IUser) =>
+                                  p._id.toString() === this.sender.toString()
                                 );
 
     if (!isDriverOrPassenger) {

@@ -21,7 +21,7 @@ class AdminSecurityService {
     return block;
   }
 
-  public async forceGlobalLogout(targetUserId: Types.ObjectId, adminUser: IUser, twoFactorCode: string): Promise<any> {
+  public async forceGlobalLogout(targetUserId: Types.ObjectId, adminUser: IUser, twoFactorCode: string): Promise<{ message: string }> {
     if (!authService.verifyTwoFactorCode(adminUser.twoFactorSecret, twoFactorCode)) throw new Error("Código 2FA inválido.");
 
     const targetUser = await UserModel.findById(targetUserId);

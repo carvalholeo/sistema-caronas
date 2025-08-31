@@ -15,7 +15,7 @@ class RideController {
     try {
       const ride = await rideService.createRide(req.user!._id, req.body);
       return res.status(201).json(ride);
-    } catch (error: any) {
+    } catch (error: Error | any) {
       return res.status(400).json({ message: error.message });
     }
   }
@@ -31,7 +31,7 @@ class RideController {
     try {
       const rides = await rideService.createRecurrentRide(req.user!._id, req.body);
       return res.status(201).json(rides);
-    } catch (error: any) {
+    } catch (error: Error | any) {
       return res.status(400).json({ message: error.message });
     }
   }
@@ -42,12 +42,12 @@ class RideController {
   public async search(req: Request, res: Response): Promise<Response> {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-        return res.status(400).json({ errors: errors.array() });
+      return res.status(400).json({ errors: errors.array() });
     }
     try {
       const rides = await rideService.searchRides(req.query, req.user!._id);
       return res.status(200).json(rides);
-    } catch (error: any) {
+    } catch (error: Error | any) {
       return res.status(500).json({ message: 'Erro ao buscar caronas.', error: error.message });
     }
   }
@@ -59,7 +59,7 @@ class RideController {
     try {
       const rides = await rideService.getMyRidesAsDriver(req.user!._id);
       return res.status(200).json(rides);
-    } catch (error: any) {
+    } catch (error: Error | any) {
       return res.status(500).json({ message: 'Erro ao buscar suas caronas como motorista.', error: error.message });
     }
   }
@@ -71,7 +71,7 @@ class RideController {
     try {
       const rides = await rideService.getMyRidesAsPassenger(req.user!._id);
       return res.status(200).json(rides);
-    } catch (error: any) {
+    } catch (error: Error | any) {
       return res.status(500).json({ message: 'Erro ao buscar suas caronas como caroneiro.', error: error.message });
     }
   }
@@ -84,7 +84,7 @@ class RideController {
       const { id } = req.params;
       const rideDetails = await rideService.getRideDetails(id as unknown as Types.ObjectId, req.user!._id);
       return res.status(200).json(rideDetails);
-    } catch (error: any) {
+    } catch (error: Error | any) {
       // Usa 403 (Proibido) se o usuário não tiver permissão para ver
       return res.status(403).json({ message: error.message });
     }
@@ -96,13 +96,13 @@ class RideController {
   public async update(req: Request, res: Response): Promise<Response> {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-        return res.status(400).json({ errors: errors.array() });
+      return res.status(400).json({ errors: errors.array() });
     }
     try {
       const { id } = req.params;
       const ride = await rideService.updateRide(id as unknown as Types.ObjectId, req.user!._id, req.body);
       return res.status(200).json(ride);
-    } catch (error: any) {
+    } catch (error: Error | any) {
       return res.status(403).json({ message: error.message });
     }
   }
@@ -115,7 +115,7 @@ class RideController {
       const { id } = req.params;
       const ride = await rideService.requestSeat(id as unknown as Types.ObjectId, req.user!._id);
       return res.status(200).json(ride);
-    } catch (error: any) {
+    } catch (error: Error | any) {
       return res.status(400).json({ message: error.message });
     }
   }
@@ -137,7 +137,7 @@ class RideController {
         passengerId as unknown as Types.ObjectId,
         action);
       return res.status(200).json(ride);
-    } catch (error: any) {
+    } catch (error: Error | any) {
       return res.status(403).json({ message: error.message });
     }
   }
@@ -150,7 +150,7 @@ class RideController {
       const { id } = req.params;
       const ride = await rideService.cancelRideByDriver(id as unknown as Types.ObjectId, req.user!._id);
       return res.status(200).json({ message: 'Carona cancelada com sucesso.', ride });
-    } catch (error: any) {
+    } catch (error: Error | any) {
       return res.status(403).json({ message: error.message });
     }
   }
@@ -163,7 +163,7 @@ class RideController {
       const { id } = req.params;
       const ride = await rideService.cancelSeatByPassenger(id as unknown as Types.ObjectId, req.user!._id);
       return res.status(200).json({ message: 'Reserva cancelada com sucesso.', ride });
-    } catch (error: any) {
+    } catch (error: Error | any) {
       return res.status(403).json({ message: error.message });
     }
   }

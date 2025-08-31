@@ -18,7 +18,7 @@ class AdminChatController {
         senderId as unknown as Types.ObjectId,
         adminUser);
       return res.status(200).json(messages);
-    } catch (error: any) {
+    } catch (error: Error | any) {
       return res.status(500).json({ message: 'Erro ao obter histórico do chat para auditoria.', error: error.message });
     }
   }
@@ -43,7 +43,7 @@ class AdminChatController {
         reason
       );
       return res.status(200).json(moderatedMessage);
-    } catch (error: any) {
+    } catch (error: Error | any) {
       return res.status(403).json({ message: error.message });
     }
   }
@@ -75,7 +75,7 @@ class AdminChatController {
       res.setHeader('Content-type', 'text/plain; charset=utf-8');
       res.write(content);
       res.end();
-    } catch (error: any) {
+    } catch (error: Error | any) {
       // Evita o envio de outro status se os headers já foram enviados
       if (!res.headersSent) {
         res.status(500).json({ message: 'Erro ao exportar logs do chat.', error: error.message });

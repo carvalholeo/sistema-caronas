@@ -24,7 +24,7 @@ class AdminPrivacyController {
         twoFactorCode
       );
       return res.status(200).json(report);
-    } catch (error: any) {
+    } catch (error: Error | any) {
       return res.status(500).json({ message: 'Erro ao gerar relatório de dados.', error: error.message });
     }
   }
@@ -41,7 +41,7 @@ class AdminPrivacyController {
 
     try {
       const { targetUserId } = req.params;
-      const { reason, twoFactorCode } = req.body;
+      const { twoFactorCode } = req.body;
       const adminUser = req.user!;
       await adminPrivacyService.processUserRemoval(
         targetUserId as unknown as Types.ObjectId,
@@ -49,7 +49,7 @@ class AdminPrivacyController {
         twoFactorCode
       );
       return res.status(200).json({ message: 'Solicitação de remoção processada com sucesso. O usuário foi anonimizado.' });
-    } catch (error: any) {
+    } catch (error: Error | any) {
       return res.status(500).json({ message: 'Erro ao processar solicitação de remoção.', error: error.message });
     }
   }
@@ -66,7 +66,7 @@ class AdminPrivacyController {
         req.user!
       );
       return res.status(200).json(logs);
-    } catch (error: any) {
+    } catch (error: Error | any) {
       return res.status(500).json({ message: 'Erro ao visualizar logs de privacidade.', error: error.message });
     }
   }
@@ -92,7 +92,7 @@ class AdminPrivacyController {
         body
       );
       return res.status(200).json({ message: 'Notificação formal enviada com sucesso.' });
-    } catch (error: any) {
+    } catch (error: Error | any) {
       return res.status(500).json({ message: 'Erro ao enviar notificação formal.', error: error.message });
     }
   }

@@ -12,7 +12,7 @@ export interface IBlock extends Document {
   blockedUser: Types.ObjectId;
   reason: string;
   status: 'active' | 'reversed_by_admin';
-  auditHistory: any[];
+  auditHistory: typeof AuditLogSchema[];
   createdAt: Date;
 }
 

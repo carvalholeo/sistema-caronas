@@ -13,7 +13,7 @@ import { PrivacyRequestModel } from '../../models/privacyRequest';
 import { DataReportModel } from '../../models/dataReport';
 import { SessionEventModel } from '../../models/sessionEvent';
 import { BlockModel } from '../../models/block';
-import { PipelineStage, Types } from 'mongoose';
+import { PipelineStage } from 'mongoose';
 
 class AdminReportsService {
 
@@ -154,15 +154,15 @@ class AdminReportsService {
     };
   }
 
-  public async getVehicleConflictReport(startDate: Date, endDate: Date) {
-    // Lógica complexa que dependeria de um log de tentativas de cadastro
-    return {
-      conflictAttempts: "Not implemented",
-      averageResolutionTime: "Not implemented",
-      approvedVsRejectedRatio: "Not implemented",
-      usersImpacted: "Not implemented"
-    };
-  }
+  // public async getVehicleConflictReport(startDate: Date, endDate: Date) {
+  //   // Lógica complexa que dependeria de um log de tentativas de cadastro
+  //   return {
+  //     conflictAttempts: "Not implemented",
+  //     averageResolutionTime: "Not implemented",
+  //     approvedVsRejectedRatio: "Not implemented",
+  //     usersImpacted: "Not implemented"
+  //   };
+  // }
 
   // =================================================================
   // == RELATÓRIOS DE CARONAS
@@ -313,7 +313,6 @@ class AdminReportsService {
     ]);
 
     const data = performance[0] || {};
-    const totalViews = await RideViewEventModel.countDocuments({ timestamp: { $gte: startDate, $lte: endDate } });
 
     return {
       averageSearchTimeMs: data.totalSearches > 0 ? data.totalDuration / data.totalSearches : 0,
@@ -345,14 +344,14 @@ class AdminReportsService {
     };
   }
 
-  public async getChatPresenceReport(startDate: Date, endDate: Date) {
-    // Depende de configurações no perfil do usuário que não foram modeladas
-    return {
-      usersWithOnlineActive: "Not implemented",
-      deliveryVsReadRate: "Not implemented",
-      averageFirstResponseTime: "Not implemented",
-    };
-  }
+  // public async getChatPresenceReport(startDate: Date, endDate: Date) {
+  //   // Depende de configurações no perfil do usuário que não foram modeladas
+  //   return {
+  //     usersWithOnlineActive: "Not implemented",
+  //     deliveryVsReadRate: "Not implemented",
+  //     averageFirstResponseTime: "Not implemented",
+  //   };
+  // }
 
   public async getChatAdminReport(startDate: Date, endDate: Date) {
     const dateFilter = { timestamp: { $gte: startDate, $lte: endDate } };
@@ -400,19 +399,19 @@ class AdminReportsService {
   // == RELATÓRIOS DE NOTIFICAÇÕES
   // =================================================================
 
-  public async getNotificationDeliveryReport(startDate: Date, endDate: Date) {
-    // Depende da implementação completa de notificações
-    return {
-      optInRate: "Not implemented",
-      sentVsDeliveredVsClicked: "Not implemented",
-    };
-  }
-  public async getNotificationLimitsReport(startDate: Date, endDate: Date) {
-    return {
-      aggregationsApplied: "Not implemented",
-      eventsSuppressed: "Not implemented",
-    };
-  }
+  // public async getNotificationDeliveryReport(startDate: Date, endDate: Date) {
+  //   // Depende da implementação completa de notificações
+  //   return {
+  //     optInRate: "Not implemented",
+  //     sentVsDeliveredVsClicked: "Not implemented",
+  //   };
+  // }
+  // public async getNotificationLimitsReport(startDate: Date, endDate: Date) {
+  //   return {
+  //     aggregationsApplied: "Not implemented",
+  //     eventsSuppressed: "Not implemented",
+  //   };
+  // }
 
   // =================================================================
   // == RELATÓRIOS DE ACESSIBILIDADE

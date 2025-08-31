@@ -32,7 +32,7 @@ class RideService {
 
         const ridesToCreate = [];
         const recurrenceId = randomUUID();
-        let currentDate = new Date(rideData.departureTime);
+        const currentDate = new Date(rideData.departureTime);
         const endDate = new Date(recurrence.endDate);
 
         while (currentDate <= endDate) {

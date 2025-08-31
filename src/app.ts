@@ -1,4 +1,4 @@
-import { createServer } from 'http';
+import { createServer, Server as HttpServer } from 'http';
 
 import express from 'express';
 import mongoose from 'mongoose';
@@ -32,7 +32,7 @@ config();
 
 class CarpoolApp {
   public app: express.Application;
-  public server: any;
+  public server: HttpServer;
   public io: Server;
   private redisClient: any;
   private isShuttingDown: boolean = false;

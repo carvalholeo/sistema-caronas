@@ -19,7 +19,7 @@ class AdminReportsController {
         report = await serviceMethod();
       }
       return res.status(200).json(report);
-    } catch (error: any) {
+    } catch (error: Error | any) {
       return res.status(500).json({ message: `Erro ao gerar o relatório: ${error.message}` });
     }
   }
@@ -39,7 +39,7 @@ class AdminReportsController {
       const { endDate } = req.query;
       const report = await adminReportsService.getEngagementReport(new Date(endDate as string));
       return res.status(200).json(report);
-    } catch (error: any) {
+    } catch (error: Error | any) {
       return res.status(500).json({ message: `Erro ao gerar o relatório: ${error.message}` });
     }
   }
@@ -56,9 +56,9 @@ class AdminReportsController {
     return this.handleReportRequest(req, res, adminReportsService.getVehicleInventoryReport);
   }
 
-  public async getVehicleConflictReport(req: Request, res: Response): Promise<Response> {
-    return this.handleReportRequest(req, res, adminReportsService.getVehicleConflictReport);
-  }
+  // public async getVehicleConflictReport(req: Request, res: Response): Promise<Response> {
+  //   return this.handleReportRequest(req, res, adminReportsService.getVehicleConflictReport);
+  // }
 
   public async getRideOfferReport(req: Request, res: Response): Promise<Response> {
     return this.handleReportRequest(req, res, adminReportsService.getRideOfferReport);
@@ -88,9 +88,9 @@ class AdminReportsController {
     return this.handleReportRequest(req, res, adminReportsService.getChatUsageReport);
   }
 
-  public async getChatPresenceReport(req: Request, res: Response): Promise<Response> {
-    return this.handleReportRequest(req, res, adminReportsService.getChatPresenceReport);
-  }
+  // public async getChatPresenceReport(req: Request, res: Response): Promise<Response> {
+  //   return this.handleReportRequest(req, res, adminReportsService.getChatPresenceReport);
+  // }
 
   public async getChatAdminReport(req: Request, res: Response): Promise<Response> {
     return this.handleReportRequest(req, res, adminReportsService.getChatAdminReport);
@@ -100,13 +100,13 @@ class AdminReportsController {
     return this.handleReportRequest(req, res, adminReportsService.getChatModerationReport);
   }
 
-  public async getNotificationDeliveryReport(req: Request, res: Response): Promise<Response> {
-    return this.handleReportRequest(req, res, adminReportsService.getNotificationDeliveryReport);
-  }
+  // public async getNotificationDeliveryReport(req: Request, res: Response): Promise<Response> {
+  //   return this.handleReportRequest(req, res, adminReportsService.getNotificationDeliveryReport);
+  // }
 
-  public async getNotificationLimitsReport(req: Request, res: Response): Promise<Response> {
-    return this.handleReportRequest(req, res, adminReportsService.getNotificationLimitsReport);
-  }
+  // public async getNotificationLimitsReport(req: Request, res: Response): Promise<Response> {
+  //   return this.handleReportRequest(req, res, adminReportsService.getNotificationLimitsReport);
+  // }
 
   public async getAccessibilityReport(req: Request, res: Response): Promise<Response> {
     return this.handleReportRequest(req, res, adminReportsService.getAccessibilityReport, false);

@@ -25,7 +25,7 @@ export interface IVehicle extends Document {
   capacity: number;
   photoUrl?: string;
   status: VehicleStatus;
-  auditHistory: any[];
+  auditHistory: typeof AuditLogSchema[];
   createdAt: Date;
   updatedAt: Date;
 }

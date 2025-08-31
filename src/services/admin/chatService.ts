@@ -2,9 +2,8 @@
 import { ChatMessageModel, IChatMessage } from '../../models/chat';
 import { AuditLogModel } from '../../models/auditLog';
 import { authService } from '../authService';
-import { IUser, UserModel } from '../../models/user';
+import { IUser } from '../../models/user';
 import { Types } from 'mongoose';
-import { User } from 'types';
 
 class AdminChatService {
   public async readConversation(rideId: Types.ObjectId, senderId: Types.ObjectId, adminId: IUser): Promise<IChatMessage[]> {
@@ -30,7 +29,7 @@ class AdminChatService {
     message.isModerated = true;
     message.moderationDetails = {
       originalContent: message.content,
-      moderatedBy: adminId as any,
+      moderatedBy: adminId._id,
       moderatedAt: new Date(),
       reason: reason,
     };
