@@ -82,7 +82,7 @@
     "express"
   ],
   "author": "Your Name",
-  "license": "MIT",
+  "license": "LICENSED",
   "engines": {
     "node": ">=22.0.0"
   }
