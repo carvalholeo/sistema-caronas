@@ -1,11 +1,5 @@
-import { Schema, model, Document, Types } from 'mongoose';
-
-interface ISearchEvent extends Document {
-  user: Types.ObjectId;
-  durationMs: number;
-  resultsCount: number;
-  timestamp: Date;
-}
+import { Schema, model } from 'mongoose';
+import { ISearchEvent } from 'types';
 
 const SearchEventSchema = new Schema<ISearchEvent>({
   user: { type: Schema.Types.ObjectId, ref: 'User', required: true },

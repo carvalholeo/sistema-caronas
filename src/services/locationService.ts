@@ -1,8 +1,9 @@
 import { Server, Socket } from 'socket.io';
-import { RideModel, RideStatus } from '../models/ride';
-import { LocationLogModel, LocationLogAction } from '../models/locationLog';
+import { RideModel } from '../models/ride';
+import { LocationLogModel } from '../models/locationLog';
 import { BlockModel } from '../models/block';
 import mongoose, { Types } from 'mongoose';
+import { RideStatus, LocationLogAction } from 'types/enums/enums';
 
 class LocationService {
 
@@ -72,7 +73,7 @@ class LocationService {
     const ride = await RideModel.findById(rideId).lean();
     if (!ride) return;
 
-    const isSenderDriver = ride.driver._id.toString() === socket.userId;
+    const isSenderDriver = ride.driver._id.toString() === socket.userId.toString();
     const senderRole = isSenderDriver ? 'driver' : 'passenger';
 
     const socketsInRoom = await io.in(room).fetchSockets();

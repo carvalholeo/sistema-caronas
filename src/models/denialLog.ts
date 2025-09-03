@@ -1,11 +1,5 @@
-import { Schema, model, Document, Types } from 'mongoose';
-
-interface IAccessDenialLog extends Document {
-  adminUser: Types.ObjectId;
-  requiredPermission: string;
-  attemptedAction: string;
-  target?: object;
-}
+import { Schema, model } from 'mongoose';
+import { IAccessDenialLog } from 'types';
 
 const AccessDenialLogSchema = new Schema<IAccessDenialLog>({
   adminUser: { type: Schema.Types.ObjectId, ref: 'User', required: true },

@@ -1,20 +1,12 @@
-import { Schema, model, Document, Types } from 'mongoose';
+import { Schema, model } from 'mongoose';
+import { IAuditLogSchema, IBlock } from 'types';
 
-const AuditLogSchema = new Schema({
+const AuditLogSchema = new Schema<IAuditLogSchema>({
   action: { type: String, required: true },
   adminUser: { type: Schema.Types.ObjectId, ref: 'User', required: true },
   timestamp: { type: Date, default: Date.now },
   reason: { type: String },
 });
-
-export interface IBlock extends Document {
-  blockerUser: Types.ObjectId;
-  blockedUser: Types.ObjectId;
-  reason: string;
-  status: 'active' | 'reversed_by_admin';
-  auditHistory: typeof AuditLogSchema[];
-  createdAt: Date;
-}
 
 const BlockSchema = new Schema<IBlock>({
     blockerUser: { type: Schema.Types.ObjectId, ref: 'User', required: true },

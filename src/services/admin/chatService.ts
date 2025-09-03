@@ -1,9 +1,9 @@
 // Lógica de negócio para moderação e auditoria de chats.
-import { ChatMessageModel, IChatMessage } from '../../models/chat';
+import { ChatMessageModel } from '../../models/chat';
 import { AuditLogModel } from '../../models/auditLog';
 import { authService } from '../authService';
-import { IUser } from '../../models/user';
 import { Types } from 'mongoose';
+import { IChatMessage, IUser } from 'types';
 
 class AdminChatService {
   public async readConversation(rideId: Types.ObjectId, senderId: Types.ObjectId, adminId: IUser): Promise<IChatMessage[]> {

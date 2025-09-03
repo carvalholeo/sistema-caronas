@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import { validationResult } from 'express-validator';
 import { adminUsersService } from '../../services/admin/userService';
 import { Types } from 'mongoose';
-import { IUser } from 'models/user';
+import { IUser } from 'types';
 
 class AdminUsersController {
   /**

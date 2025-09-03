@@ -1,7 +1,6 @@
 import jwt, { SignOptions } from 'jsonwebtoken';
-import { IUser } from '../models/user';
 import authConfig from 'config/auth';
-
+import { IUser } from 'types';
 
 export const generateToken = (
     user: IUser,

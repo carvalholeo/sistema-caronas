@@ -1,7 +1,9 @@
 // Lógica de negócio para ações administrativas em caronas.
-import { IUser } from 'models/user';
-import { RideModel, IRide, RideStatus } from '../../models/ride';
+import { IRide, IUser } from 'types';
+import { RideModel } from '../../models/ride';
 import { Types } from 'mongoose';
+import { InternalAuditLogModel } from 'models/internalAuditLogSchema';
+import { RideStatus } from 'types/enums/enums';
 
 class AdminRidesService {
   public async listAllRides(): Promise<IRide[]> {
@@ -11,7 +13,8 @@ class AdminRidesService {
   public async getRideDetails(rideId: Types.ObjectId, adminId: Types.ObjectId): Promise<IRide | null> {
     const ride = await RideModel.findById(rideId).populate('driver passengers.user', 'name email matricula');
     if (ride) {
-      ride.auditHistory.push({ action: 'details_viewed_by_admin', adminUser: adminId });
+      const auditEntry = new InternalAuditLogModel({ action: 'details_viewed_by_admin', adminUser: adminId })
+      ride.auditHistory.push(auditEntry);
       await ride.save();
     }
     return ride;
@@ -24,7 +27,8 @@ class AdminRidesService {
 
     const oldData = { ...ride.toObject() };
     Object.assign(ride, updateData);
-    ride.auditHistory.push({ action: 'edited_by_admin', adminUser: adminId, reason, details: { from: oldData, to: updateData } });
+    const auditEntry = new InternalAuditLogModel({ action: 'edited_by_admin', adminUser: adminId, reason, details: { from: oldData, to: updateData } });
+    ride.auditHistory.push(auditEntry);
     await ride.save();
     return ride;
   }
@@ -34,7 +38,8 @@ class AdminRidesService {
     if (!ride) throw new Error("Carona não encontrada.");
 
     ride.status = RideStatus.Cancelled;
-    ride.auditHistory.push({ action: 'cancelled_by_admin', adminUser: adminId, reason });
+    const auditEntry = new InternalAuditLogModel({ action: 'cancelled_by_admin', adminUser: adminId, reason });
+    ride.auditHistory.push(auditEntry);
 
     await ride.save();
     // Aqui entraria a lógica de notificação para os passageiros
@@ -51,7 +56,8 @@ class AdminRidesService {
     if (!ride) throw new Error("Carona não encontrada.");
 
     ride.status = RideStatus.Scheduled; // Simulação
-    ride.auditHistory.push({ action: 'published_by_admin', adminUser: adminId, reason });
+    const auditEntry = new InternalAuditLogModel({ action: 'force_published_by_admin', adminUser: adminId, reason });
+    ride.auditHistory.push(auditEntry);
 
     await ride.save();
     return ride;
@@ -94,13 +100,14 @@ class AdminRidesService {
     Object.assign(ride, updateData);
 
     // Adiciona o registro de auditoria na própria carona
-    ride.auditHistory.push({
+    const auditEntry = new InternalAuditLogModel({
       action: 'admin_ride_updated',
       adminUser: adminUser._id,
       timestamp: new Date(),
       reason: reason,
       details: JSON.stringify(updateData)
     });
+    ride.auditHistory.push(auditEntry);
 
     await ride.save();
     return ride;

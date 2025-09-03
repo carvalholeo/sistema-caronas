@@ -1,19 +1,5 @@
-import { Schema, model, Document, Types } from 'mongoose';
-
-export interface IAuditLog extends Document {
-  adminUser: Types.ObjectId;
-  action: string;
-  target: {
-    type: 'user' | 'ride' | 'chat' | 'vehicle' | string;
-    id: string;
-  };
-  details: {
-    ipAddress: string;
-    userAgent?: string;
-    [key: string]: unknown | undefined;
-  };
-  timestamp: Date;
-}
+import { Schema, model } from 'mongoose';
+import { IAuditLog } from 'types';
 
 const AuditLogSchema = new Schema<IAuditLog>({
   adminUser: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },

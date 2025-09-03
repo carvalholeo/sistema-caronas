@@ -1,16 +1,6 @@
-import { Schema, model, Document, Types } from 'mongoose';
-
-export enum LocationLogAction {
-  SharingStarted = 'sharing_started',
-  SharingStopped = 'sharing_stopped',
-}
-
-interface ILocationLog extends Document {
-  ride: Types.ObjectId;
-  user: Types.ObjectId;
-  action: LocationLogAction;
-  timestamp: Date;
-}
+import { Schema, model } from 'mongoose';
+import { ILocationLog } from 'types';
+import { LocationLogAction } from 'types/enums/enums';
 
 const LocationLogSchema = new Schema<ILocationLog>({
   ride: { type: Schema.Types.ObjectId, ref: 'Ride', required: true, index: true },

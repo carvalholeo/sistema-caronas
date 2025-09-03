@@ -1,32 +1,11 @@
-import { Schema, model, Document, Types } from 'mongoose';
+import { Schema, model } from 'mongoose';
 import bcrypt from 'bcrypt';
 import authConfig from 'config/auth';
-
-export enum UserStatus {
-  Pending = 'pending',
-  Approved = 'approved',
-  Rejected = 'rejected',
-  Suspended = 'suspended',
-  Banned = 'banned',
-  Anonymized = 'anonymized',
-}
-
-export enum UserRole {
-  Caroneiro = 'caroneiro',
-  Motorista = 'motorista',
-  Admin = 'admin',
-}
-
-interface AuditLog {
-  action: string;
-  adminUser?: Types.ObjectId;
-  timestamp?: Date;
-  reason?: string;
-  details?: any;
-}
+import { IAccessibilitySettings, IAuditLogSchema, IUser} from 'types';
+import { UserRole, UserStatus } from 'types/enums/enums';
 
 // Subdocumento para auditoria interna do usuário
-const AuditLogSchema = new Schema<AuditLog>({
+const AuditLogSchema = new Schema<IAuditLogSchema>({
   action: { type: String, required: true },
   adminUser: { type: Schema.Types.ObjectId, ref: 'User' },
   timestamp: { type: Date, default: Date.now },
@@ -35,39 +14,12 @@ const AuditLogSchema = new Schema<AuditLog>({
 });
 
 // Subdocumento para configurações de acessibilidade
-const AccessibilitySettingsSchema = new Schema({
+const AccessibilitySettingsSchema = new Schema<IAccessibilitySettings>({
   highContrast: { type: Boolean, default: false },
   largeFont: { type: Boolean, default: false },
   reduceAnimations: { type: Boolean, default: false },
   muteSounds: { type: Boolean, default: false },
 });
-
-export interface IUser extends Document {
-  _id: Types.ObjectId;
-  name: string;
-  email: string;
-  matricula: string;
-  password: string;
-  roles: UserRole[];
-  permissions: string[];
-  status: UserStatus;
-  twoFactorSecret: string;
-  twoFactorEnabled: boolean;
-  forcePasswordChangeOnNextLogin: boolean;
-  sessionVersion: number;
-  auditHistory: AuditLog[];
-  lastLogin?: Date;
-  accessibilitySettings: {
-    highContrast: boolean;
-    largeFont: boolean;
-    reduceAnimations: boolean;
-    muteSounds: boolean;
-  };
-  languagePreference: string;
-  createdAt: Date;
-  updatedAt: Date;
-  comparePassword(password: string): Promise<boolean>;
-}
 
 const UserSchema = new Schema<IUser>({
   name: { type: String, required: true },

@@ -1,7 +1,7 @@
 // Lógica de negócio para todos os relatórios do painel administrativo.
-import { UserModel, UserStatus } from '../../models/user';
-import { VehicleModel, VehicleStatus } from '../../models/vehicle';
-import { RideModel, RideStatus } from '../../models/ride';
+import { UserModel } from '../../models/user';
+import { VehicleModel } from '../../models/vehicle';
+import { RideModel } from '../../models/ride';
 import { ChatMessageModel } from '../../models/chat';
 import { SearchEventModel } from '../../models/searchEvent';
 import { RideViewEventModel } from '../../models/rideViewEvent';
@@ -14,6 +14,7 @@ import { DataReportModel } from '../../models/dataReport';
 import { SessionEventModel } from '../../models/sessionEvent';
 import { BlockModel } from '../../models/block';
 import { PipelineStage } from 'mongoose';
+import { UserStatus, VehicleStatus, RideStatus } from 'types/enums/enums';
 
 class AdminReportsService {
 

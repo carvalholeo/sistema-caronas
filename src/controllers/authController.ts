@@ -1,10 +1,11 @@
 import { Request, Response } from 'express';
 import { validationResult } from 'express-validator';
 import { authService } from '../services/authService';
-import { IUser, UserModel } from '../models/user';
 import qrcode from 'qrcode';
 import authConfig from 'config/auth';
 import * as security from '../utils/security';
+import { UserModel } from 'models/user';
+import { IUser } from 'types';
 
 class AuthController {
     public async register(req: Request, res: Response): Promise<Response> {

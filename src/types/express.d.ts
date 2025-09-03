@@ -1,5 +1,5 @@
 import 'express';
-import { IUser } from './user';
+import { IUser } from 'types';
 
 declare module 'express' {
   export interface Request {

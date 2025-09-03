@@ -1,11 +1,5 @@
-import { Schema, model, Document, Types } from 'mongoose';
-
-interface IRideViewEvent extends Document {
-  user: Types.ObjectId;
-  ride: Types.ObjectId;
-  searchEventId?: Types.ObjectId;
-  timestamp: Date;
-}
+import { Schema, model } from 'mongoose';
+import { IRideViewEvent } from 'types';
 
 const RideViewEventSchema = new Schema<IRideViewEvent>({
   user: { type: Schema.Types.ObjectId, ref: 'User', required: true },

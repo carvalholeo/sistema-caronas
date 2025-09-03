@@ -1,12 +1,6 @@
-import { Schema, model, Document, Types } from 'mongoose';
+import { Schema, model} from 'mongoose';
+import { INotificationEvent } from 'types';
 
-interface INotificationEvent extends Document {
-  subscription: Types.ObjectId;
-  category: 'security' | 'rides' | 'communication' | 'critical';
-  statusHistory: { status: 'sent' | 'delivered' | 'clicked' | 'failed'; timestamp: Date; details?: string }[];
-  isAggregated: boolean;
-  isCritical: boolean;
-}
 
 const NotificationEventSchema = new Schema<INotificationEvent>({
   subscription: { type: Schema.Types.ObjectId, ref: 'NotificationSubscription', required: true },

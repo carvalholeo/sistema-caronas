@@ -1,29 +1,6 @@
-import { Schema, model, Document, Types } from 'mongoose';
-import { IUser } from './user';
-
-export enum MessageStatus {
-  Sent = 'sent',
-  Received = 'received',
-  Read = 'read',
-}
-
-export interface IChatMessage extends Document {
-  ride: Types.ObjectId;
-  sender: IUser;
-  content: string;
-  status: MessageStatus;
-  isModerated: boolean;
-  deliveredAt?: Date;
-  readAt?: Date;
-  moderationDetails?: {
-    originalContent: string;
-    moderatedBy: Types.ObjectId;
-    moderatedAt: Date;
-    reason: string;
-  };
-  createdAt: Date;
-  updatedAt: Date;
-}
+import { Schema, model } from 'mongoose';
+import { IChatMessage, IUser } from 'types';
+import { MessageStatus } from 'types/enums/enums';
 
 const ChatMessageSchema = new Schema<IChatMessage>({
   ride: { type: Schema.Types.ObjectId, ref: 'Ride', required: true },

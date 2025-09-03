@@ -1,12 +1,5 @@
-import { Schema, model, Document, Types } from 'mongoose';
-
-interface IFormalNotification extends Document {
-  user: Types.ObjectId;
-  privacyRequest?: Types.ObjectId;
-  subject: string;
-  sentAt: Date;
-  adminUser: Types.ObjectId;
-}
+import { Schema, model } from 'mongoose';
+import { IFormalNotification } from 'types';
 
 const FormalNotificationSchema = new Schema<IFormalNotification>({
   user: { type: Schema.Types.ObjectId, ref: 'User', required: true, immutable: true, index: true },

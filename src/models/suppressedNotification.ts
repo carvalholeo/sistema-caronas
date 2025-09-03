@@ -1,9 +1,5 @@
-import { Schema, model, Document, Types } from 'mongoose';
-
-interface ISuppressedNotification extends Document {
-  user: Types.ObjectId;
-  reason: 'rate_limit' | 'aggregation';
-}
+import { Schema, model } from 'mongoose';
+import { ISuppressedNotification } from 'types';
 
 const SuppressedNotificationSchema = new Schema<ISuppressedNotification>({
   user: { type: Schema.Types.ObjectId, ref: 'User', required: true },

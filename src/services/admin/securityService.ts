@@ -1,10 +1,11 @@
 // Lógica de negócio para o painel de segurança.
-import { BlockModel, IBlock } from '../../models/block';
-import { IUser, UserModel } from '../../models/user';
+import { BlockModel } from '../../models/block';
+import { UserModel } from '../../models/user';
 import { AuditLogModel } from '../../models/auditLog';
 import { authService } from '../authService';
 import { SessionEventModel } from '../../models/sessionEvent';
 import { Types } from 'mongoose';
+import { IBlock, IUser } from 'types';
 
 class AdminSecurityService {
   public async listAllBlocks(): Promise<IBlock[]> {

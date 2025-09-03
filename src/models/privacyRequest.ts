@@ -1,13 +1,5 @@
-import { Schema, model, Document, Types } from 'mongoose';
-
-interface IPrivacyRequest extends Document {
-  user: Types.ObjectId;
-  type: 'access' | 'correction' | 'portability' | 'removal';
-  status: 'pending' | 'in_progress' | 'completed' | 'denied';
-  requestedAt: Date;
-  completedAt?: Date;
-  adminUser?: Types.ObjectId;
-}
+import { Schema, model } from 'mongoose';
+import { IPrivacyRequest } from 'types';
 
 const PrivacyRequestSchema = new Schema<IPrivacyRequest>({
   user: { type: Schema.Types.ObjectId, ref: 'User', required: true },

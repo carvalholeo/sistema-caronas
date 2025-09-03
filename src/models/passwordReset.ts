@@ -1,11 +1,5 @@
-import { Schema, model, Document, Types } from 'mongoose';
-
-interface IPasswordReset extends Document {
-  user: Types.ObjectId;
-  status: 'initiated' | 'completed';
-  initiatedAt: Date;
-  completedAt?: Date;
-}
+import { Schema, model } from 'mongoose';
+import { IPasswordReset } from 'types';
 
 const PasswordResetSchema = new Schema<IPasswordReset>({
   user: { type: Schema.Types.ObjectId, ref: 'User', required: true },

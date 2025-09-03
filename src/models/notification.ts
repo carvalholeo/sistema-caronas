@@ -1,24 +1,6 @@
-import { Schema, model, Document, Types } from 'mongoose';
-
-export enum NotificationType {
-  RIDE_REQUEST = 'ride_request',
-  RIDE_APPROVED = 'ride_approved',
-  RIDE_CANCELLED = 'ride_cancelled',
-  MESSAGE_RECEIVED = 'message_received',
-  SECURITY_ALERT = 'security_alert',
-  SYSTEM_NOTIFICATION = 'system_notification'
-}
-
-export interface INotification extends Document {
-  user: Types.ObjectId;
-  type: NotificationType,
-  title: string;
-  content: string;
-  data?: string;
-  isRead: boolean;
-  createdAt: Date;
-  expiresAt?: Date;
-}
+import { Schema, model } from 'mongoose';
+import { INotification } from 'types';
+import { NotificationType } from 'types/enums/enums';
 
 const notificationSchema = new Schema<INotification>({
   user: {

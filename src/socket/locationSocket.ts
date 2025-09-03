@@ -1,9 +1,10 @@
 import { Server, Socket } from 'socket.io';
-import { RideModel, RideStatus } from '../models/ride';
-import { LocationLogModel, LocationLogAction } from '../models/locationLog';
+import { RideModel } from '../models/ride';
+import { LocationLogModel } from '../models/locationLog';
 import { BlockModel } from '../models/block';
 import mongoose, { Types } from 'mongoose';
 import { locationService } from 'services/locationService';
+import { RideStatus, LocationLogAction } from 'types/enums/enums';
 
 export const setupLocationSockets = (io: Server) => {
   io.on('connection', (socket: Socket) => {
@@ -19,8 +20,8 @@ export const setupLocationSockets = (io: Server) => {
           return;
         }
 
-        const isDriver = ride.driver._id.toString() === socket.userId;
-        const isApprovedPassenger = ride.passengers.some(p => p.user._id.toString() === socket.userId && p.status === 'approved');
+        const isDriver = ride.driver._id.toString() === socket.userId.toString();
+        const isApprovedPassenger = ride.passengers.some(p => p.user._id.toString() === socket.userId.toString() && p.status === 'approved');
 
         if (isDriver || isApprovedPassenger) {
           const room = `ride-location-${rideId}`;
@@ -39,7 +40,7 @@ export const setupLocationSockets = (io: Server) => {
      */
     socket.on('startSharingLocation', async (rideId: string) => {
       const ride = await RideModel.findById(rideId);
-      if (ride && ride.driver._id.toString() === socket.userId) {
+      if (ride && ride.driver._id.toString() === socket.userId.toString()) {
         await new LocationLogModel({ ride: rideId, user: socket.userId, action: LocationLogAction.SharingStarted }).save();
       }
     });
@@ -66,7 +67,7 @@ export const setupLocationSockets = (io: Server) => {
         const ride = await RideModel.findById(rideId).lean();
         if (!ride) return;
 
-        const isDriver = ride.driver._id.toString() === socket.userId;
+        const isDriver = ride.driver._id.toString() === socket.userId.toString();
         const role = isDriver ? 'driver' : 'passenger';
 
         // Em vez de transmitir para todos, enviamos individualmente para verificar bloqueios
@@ -101,7 +102,7 @@ export const setupLocationSockets = (io: Server) => {
      */
     socket.on('stopSharingLocation', async (rideId: string) => {
       const ride = await RideModel.findById(rideId);
-      if (ride && ride.driver.toString() === socket.userId) {
+      if (ride && ride.driver.toString() === socket.userId.toString()) {
         await new LocationLogModel({ ride: rideId, user: socket.userId, action: LocationLogAction.SharingStopped }).save();
       }
     });

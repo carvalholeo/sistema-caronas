@@ -1,13 +1,5 @@
-import { Schema, model, Document, Types } from 'mongoose';
-
-interface ILoginAttempt extends Document {
-  user?: Types.ObjectId;
-  email: string;
-  ipAddress: string;
-  device: string;
-  wasSuccessful: boolean;
-  timestamp: Date;
-}
+import { Schema, model } from 'mongoose';
+import { ILoginAttempt } from 'types';
 
 const LoginAttemptSchema = new Schema<ILoginAttempt>({
   user: { type: Schema.Types.ObjectId, ref: 'User' },

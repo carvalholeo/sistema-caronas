@@ -1,11 +1,7 @@
-import { Schema, model, Document, Types } from 'mongoose';
+import { Schema, model } from 'mongoose';
+import { IVehicle } from 'types';
+import { VehicleStatus } from 'types/enums/enums';
 
-export enum VehicleStatus {
-  Active = 'active',
-  Inactive = 'inactive',
-  Pending = 'pending',
-  Rejected = 'rejected',
-}
 
 // Subdocumento de auditoria
 const AuditLogSchema = new Schema({
@@ -14,21 +10,6 @@ const AuditLogSchema = new Schema({
   timestamp: { type: Date, default: Date.now },
   reason: { type: String },
 });
-
-export interface IVehicle extends Document {
-  owner: Types.ObjectId;
-  plate: string;
-  make: string;
-  carModel: string;
-  year: number;
-  color: string;
-  capacity: number;
-  photoUrl?: string;
-  status: VehicleStatus;
-  auditHistory: typeof AuditLogSchema[];
-  createdAt: Date;
-  updatedAt: Date;
-}
 
 const VehicleSchema = new Schema<IVehicle>({
   owner: { type: Schema.Types.ObjectId, ref: 'User', required: true },

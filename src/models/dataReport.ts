@@ -1,12 +1,5 @@
-import { Schema, model, Document, Types } from 'mongoose';
-
-interface IDataReport extends Document {
-  user: Types.ObjectId;
-  adminUser: Types.ObjectId;
-  hash: Types.UUID;
-  includedDataPoints: string[];
-  createdAt: Date;
-}
+import { Schema, model } from 'mongoose';
+import { IDataReport } from 'types';
 
 const DataReportSchema = new Schema<IDataReport>({
   user: { type: Schema.Types.ObjectId, ref: 'User', required: true },

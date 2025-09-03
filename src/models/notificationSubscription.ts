@@ -1,18 +1,5 @@
-import { Schema, model, Document, Types } from 'mongoose';
-
-interface INotificationSubscription extends Document {
-  user: Types.ObjectId;
-  deviceIdentifier: string;
-  platform: 'web' | 'ios' | 'android';
-  endpoint: string;
-  keys: { p256dh: string; auth: string };
-  isPermissionGranted: boolean;
-  preferences: {
-    security: boolean;
-    rides: boolean;
-    communication: boolean;
-  };
-}
+import { Schema, model } from 'mongoose';
+import { INotificationSubscription } from 'types';
 
 const NotificationSubscriptionSchema = new Schema<INotificationSubscription>({
   user: { type: Schema.Types.ObjectId, ref: 'User', required: true },

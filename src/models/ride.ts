@@ -1,32 +1,7 @@
-import { Schema, model, Document, Types } from 'mongoose';
-
-import { Location, PassengerStatus, RidePassenger } from '../types';
-import { VehicleStatus } from './vehicle';
-
-export enum RideStatus {
-  Scheduled = 'scheduled',
-  InProgress = 'in_progress',
-  Completed = 'completed',
-  Cancelled = 'cancelled',
-}
-
-interface AuditLog {
-  action: string;
-  adminUser?: Types.ObjectId;
-  timestamp?: Date;
-  reason?: string;
-  details?: any;
-}
-
-
-// Subdocumento de auditoria
-const AuditLogSchema = new Schema<AuditLog>({
-  action: { type: String, required: true },
-  adminUser: { type: Schema.Types.ObjectId, ref: 'User' },
-  timestamp: { type: Date, default: Date.now, immutable: true },
-  reason: { type: String },
-  details: { type: Schema.Types.Mixed },
-});
+import { Schema, model } from 'mongoose';
+import { IRide, Location, RidePassenger } from '../types';
+import { InternalAuditLogModel } from './internalAuditLogSchema';
+import { PassengerStatus, RideStatus, VehicleStatus } from 'types/enums/enums';
 
 const PointSchema = new Schema<Location>({
   type: { type: String, enum: ['Point'], required: true },
@@ -52,32 +27,6 @@ const PassengerSchema = new Schema<RidePassenger>({
   managedAt: { type: Date },
 });
 
-export interface IRide extends Document {
-  driver: Types.ObjectId;
-  vehicle: Types.ObjectId;
-  origin: { type: string; coordinates: [number, number] };
-  destination: { type: string; coordinates: [number, number] };
-  intermediateStops: { location: string; point: object }[];
-  departureTime: Date;
-  availableSeats: number;
-  price: number;
-  status: RideStatus;
-  passengers: {
-    user: Types.ObjectId;
-    status: PassengerStatus;
-    requestedAt: Date;
-    managedAt?: Date;
-  }[];
-  isRecurrent: boolean;
-  recurrenceId?: string;
-  auditHistory: AuditLog[];
-  distanceKm?: number;
-  createdAt: Date;
-  updatedAt: Date;
-  canceledAt?: Date;
-  cancelReason?: string;
-}
-
 const RideSchema = new Schema<IRide>({
   driver: { type: Schema.Types.ObjectId, ref: 'User', required: true },
   vehicle: { type: Schema.Types.ObjectId, ref: 'Vehicle', required: true },
@@ -97,7 +46,7 @@ const RideSchema = new Schema<IRide>({
   passengers: [PassengerSchema],
   isRecurrent: { type: Boolean, default: false },
   recurrenceId: { type: String, index: true },
-  auditHistory: [AuditLogSchema],
+  auditHistory: [InternalAuditLogModel],
   distanceKm: { type: Number },
   canceledAt: { type: Date },
   cancelReason: { type: String }

@@ -1,5 +1,5 @@
 import { body, param } from 'express-validator';
-import { UserStatus } from '../../../models/user';
+import { UserStatus } from 'types/enums/enums';
 
 export const updateUserStatusValidator = [
     param('targetUserId').isMongoId().withMessage('ID de usuário inválido.'),

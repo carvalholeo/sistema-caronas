@@ -1,13 +1,5 @@
-import { Schema, model, Document, Types } from 'mongoose';
-
-interface ISessionEvent extends Document {
-  user: Types.ObjectId;
-  type: 'refresh_token_rotation' | 'global_logout_admin';
-  device?: string;
-  ipAddress?: string;
-  adminUser?: Types.ObjectId;
-  timestamp: Date;
-}
+import { Schema, model } from 'mongoose';
+import { ISessionEvent } from 'types';
 
 const SessionEventSchema = new Schema<ISessionEvent>({
   user: { type: Schema.Types.ObjectId, ref: 'User', required: true },

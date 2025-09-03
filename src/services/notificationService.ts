@@ -1,4 +1,5 @@
-import Notification, { INotification } from '../models/notification';
+import { INotification } from 'types';
+import Notification from '../models/notification';
 import {UserModel as User} from '../models/user';
 
 class NotificationService {

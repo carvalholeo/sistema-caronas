@@ -1,7 +1,10 @@
 // Lógica de negócio para todas as ações administrativas relacionadas a usuários.
 import { Types } from 'mongoose';
-import { UserModel, IUser, UserStatus, UserRole } from '../../models/user';
+import { UserModel } from '../../models/user';
 import { authService } from './../authService';
+import { IUser} from 'types';
+import { InternalAuditLogModel } from 'models/internalAuditLogSchema';
+import { UserStatus, UserRole } from 'types/enums/enums';
 
 class AdminUsersService {
   /**
@@ -46,12 +49,13 @@ class AdminUsersService {
     }
 
     targetUser.status = status;
-    targetUser.auditHistory.push({
+    const auditEntry = new InternalAuditLogModel({
       action: `status_changed_to_${status}`,
       adminUser: adminUser._id,
       timestamp: new Date(),
       reason: reason
     });
+    targetUser.auditHistory.push(auditEntry);
 
     if (status === UserStatus.Suspended || status === UserStatus.Banned) {
       targetUser.sessionVersion = (targetUser.sessionVersion || 0) + 1;
@@ -77,7 +81,7 @@ class AdminUsersService {
 
       if (!targetUser.twoFactorEnabled) throw new Error('O 2FA já está desativado para este usuário.');
       targetUser.twoFactorEnabled = false;
-      targetUser.auditHistory.push({ action: '2fa_disabled_by_admin', adminUser: adminUser._id, timestamp: new Date(), reason });
+      targetUser.auditHistory.push(new InternalAuditLogModel({ action: '2fa_disabled_by_admin', adminUser: adminUser._id, timestamp: new Date(), reason }));
     } else {
       if (!adminUser.permissions.includes('usuarios:editar')) throw new Error('Permissão insuficiente para editar usuário.');
 
@@ -85,7 +89,7 @@ class AdminUsersService {
       if (email) targetUser.email = email;
       if (forcePasswordChange) targetUser.forcePasswordChangeOnNextLogin = true;
 
-      targetUser.auditHistory.push({ action: 'profile_edited_by_admin', adminUser: adminUser._id, timestamp: new Date() });
+      targetUser.auditHistory.push(new InternalAuditLogModel({ action: 'profile_edited_by_admin', adminUser: adminUser._id, timestamp: new Date() }));
     }
 
     targetUser.sessionVersion = (targetUser.sessionVersion || 0) + 1;
@@ -110,7 +114,7 @@ class AdminUsersService {
     targetUser.roles.push(UserRole.Admin);
     targetUser.permissions = ['painel:acesso']; // Permissão base
     targetUser.sessionVersion = (targetUser.sessionVersion || 0) + 1;
-    targetUser.auditHistory.push({ action: 'promoted_to_admin', adminUser: promoterAdmin._id, timestamp: new Date() });
+    targetUser.auditHistory.push(new InternalAuditLogModel({ action: 'promoted_to_admin', adminUser: promoterAdmin._id, timestamp: new Date() }));
 
     await targetUser.save();
     return targetUser;
@@ -129,7 +133,7 @@ class AdminUsersService {
     targetUser.roles = targetUser.roles.filter(role => role !== UserRole.Admin);
     targetUser.permissions = [];
     targetUser.sessionVersion = (targetUser.sessionVersion || 0) + 1;
-    targetUser.auditHistory.push({ action: 'demoted_from_admin', adminUser: adminUser._id, timestamp: new Date(), reason });
+    targetUser.auditHistory.push(new InternalAuditLogModel({ action: 'demoted_from_admin', adminUser: adminUser._id, timestamp: new Date(), reason }));
 
     await targetUser.save();
     return targetUser;
@@ -150,11 +154,11 @@ class AdminUsersService {
     const oldPermissions = targetUser.permissions;
     targetUser.permissions = permissions;
     targetUser.sessionVersion += 1;
-    targetUser.auditHistory.push({
+    targetUser.auditHistory.push(new InternalAuditLogModel({
       action: 'admin_permissions_updated',
       adminUser: adminUser._id,
       details: { from: oldPermissions, to: permissions }
-    });
+    }));
 
 
     await targetUser.save();
