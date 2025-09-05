@@ -7,7 +7,7 @@ import crypto from 'crypto';
 import { Types } from 'mongoose';
 import { FormalNotificationModel } from 'models/formalNotification';
 import { IAuditLog, IUser } from 'types';
-import { UserStatus } from 'types/enums/enums';
+import { AuditActionType, AuditLogCategory, AuditLogSeverityLevels, UserStatus } from 'types/enums/enums';
 
 interface IReportData {
   profile: object;
@@ -40,11 +40,25 @@ class AdminPrivacyService {
       includedDataPoints: Object.keys(reportData)
     }).save();
 
-    await new AuditLogModel({
-      adminUser: adminUser._id,
-      action: 'privacidade:emitir_relatorio',
-      target: { type: 'user', id: targetUserId }
-    }).save();
+    const auditEntry = new AuditLogModel({
+      actor: {
+        userId: adminUser._id,
+        isAdmin: true,
+        ip: '::1',
+      },
+      action: {
+        actionType: AuditActionType.PRIVACY_DATA_REPORT_GENERATED,
+        category: AuditLogCategory.PRIVACY
+      },
+      target: {
+        resourceType: 'user',
+        resourceId: targetUserId
+      },
+      metadata: {
+        severity: AuditLogSeverityLevels.INFO
+      }
+    });
+    await auditEntry.save();
 
     return { reportData, hash };
   }
@@ -61,21 +75,50 @@ class AdminPrivacyService {
     targetUser.sessionVersion += 1; // Invalida sessões
 
     await targetUser.save();
-    await new AuditLogModel({
-      adminUser: adminUser._id,
-      action: 'privacidade:solicitacao_remocao',
-      target: { type: 'user', id: targetUserId }
-    }).save();
+
+    const auditEntry = new AuditLogModel({
+      actor: {
+        userId: adminUser._id,
+        isAdmin: true,
+        ip: '::1',
+      },
+      action: {
+        actionType: AuditActionType.PRIVACY_USER_REMOVAL_PROCESSED,
+        category: AuditLogCategory.PRIVACY
+      },
+      target: {
+        resourceType: 'user',
+        resourceId: targetUserId
+      },
+      metadata: {
+        severity: AuditLogSeverityLevels.INFO
+      }
+    });
+    await auditEntry.save();
 
     return { message: "Usuário anonimizado com sucesso." };
   }
 
   public async viewPrivacyLogs(targetUserId: Types.ObjectId, adminUser: IUser): Promise<IAuditLog[]> {
-    await new AuditLogModel({
-      adminUser: adminUser._id,
-      action: 'privacidade:ver_logs',
-      target: { type: 'logs', id: targetUserId }
-    }).save();
+    const auditEntry = new AuditLogModel({
+      actor: {
+        userId: adminUser._id,
+        isAdmin: true,
+        ip: '::1',
+      },
+      action: {
+        actionType: AuditActionType.PRIVACY_LOGS_VIEWED_BY_ADMIN,
+        category: AuditLogCategory.PRIVACY
+      },
+      target: {
+        resourceType: 'user',
+        resourceId: targetUserId
+      },
+      metadata: {
+        severity: AuditLogSeverityLevels.WARN
+      }
+    });
+    await auditEntry.save();
     return AuditLogModel.find({ 'target.id': targetUserId, action: { $regex: /^privacidade:/ } });
   }
 
@@ -92,7 +135,6 @@ class AdminPrivacyService {
       throw new Error('Usuário alvo não encontrado.');
     }
 
-    // 1. Salva o registro da notificação formal no banco
     const notification = new FormalNotificationModel({
       user: targetUserId,
       sentBy: adminUser._id,
@@ -101,17 +143,28 @@ class AdminPrivacyService {
     });
     await notification.save();
 
-    // 2. Aqui iria a lógica para enviar a notificação (ex: e-mail)
-    // Ex: await EmailService.send(targetUser.email, subject, body);
-
-    // 3. Registrar no log de auditoria
-    const auditLog = new AuditLogModel({
-      action: 'privacidade:notificar_usuario',
-      adminUser: adminUser._id,
-      target: { type: 'user', id: targetUserId },
-      details: { extra: { mensagem: `Notificação enviada com assunto: "${subject}"`}}
+    const auditEntry = new AuditLogModel({
+      actor: {
+        userId: adminUser._id,
+        isAdmin: true,
+        ip: '::1',
+      },
+      action: {
+        actionType: AuditActionType.PRIVACY_FORMAL_NOTIFICATION_SENT,
+        category: AuditLogCategory.PRIVACY
+      },
+      target: {
+        resourceType: 'user',
+        resourceId: targetUserId
+      },
+      metadata: {
+        severity: AuditLogSeverityLevels.INFO,
+        extra: {
+          mensagem: `Notificação enviada com assunto: "${subject}"`
+        }
+      }
     });
-    await auditLog.save();
+    await auditEntry.save();
 
     return { message: 'Notificação formal registrada e enviada com sucesso.' };
   }

@@ -1,34 +1,55 @@
 import { Schema, model } from 'mongoose';
 import { IAuditLog } from 'types';
+import { AuditActionType, AuditLogCategory, AuditLogSeverityLevels } from 'types/enums/enums';
+import { ipValidator } from 'utils/ipValidator';
 
 const AuditLogSchema = new Schema<IAuditLog>({
-  adminUser: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
-  action: {
-    type: String,
-    required: true,
-    trim: true,
-    maxlength: 100
-  },
-  target: {
-    type: { type: String, required: true },
-    id: { type: String, required: true },
-  },
-  details: {
-    ipAddress: {
-      type: String,
+  actor: {
+    userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+    isAdmin: { type: Schema.Types.Boolean, required: true },
+    ip: {
+      type: Schema.Types.String,
       required: false,
       validate: {
-        validator: function(ip: string) {
-          // Basic IP validation (IPv4 and IPv6)
-          const ipv4Regex = /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
-          const ipv6Regex = /^(?:[0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}$/;
-          return ipv4Regex.test(ip) || ipv6Regex.test(ip) || ip === '::1' || ip === '127.0.0.1';
-        },
+        validator: ipValidator,
         message: 'Invalid IP address format'
-      },
-      index: true
+      }
     },
-    userAgent: { type: String, maxLength: 500 },
+    userAgent: {
+      type: Schema.Types.String
+    }
+  },
+  action: {
+    actionType: {
+      type: AuditActionType,
+      required: true,
+    },
+    category: {
+      type: AuditLogCategory,
+      required: true
+    },
+    detail: {
+      type: Schema.Types.String
+    }
+  },
+  target: {
+    resourceType: { type: Schema.Types.String, required: true },
+    resourceId: { type: Schema.Types.ObjectId, required: true },
+    beforeState: { type: Schema.Types.Mixed },
+    afterState: { type: Schema.Types.Mixed }
+  },
+  metadata: {
+    severity: {
+      type: AuditLogSeverityLevels,
+    },
+    relatedResources: {
+      type: {
+        type: Schema.Types.String,
+      },
+      id: {
+        type: Schema.Types.ObjectId
+      }
+    },
     extra: {
       type: Schema.Types.Mixed,
       validate: {
@@ -45,9 +66,8 @@ const AuditLogSchema = new Schema<IAuditLog>({
       },
       default: {}
     },
-   },
-  timestamp: { type: Date, default: Date.now, immutable: true },
-});
+   }
+}, { timestamps: { createdAt: true, updatedAt: false}});
 
 AuditLogSchema.pre(['updateOne', 'updateMany', 'findOneAndUpdate'], function() {
   throw new Error('Audit logs are immutable and cannot be updated');

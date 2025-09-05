@@ -2,9 +2,9 @@
 import { Types } from 'mongoose';
 import { UserModel } from '../../models/user';
 import { authService } from './../authService';
-import { IUser} from 'types';
-import { InternalAuditLogModel } from 'models/internalAuditLogSchema';
-import { UserStatus, UserRole } from 'types/enums/enums';
+import { IUser } from 'types';
+import { UserStatus, UserRole, AuditActionType, AuditLogCategory, AuditLogSeverityLevels, toAuditActionType } from 'types/enums/enums';
+import { AuditLogModel } from 'models/auditLog';
 
 class AdminUsersService {
   /**
@@ -44,18 +44,30 @@ class AdminUsersService {
       if (!reason || !twoFactorCode) {
         throw new Error('Razão e código 2FA são obrigatórios para esta ação.');
       }
-      const is2FAValid = await authService.verifyTwoFactorCode(adminUser._id.toString(), twoFactorCode);
+      const is2FAValid = await authService.verifyTwoFactorCode(adminUser.twoFactorSecret, twoFactorCode);
       if (!is2FAValid) throw new Error('Código 2FA do administrador inválido.');
     }
 
-    targetUser.status = status;
-    const auditEntry = new InternalAuditLogModel({
-      action: `status_changed_to_${status}`,
-      adminUser: adminUser._id,
-      timestamp: new Date(),
-      reason: reason
+    const auditEntry = new AuditLogModel({
+      actor: {
+        userId: adminUser._id,
+        isAdmin: true,
+        ip: '::1',
+      },
+      action: {
+        actionType: toAuditActionType(status),
+        category: AuditLogCategory.USER,
+        detail: reason
+      },
+      target: {
+        resourceType: 'user',
+        resourceId: targetUserId
+      },
+      metadata: {
+        severity: AuditLogSeverityLevels.CRITICAL
+      }
     });
-    targetUser.auditHistory.push(auditEntry);
+    await auditEntry.save();
 
     if (status === UserStatus.Suspended || status === UserStatus.Banned) {
       targetUser.sessionVersion = (targetUser.sessionVersion || 0) + 1;
@@ -81,7 +93,27 @@ class AdminUsersService {
 
       if (!targetUser.twoFactorEnabled) throw new Error('O 2FA já está desativado para este usuário.');
       targetUser.twoFactorEnabled = false;
-      targetUser.auditHistory.push(new InternalAuditLogModel({ action: '2fa_disabled_by_admin', adminUser: adminUser._id, timestamp: new Date(), reason }));
+
+      const auditEntry = new AuditLogModel({
+        actor: {
+          userId: adminUser._id,
+          isAdmin: true,
+          ip: '::1',
+        },
+        action: {
+          actionType: AuditActionType.TWO_FACTOR_REMOVED_BY_ADMIN,
+          category: AuditLogCategory.USER,
+          detail: reason
+        },
+        target: {
+          resourceType: 'user',
+          resourceId: targetUserId
+        },
+        metadata: {
+          severity: AuditLogSeverityLevels.CRITICAL
+        }
+      });
+      await auditEntry.save();
     } else {
       if (!adminUser.permissions.includes('usuarios:editar')) throw new Error('Permissão insuficiente para editar usuário.');
 
@@ -89,7 +121,26 @@ class AdminUsersService {
       if (email) targetUser.email = email;
       if (forcePasswordChange) targetUser.forcePasswordChangeOnNextLogin = true;
 
-      targetUser.auditHistory.push(new InternalAuditLogModel({ action: 'profile_edited_by_admin', adminUser: adminUser._id, timestamp: new Date() }));
+      const auditEntry = new AuditLogModel({
+        actor: {
+          userId: adminUser._id,
+          isAdmin: true,
+          ip: '::1',
+        },
+        action: {
+          actionType: AuditActionType.USER_PROFILE_UPDATED_BY_ADMIN,
+          category: AuditLogCategory.USER,
+          detail: reason
+        },
+        target: {
+          resourceType: 'user',
+          resourceId: targetUserId
+        },
+        metadata: {
+          severity: AuditLogSeverityLevels.CRITICAL
+        }
+      });
+      await auditEntry.save();
     }
 
     targetUser.sessionVersion = (targetUser.sessionVersion || 0) + 1;
@@ -114,7 +165,26 @@ class AdminUsersService {
     targetUser.roles.push(UserRole.Admin);
     targetUser.permissions = ['painel:acesso']; // Permissão base
     targetUser.sessionVersion = (targetUser.sessionVersion || 0) + 1;
-    targetUser.auditHistory.push(new InternalAuditLogModel({ action: 'promoted_to_admin', adminUser: promoterAdmin._id, timestamp: new Date() }));
+
+    const auditEntry = new AuditLogModel({
+      actor: {
+        userId: promoterAdmin._id,
+        isAdmin: true,
+        ip: '::1',
+      },
+      action: {
+        actionType: AuditActionType.USER_PROMOTED_TO_ADMIN,
+        category: AuditLogCategory.USER,
+      },
+      target: {
+        resourceType: 'user',
+        resourceId: targetUserId
+      },
+      metadata: {
+        severity: AuditLogSeverityLevels.CRITICAL
+      }
+    });
+    await auditEntry.save();
 
     await targetUser.save();
     return targetUser;
@@ -133,7 +203,27 @@ class AdminUsersService {
     targetUser.roles = targetUser.roles.filter(role => role !== UserRole.Admin);
     targetUser.permissions = [];
     targetUser.sessionVersion = (targetUser.sessionVersion || 0) + 1;
-    targetUser.auditHistory.push(new InternalAuditLogModel({ action: 'demoted_from_admin', adminUser: adminUser._id, timestamp: new Date(), reason }));
+
+    const auditEntry = new AuditLogModel({
+      actor: {
+        userId: adminUser._id,
+        isAdmin: true,
+        ip: '::1',
+      },
+      action: {
+        actionType: AuditActionType.USER_DEMOTED_FROM_ADMIN,
+        category: AuditLogCategory.USER,
+        detail: reason
+      },
+      target: {
+        resourceType: 'user',
+        resourceId: targetUserId
+      },
+      metadata: {
+        severity: AuditLogSeverityLevels.CRITICAL
+      }
+    });
+    await auditEntry.save();
 
     await targetUser.save();
     return targetUser;
@@ -154,12 +244,28 @@ class AdminUsersService {
     const oldPermissions = targetUser.permissions;
     targetUser.permissions = permissions;
     targetUser.sessionVersion += 1;
-    targetUser.auditHistory.push(new InternalAuditLogModel({
-      action: 'admin_permissions_updated',
-      adminUser: adminUser._id,
-      details: { from: oldPermissions, to: permissions }
-    }));
 
+    const auditEntry = new AuditLogModel({
+      actor: {
+        userId: adminUser._id,
+        isAdmin: true,
+        ip: '::1',
+      },
+      action: {
+        actionType: AuditActionType.ADMIN_PERMISSIONS_UPDATED,
+        category: AuditLogCategory.USER,
+      },
+      target: {
+        resourceType: 'user',
+        resourceId: targetUserId,
+        beforeState: oldPermissions,
+        afterState: permissions
+      },
+      metadata: {
+        severity: AuditLogSeverityLevels.CRITICAL,
+      }
+    });
+    await auditEntry.save();
 
     await targetUser.save();
     return targetUser;

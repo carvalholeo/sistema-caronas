@@ -8,13 +8,11 @@ import { RideViewEventModel } from '../../models/rideViewEvent';
 import { LoginAttemptModel } from '../../models/loginAttempt';
 import { PasswordResetModel } from '../../models/passwordReset';
 import { AuditLogModel } from '../../models/auditLog';
-import { AccessDenialLogModel } from '../../models/denialLog';
 import { PrivacyRequestModel } from '../../models/privacyRequest';
 import { DataReportModel } from '../../models/dataReport';
-import { SessionEventModel } from '../../models/sessionEvent';
 import { BlockModel } from '../../models/block';
 import { PipelineStage } from 'mongoose';
-import { UserStatus, VehicleStatus, RideStatus } from 'types/enums/enums';
+import { UserStatus, VehicleStatus, RideStatus, AuditActionType, AuditLogCategory } from 'types/enums/enums';
 
 class AdminReportsService {
 
@@ -22,6 +20,7 @@ class AdminReportsService {
   // == RELATÓRIOS DE USUÁRIOS
   // =================================================================
 
+  // !VAI DAR PROBLEMA
   public async getRegistrationReport(startDate: Date, endDate: Date) {
     const dateFilter = { createdAt: { $gte: startDate, $lte: endDate } };
     const pipeline: PipelineStage[]  = [
@@ -100,7 +99,7 @@ class AdminReportsService {
     ]);
 
     const passwordResets = await PasswordResetModel.countDocuments({ initiatedAt: { $gte: startDate, $lte: endDate } });
-    const sessionRevocations = await SessionEventModel.countDocuments({ ...dateFilter, type: 'global_logout_admin' });
+    const sessionRevocations = await AuditLogModel.countDocuments({ ...dateFilter, action: { actionType: AuditActionType.SECURITY_USER_SESSIONS_REVOKED_BY_ADMIN }})
 
     return {
       topFailedLoginUsers: failedLogins,
@@ -356,11 +355,11 @@ class AdminReportsService {
 
   public async getChatAdminReport(startDate: Date, endDate: Date) {
     const dateFilter = { timestamp: { $gte: startDate, $lte: endDate } };
-    const adminReads = await AuditLogModel.countDocuments({ ...dateFilter, action: 'chat:ler' });
+    const adminReads = await AuditLogModel.countDocuments({ ...dateFilter, action: { actionType: AuditActionType.CHAT_HISTORY_VIEWED_BY_ADMIN, category: AuditLogCategory.CHAT } });
 
     const readsByAdmin = await AuditLogModel.aggregate([
-      { $match: { ...dateFilter, action: 'chat:ler' } },
-      { $group: { _id: '$adminUser', count: { $sum: 1 } } },
+      { $match: { ...dateFilter, action: { actionType: AuditActionType.CHAT_HISTORY_VIEWED_BY_ADMIN, category: AuditLogCategory.CHAT } } },
+      { $group: { _id: '$actor.userId', count: { $sum: 1 } } },
       { $lookup: { from: 'users', localField: '_id', foreignField: '_id', as: 'adminInfo' } },
       { $unwind: '$adminInfo' },
       { $project: { adminName: '$adminInfo.name', count: 1 } }
@@ -458,12 +457,15 @@ class AdminReportsService {
 
   public async getComplianceReport(startDate: Date, endDate: Date) {
     const dateFilter = { timestamp: { $gte: startDate, $lte: endDate } };
-    const sensitiveActions = ['chat:ler', 'privacidade:emitir_relatorio', 'seguranca:ver_motivos'];
+    const sensitiveActions = [AuditActionType.CHAT_HISTORY_VIEWED_BY_ADMIN, AuditActionType.PRIVACY_DATA_REPORT_GENERATED, AuditActionType.SECURITY_BLOCK_REASONS_VIEWED_BY_ADMIN];
     const sensitiveLogs = await AuditLogModel.countDocuments({
       ...dateFilter,
-      action: { $in: sensitiveActions }
+      action: { actionType: { $in: sensitiveActions } }
     });
-    const accessDenied = await AccessDenialLogModel.countDocuments(dateFilter);
+    const accessDenied = await AuditLogModel.countDocuments({
+      ...dateFilter,
+      action: { actionType: AuditActionType.SECURITY_ACCESS_DENIED }
+    });
     return {
       sensitiveLogsVolume: sensitiveLogs,
       deniedAccessAttempts: accessDenied
@@ -486,10 +488,11 @@ class AdminReportsService {
   }
 
   public async getSessionSecurityReport(startDate: Date, endDate: Date) {
-    const globalLogouts = await SessionEventModel.countDocuments({
-      type: 'global_logout_admin',
+    const globalLogouts = await AuditLogModel.countDocuments({
+      action: { actionType: AuditActionType.SECURITY_USER_SESSIONS_REVOKED_BY_ADMIN },
       timestamp: { $gte: startDate, $lte: endDate }
     });
+
     return {
       globalLogouts,
       refreshTokenRotations: "Not implemented",

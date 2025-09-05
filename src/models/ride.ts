@@ -1,6 +1,5 @@
 import { Schema, model } from 'mongoose';
 import { IRide, Location, RidePassenger } from '../types';
-import { InternalAuditLogModel } from './internalAuditLogSchema';
 import { PassengerStatus, RideStatus, VehicleStatus } from 'types/enums/enums';
 
 const PointSchema = new Schema<Location>({
@@ -46,7 +45,6 @@ const RideSchema = new Schema<IRide>({
   passengers: [PassengerSchema],
   isRecurrent: { type: Boolean, default: false },
   recurrenceId: { type: String, index: true },
-  auditHistory: [InternalAuditLogModel],
   distanceKm: { type: Number },
   canceledAt: { type: Date },
   cancelReason: { type: String }

@@ -2,15 +2,6 @@ import { Schema, model } from 'mongoose';
 import { IVehicle } from 'types';
 import { VehicleStatus } from 'types/enums/enums';
 
-
-// Subdocumento de auditoria
-const AuditLogSchema = new Schema({
-  action: { type: String, required: true },
-  adminUser: { type: Schema.Types.ObjectId, ref: 'User' },
-  timestamp: { type: Date, default: Date.now },
-  reason: { type: String },
-});
-
 const VehicleSchema = new Schema<IVehicle>({
   owner: { type: Schema.Types.ObjectId, ref: 'User', required: true },
   plate: {
@@ -56,7 +47,6 @@ const VehicleSchema = new Schema<IVehicle>({
   },
   photoUrl: { type: String },
   status: { type: String, enum: Object.values(VehicleStatus), default: VehicleStatus.Active },
-  auditHistory: [AuditLogSchema],
 }, { timestamps: true });
 
 VehicleSchema.index({ owner: 1 });

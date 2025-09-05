@@ -2,34 +2,33 @@
 import { IRide, IUser } from 'types';
 import { RideModel } from '../../models/ride';
 import { Types } from 'mongoose';
-import { InternalAuditLogModel } from 'models/internalAuditLogSchema';
-import { RideStatus } from 'types/enums/enums';
+import { AuditLogModel } from 'models/auditLog';
+import { AuditActionType, AuditLogCategory, AuditLogSeverityLevels, RideStatus } from 'types/enums/enums';
 
 class AdminRidesService {
-  public async listAllRides(): Promise<IRide[]> {
-    return RideModel.find().populate('driver', 'name').sort({ createdAt: -1 });
-  }
-
   public async getRideDetails(rideId: Types.ObjectId, adminId: Types.ObjectId): Promise<IRide | null> {
     const ride = await RideModel.findById(rideId).populate('driver passengers.user', 'name email matricula');
     if (ride) {
-      const auditEntry = new InternalAuditLogModel({ action: 'details_viewed_by_admin', adminUser: adminId })
-      ride.auditHistory.push(auditEntry);
-      await ride.save();
+      const auditEntry = new AuditLogModel({
+        actor: {
+          userId: adminId,
+          isAdmin: true,
+          ip: '::1',
+        },
+        action: {
+          actionType: AuditActionType.RIDE_DETAILS_VIEWED_BY_ADMIN,
+          category: AuditLogCategory.RIDE
+        },
+        target: {
+          resourceType: 'ride',
+          resourceId: ride._id
+        },
+        metadata: {
+          severity: AuditLogSeverityLevels.INFO
+        }
+      });
+      await auditEntry.save();
     }
-    return ride;
-  }
-
-  public async editRide(rideId: Types.ObjectId, adminId: Types.ObjectId, reason: string, updateData: object): Promise<IRide | null> {
-    const ride = await RideModel.findById(rideId);
-    if (!ride) throw new Error("Carona não encontrada.");
-    if ([RideStatus.InProgress, RideStatus.Completed].includes(ride.status)) throw new Error("Não é possível editar caronas em andamento ou finalizadas.");
-
-    const oldData = { ...ride.toObject() };
-    Object.assign(ride, updateData);
-    const auditEntry = new InternalAuditLogModel({ action: 'edited_by_admin', adminUser: adminId, reason, details: { from: oldData, to: updateData } });
-    ride.auditHistory.push(auditEntry);
-    await ride.save();
     return ride;
   }
 
@@ -38,8 +37,27 @@ class AdminRidesService {
     if (!ride) throw new Error("Carona não encontrada.");
 
     ride.status = RideStatus.Cancelled;
-    const auditEntry = new InternalAuditLogModel({ action: 'cancelled_by_admin', adminUser: adminId, reason });
-    ride.auditHistory.push(auditEntry);
+
+    const auditEntry = new AuditLogModel({
+        actor: {
+          userId: adminId,
+          isAdmin: true,
+          ip: '::1',
+        },
+        action: {
+          actionType: AuditActionType.RIDE_CANCELLED_BY_ADMIN,
+          category: AuditLogCategory.RIDE,
+          detail: reason
+        },
+        target: {
+          resourceType: 'ride',
+          resourceId: ride._id
+        },
+        metadata: {
+          severity: AuditLogSeverityLevels.WARN
+        }
+    });
+    await auditEntry.save();
 
     await ride.save();
     // Aqui entraria a lógica de notificação para os passageiros
@@ -56,8 +74,27 @@ class AdminRidesService {
     if (!ride) throw new Error("Carona não encontrada.");
 
     ride.status = RideStatus.Scheduled; // Simulação
-    const auditEntry = new InternalAuditLogModel({ action: 'force_published_by_admin', adminUser: adminId, reason });
-    ride.auditHistory.push(auditEntry);
+
+    const auditEntry = new AuditLogModel({
+        actor: {
+          userId: adminId,
+          isAdmin: true,
+          ip: '::1',
+        },
+        action: {
+          actionType: AuditActionType.RIDE_FORCE_PUBLISHED_BY_ADMIN,
+          category: AuditLogCategory.RIDE,
+          detail: reason
+        },
+        target: {
+          resourceType: 'ride',
+          resourceId: ride._id
+        },
+        metadata: {
+          severity: AuditLogSeverityLevels.WARN
+        }
+    });
+    await auditEntry.save();
 
     await ride.save();
     return ride;
@@ -99,15 +136,28 @@ class AdminRidesService {
     // Aplica as atualizações
     Object.assign(ride, updateData);
 
-    // Adiciona o registro de auditoria na própria carona
-    const auditEntry = new InternalAuditLogModel({
-      action: 'admin_ride_updated',
-      adminUser: adminUser._id,
-      timestamp: new Date(),
-      reason: reason,
-      details: JSON.stringify(updateData)
-    });
-    ride.auditHistory.push(auditEntry);
+    const auditEntry = new AuditLogModel({
+        actor: {
+          userId: adminUser._id,
+          isAdmin: true,
+          ip: '::1',
+        },
+        action: {
+          actionType: AuditActionType.RIDE_UPDATED_BY_ADMIN,
+          category: AuditLogCategory.RIDE,
+          detail: reason
+        },
+        target: {
+          resourceType: 'ride',
+          resourceId: ride._id,
+          beforeState: { ...ride.toObject() },
+          afterState: updateData,
+        },
+        metadata: {
+          severity: AuditLogSeverityLevels.WARN
+        }
+      });
+    await auditEntry.save();
 
     await ride.save();
     return ride;

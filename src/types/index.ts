@@ -1,5 +1,5 @@
 import {Types, Document} from 'mongoose';
-import { LocationLogAction, MessageStatus, NotificationType, PassengerStatus, RideStatus, UserRole, UserStatus, VehicleStatus } from './enums/enums';
+import { AuditActionType, AuditLogCategory, AuditLogSeverityLevels, LocationLogAction, MessageStatus, NotificationType, PassengerStatus, RideStatus, UserRole, UserStatus, VehicleStatus } from './enums/enums';
 // src/types/index.ts
 
 export interface IUser extends Document {
@@ -15,7 +15,6 @@ export interface IUser extends Document {
   twoFactorEnabled: boolean;
   forcePasswordChangeOnNextLogin: boolean;
   sessionVersion: number;
-  auditHistory: IAuditLogSchema[];
   lastLogin?: Date;
   accessibilitySettings: IAccessibilitySettings;
   languagePreference: string;
@@ -44,16 +43,35 @@ export interface IBlock extends Document {
   blockedUser: Types.ObjectId;
   reason: string;
   status: 'active' | 'reversed_by_admin';
-  auditHistory: IAuditLogSchema[];
   createdAt: Date;
 }
 
-export interface IAuditLogSchema extends Document {
-  action: string;
-  adminUser?: Types.ObjectId;
-  timestamp?: Date;
-  reason?: string;
-  details?: any;
+export interface IAuditLog extends Document {
+  actor: {
+    userId: Types.ObjectId;
+    isAdmin: boolean;
+    ip: string;
+    userAgent?: string;
+  };
+  action: {
+    actionType: AuditActionType;
+    category: AuditLogCategory;
+    detail?: string;
+  };
+  target: {
+    resourceType: string;
+    resourceId: Types.ObjectId;
+    beforeState?: any;
+    afterState?: any;
+  };
+  metadata: {
+    severity: AuditLogSeverityLevels;
+    relatedResources?: Array<{
+      type: string;
+      id: Types.ObjectId;
+    }>;
+    [key: string]: any;
+  };
 }
 
 export interface IRide extends Document {
@@ -74,7 +92,6 @@ export interface IRide extends Document {
   }[];
   isRecurrent: boolean;
   recurrenceId?: string;
-  auditHistory: IAuditLogSchema[];
   distanceKm?: number;
   createdAt: Date;
   updatedAt: Date;
@@ -115,16 +132,17 @@ export interface IVehicle extends Document {
   capacity: number;
   photoUrl?: string;
   status: VehicleStatus;
-  auditHistory: IAuditLogSchema[];
   createdAt: Date;
   updatedAt: Date;
 }
-export interface RidePassenger {
+
+export interface RidePassenger extends Document {
   user: Types.ObjectId;
   status: PassengerStatus;
   requestedAt: Date;
   managedAt?: Date;
 }
+
 export interface IChatMessage extends Document {
   ride: Types.ObjectId;
   sender: IUser;
@@ -142,6 +160,7 @@ export interface IChatMessage extends Document {
   createdAt: Date;
   updatedAt: Date;
 }
+
 export interface INotification extends Document {
   user: Types.ObjectId;
   type: NotificationType,
@@ -194,21 +213,6 @@ export interface IPrivacyRequest extends Document {
   requestedAt: Date;
   completedAt?: Date;
   adminUser?: Types.ObjectId;
-}
-
-export interface IAuditLog extends Document {
-  adminUser: Types.ObjectId;
-  action: string;
-  target: {
-    type: 'user' | 'ride' | 'chat' | 'vehicle' | string;
-    id: string;
-  };
-  details: {
-    ipAddress: string;
-    userAgent?: string;
-    [key: string]: unknown | undefined;
-  };
-  timestamp: Date;
 }
 
 export interface IAccessDenialLog extends Document {

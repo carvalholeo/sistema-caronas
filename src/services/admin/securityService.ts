@@ -3,9 +3,9 @@ import { BlockModel } from '../../models/block';
 import { UserModel } from '../../models/user';
 import { AuditLogModel } from '../../models/auditLog';
 import { authService } from '../authService';
-import { SessionEventModel } from '../../models/sessionEvent';
 import { Types } from 'mongoose';
 import { IBlock, IUser } from 'types';
+import { AuditActionType, AuditLogCategory, AuditLogSeverityLevels } from 'types/enums/enums';
 
 class AdminSecurityService {
   public async listAllBlocks(): Promise<IBlock[]> {
@@ -17,7 +17,25 @@ class AdminSecurityService {
 
     const block = await BlockModel.findById(blockId);
     if (block) {
-      await new AuditLogModel({ adminUser: adminUser._id, action: 'seguranca:ver_motivos', target: { type: 'block', id: blockId } }).save();
+      const auditEntry = new AuditLogModel({
+        actor: {
+          userId: adminUser._id,
+          isAdmin: true,
+          ip: '::1',
+        },
+        action: {
+          actionType: AuditActionType.SECURITY_BLOCK_REASONS_VIEWED_BY_ADMIN,
+          category: AuditLogCategory.SECURITY,
+        },
+        target: {
+          resourceType: 'block',
+          resourceId: blockId
+        },
+        metadata: {
+          severity: AuditLogSeverityLevels.CRITICAL
+        }
+      });
+      await auditEntry.save();
     }
     return block;
   }
@@ -32,8 +50,25 @@ class AdminSecurityService {
     targetUser.forcePasswordChangeOnNextLogin = true;
     await targetUser.save();
 
-    await new SessionEventModel({ user: targetUserId, type: 'global_logout_admin', adminUser: adminUser._id }).save();
-    await new AuditLogModel({ adminUser: adminUser._id, action: 'seguranca:forcar_logout', target: { type: 'user', id: targetUserId } }).save();
+    const auditEntry = new AuditLogModel({
+        actor: {
+          userId: adminUser._id,
+          isAdmin: true,
+          ip: '::1',
+        },
+        action: {
+          actionType: AuditActionType.SECURITY_USER_SESSIONS_REVOKED_BY_ADMIN,
+          category: AuditLogCategory.SECURITY,
+        },
+        target: {
+          resourceType: 'user',
+          resourceId: targetUserId
+        },
+        metadata: {
+          severity: AuditLogSeverityLevels.CRITICAL
+        }
+      });
+      await auditEntry.save();
 
     return { message: "Todas as sessões do usuário foram revogadas." };
   }

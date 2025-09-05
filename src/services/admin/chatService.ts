@@ -4,6 +4,7 @@ import { AuditLogModel } from '../../models/auditLog';
 import { authService } from '../authService';
 import { Types } from 'mongoose';
 import { IChatMessage, IUser } from 'types';
+import { AuditActionType, AuditLogCategory, AuditLogSeverityLevels } from 'types/enums/enums';
 
 class AdminChatService {
   public async readConversation(rideId: Types.ObjectId, senderId: Types.ObjectId, adminId: IUser): Promise<IChatMessage[]> {
@@ -11,7 +12,7 @@ class AdminChatService {
       adminUser: adminId._id,
       action: 'chat:ler',
       target: { type: 'chat', id: `${rideId}` },
-      details: { extra: { mensagem: 'Admin leu a conversa' }  }
+      details: { extra: { mensagem: 'Admin leu a conversa' } }
     }).save();
 
     return ChatMessageModel.find({
@@ -43,12 +44,32 @@ class AdminChatService {
     if (!authService.verifyTwoFactorCode(adminUser.twoFactorSecret, twoFactorCode)) {
       throw new Error("Código 2FA inválido.");
     }
-    await new AuditLogModel({
-      adminUser: adminUser._id,
-      action: 'chat:exportar_logs',
-      target: { type: 'chat', id: `${rideId}/${senderId}` },
-      details: { message: "Admin exportou a conversa." }
-    }).save();
+
+    const auditEntry = new AuditLogModel({
+      actor: {
+        userId: adminUser._id,
+        isAdmin: true,
+        ip: '::1',
+      },
+      action: {
+        actionType: AuditActionType.CHAT_LOGS_EXPORTED_BY_ADMIN,
+        category: AuditLogCategory.CHAT
+      },
+      target: {
+        resourceType: 'chat',
+        resourceId: rideId
+      },
+      metadata: {
+        severity: AuditLogSeverityLevels.WARN,
+        extra: {
+          targetUser: {
+            resourceType: 'user',
+            resourceId: senderId._id
+          }
+        }
+      }
+    });
+    await auditEntry.save();
 
     const messages = await this.readConversation(rideId, senderId.id, adminUser);
     return messages.map(msg => `[${msg.createdAt}] ${msg.sender.name}: ${msg.content}`).join('\n');

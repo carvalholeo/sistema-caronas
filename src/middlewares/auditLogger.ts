@@ -1,28 +1,39 @@
 import { Request, Response, NextFunction } from 'express';
-import {AuditLogModel as AuditLog} from '../models/auditLog';
+import { AuditLogModel } from '../models/auditLog';
+import { AuditActionType, AuditLogCategory, AuditLogSeverityLevels, UserRole } from 'types/enums/enums';
 
 const auditLogger = async (req: Request, res: Response, next: NextFunction) => {
     const { method, originalUrl, user } = req;
-    const logEntry = new AuditLog({
-        adminUser: user ? user.id : null,
-        action: `${method} ${originalUrl}`,
-        details: {
-            ipAddress: req.ip,
-            userAgent: req.headers['user-agent'] || 'Unknown',
+
+    const auditEntry = new AuditLogModel({
+        actor: {
+            userId: user?._id || null,
+            isAdmin: user?.roles.includes(UserRole.Admin) || false,
+            ip: req.ip,
+            userAgent: req.headers['user-agent'] || 'Unknown'
+        },
+        action: {
+            actionType: AuditActionType.REQUEST_LOG,
+            category: AuditLogCategory.SYSTEM,
+        },
+        target: {
+            resourceType: 'Request',
+            resourceId: ''
+        },
+        metadata: {
+            severity: AuditLogSeverityLevels.INFO,
             extra: {
                 body: req.body,
                 query: req.query,
-                params: req.params
+                params: req.params,
+                method,
+                originalUrl
             }
-        },
-        target: {
-            type: 'Request',
-            id: ''
         }
     });
 
     try {
-        await logEntry.save();
+        await auditEntry.save();
     } catch (error) {
         console.error('Error saving audit log:', error);
     }

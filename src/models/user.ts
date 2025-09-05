@@ -1,17 +1,8 @@
 import { Schema, model } from 'mongoose';
 import bcrypt from 'bcrypt';
 import authConfig from 'config/auth';
-import { IAccessibilitySettings, IAuditLogSchema, IUser} from 'types';
+import { IAccessibilitySettings, IUser} from 'types';
 import { UserRole, UserStatus } from 'types/enums/enums';
-
-// Subdocumento para auditoria interna do usuário
-const AuditLogSchema = new Schema<IAuditLogSchema>({
-  action: { type: String, required: true },
-  adminUser: { type: Schema.Types.ObjectId, ref: 'User' },
-  timestamp: { type: Date, default: Date.now },
-  reason: { type: String },
-  details: { type: Schema.Types.Mixed },
-});
 
 // Subdocumento para configurações de acessibilidade
 const AccessibilitySettingsSchema = new Schema<IAccessibilitySettings>({
@@ -54,7 +45,7 @@ const UserSchema = new Schema<IUser>({
   twoFactorSecret: { type: String, select: false, default: '' },
   forcePasswordChangeOnNextLogin: { type: Boolean, default: false },
   sessionVersion: { type: Number, default: 0 },
-  auditHistory: [AuditLogSchema],
+
   lastLogin: { type: Date },
   accessibilitySettings: { type: AccessibilitySettingsSchema, default: {} },
   languagePreference: { type: String, default: 'pt-BR' },
