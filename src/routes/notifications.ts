@@ -1,10 +1,12 @@
 import { Router } from 'express';
 import { sendNotification, getUserNotifications, updateNotificationPreferences } from '../controllers/notificationController';
 import { authMiddleware } from '../middlewares/auth';
+import { requestValidator } from 'middlewares/requestValidator';
 
 const router = Router();
 
 router.use(authMiddleware);
+router.use(requestValidator);
 
 // Route to send a notification
 router.post('/', sendNotification);

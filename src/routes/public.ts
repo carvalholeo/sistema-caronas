@@ -1,11 +1,12 @@
 import { Router, Request, Response } from 'express';
 import { DataReportModel } from '../models/dataReport';
 import { verifyReportValidator } from '../middlewares/validators/admin/privacy';
+import { requestValidator } from 'middlewares/requestValidator';
 
 const publicRouter = Router();
 
 // Rota pública para verificar a integridade de um relatório de dados
-publicRouter.get('/reports/verify/:hash', verifyReportValidator, async (req: Request, res: Response) => {
+publicRouter.get('/reports/verify/:hash', verifyReportValidator, requestValidator, async (req: Request, res: Response) => {
     try {
         const report = await DataReportModel.findOne({ hash: req.params.hash });
         if (!report) {

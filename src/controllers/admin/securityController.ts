@@ -1,5 +1,4 @@
 import { Request, Response } from 'express';
-import { validationResult } from 'express-validator';
 import { adminSecurityService } from '../../services/admin/securityService';
 import { Types } from 'mongoose';
 
@@ -22,11 +21,6 @@ class AdminSecurityController {
    * Requer a permissão 'seguranca:ver_motivos' e 2FA do administrador.
    */
   public async viewBlockReason(req: Request, res: Response): Promise<Response> {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
-
     try {
       const { blockId } = req.params;
       const { twoFactorCode } = req.body;
@@ -47,11 +41,6 @@ class AdminSecurityController {
    * Requer a permissão 'seguranca:forcar_logout' e 2FA do administrador.
    */
   public async forceLogout(req: Request, res: Response): Promise<Response> {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
-
     try {
       const { targetUserId } = req.params;
       const { twoFactorCode } = req.body;

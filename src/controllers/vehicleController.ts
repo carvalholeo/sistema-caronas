@@ -1,11 +1,8 @@
 import { Request, Response } from 'express';
-import { validationResult } from 'express-validator';
 import { vehicleService } from '../services/vehicleService';
 
 class VehicleController {
   public async create(req: Request, res: Response): Promise<Response> {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
     try {
       const vehicle = await vehicleService.createVehicle(req.user!._id, req.body);
       return res.status(201).json(vehicle);

@@ -1,5 +1,4 @@
 import { Request, Response } from 'express';
-import { validationResult } from 'express-validator';
 import { adminChatService } from '../../services/admin/chatService';
 import { Types } from 'mongoose';
 import { IUser } from 'types';
@@ -28,11 +27,6 @@ class AdminChatController {
    * Requer a permissão 'chat:moderar'.
    */
   public async moderateMessage(req: Request, res: Response): Promise<Response> {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
-
     try {
       const { messageId } = req.params;
       const { reason } = req.body;
@@ -53,12 +47,6 @@ class AdminChatController {
    * Requer a permissão 'chat:exportar_logs' e 2FA do administrador.
    */
   public async exportChatLogs(req: Request, res: Response): Promise<void> {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      res.status(400).json({ errors: errors.array() });
-      return;
-    }
-
     try {
       const { rideId, senderId } = req.params;
       const { twoFactorCode } = req.body;

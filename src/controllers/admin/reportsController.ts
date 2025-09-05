@@ -1,15 +1,10 @@
 import { Request, Response } from 'express';
-import { validationResult } from 'express-validator';
 import { adminReportsService } from '../../services/admin/reportsService';
 
 class AdminReportsController {
 
   // Helper para padronizar o tratamento de erros e a chamada de serviço
   private async handleReportRequest(req: Request, res: Response, serviceMethod: Function, requiresDateRange: boolean = true) {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
     try {
       let report;
       if (requiresDateRange) {
@@ -33,8 +28,6 @@ class AdminReportsController {
   }
 
   public async getEngagementReport(req: Request, res: Response): Promise<Response> {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
     try {
       const { endDate } = req.query;
       const report = await adminReportsService.getEngagementReport(new Date(endDate as string));

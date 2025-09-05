@@ -1,5 +1,4 @@
 import { Request, Response } from 'express';
-import { validationResult } from 'express-validator';
 import { adminPrivacyService } from '../../services/admin/privacyService';
 import { Types } from 'mongoose';
 
@@ -9,11 +8,6 @@ class AdminPrivacyController {
    * Requer a permissão 'privacidade:emitir_relatorio' e 2FA do administrador.
    */
   public async generateDataReport(req: Request, res: Response): Promise<Response> {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
-
     try {
       const { targetUserId } = req.params;
       const { twoFactorCode } = req.body;
@@ -34,11 +28,6 @@ class AdminPrivacyController {
    * Requer a permissão 'privacidade:solicitacao_remocao' e 2FA do administrador.
    */
   public async processRemovalRequest(req: Request, res: Response): Promise<Response> {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
-
     try {
       const { targetUserId } = req.params;
       const { twoFactorCode } = req.body;
@@ -76,11 +65,6 @@ class AdminPrivacyController {
    * Requer a permissão 'privacidade:notificar_usuario'.
    */
   public async sendFormalNotification(req: Request, res: Response): Promise<Response> {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
-
     try {
       const { targetUserId } = req.params;
       const { subject, body } = req.body;

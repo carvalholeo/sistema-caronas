@@ -1,5 +1,4 @@
 import { Request, Response } from 'express';
-import { validationResult } from 'express-validator';
 import { authService } from '../services/authService';
 import qrcode from 'qrcode';
 import authConfig from 'config/auth';
@@ -9,8 +8,6 @@ import { IUser } from 'types';
 
 class AuthController {
     public async register(req: Request, res: Response): Promise<Response> {
-        const errors = validationResult(req);
-        if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
         try {
             await authService.register(req.body);
             return res.status(201).json({ message: "Cadastro realizado com sucesso. Aguardando aprovação." });
@@ -20,8 +17,6 @@ class AuthController {
     }
 
     public async login(req: Request, res: Response): Promise<Response> {
-        const errors = validationResult(req);
-        if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
         try {
             const ipAddress = req.ip;
             const device = req.headers['user-agent'] || 'unknown';
@@ -50,9 +45,6 @@ class AuthController {
     }
 
     public async verify2FA(req: Request, res: Response): Promise<Response> {
-        const errors = validationResult(req);
-        if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
-
         try {
             const { token: tempToken, code } = req.body;
             const decoded: any = security.verifyToken(tempToken);

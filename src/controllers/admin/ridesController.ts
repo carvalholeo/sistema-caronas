@@ -1,5 +1,4 @@
 import { Request, Response } from 'express';
-import { validationResult } from 'express-validator';
 import { adminRidesService } from '../../services/admin/rideService';
 import { Types } from 'mongoose';
 
@@ -37,10 +36,6 @@ class AdminRidesController {
    * Atualiza os dados de uma carona existente.
    */
   public async updateRide(req: Request, res: Response): Promise<Response> {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
     try {
       const { rideId } = req.params;
       const { reason, ...updateData } = req.body;
@@ -61,10 +56,6 @@ class AdminRidesController {
    * Cancela uma carona em nome do motorista.
    */
   public async cancelRide(req: Request, res: Response): Promise<Response> {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
     try {
       const { rideId } = req.params;
       const { reason } = req.body;
@@ -83,10 +74,6 @@ class AdminRidesController {
    * Força a publicação de uma carona que estava pendente de moderação.
    */
   public async forcePublishRide(req: Request, res: Response): Promise<Response> {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
     try {
       const { rideId } = req.params;
       const { reason } = req.body;

@@ -1,5 +1,4 @@
 import { Request, Response } from 'express';
-import { validationResult } from 'express-validator';
 import { adminUsersService } from '../../services/admin/userService';
 import { Types } from 'mongoose';
 import { IUser } from 'types';
@@ -21,10 +20,6 @@ class AdminUsersController {
    * Atualiza o status de um usuário (aprovar, suspender, banir, etc.).
    */
   public async updateUserStatus(req: Request, res: Response): Promise<Response> {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
     try {
       const { targetUserId } = req.params;
       const { status, reason, twoFactorCode } = req.body;
@@ -47,10 +42,6 @@ class AdminUsersController {
    * Edita os dados de um usuário, força a troca de senha ou desativa o 2FA.
    */
   public async updateUser(req: Request, res: Response): Promise<Response> {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
     try {
       const { targetUserId } = req.params;
       const adminUser = req.user!;
@@ -66,10 +57,6 @@ class AdminUsersController {
    * Promove um usuário comum a administrador.
    */
   public async promoteToAdmin(req: Request, res: Response): Promise<Response> {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
     try {
       const { targetUserId } = req.params;
       const { promoterTwoFactorCode } = req.body;
@@ -90,10 +77,6 @@ class AdminUsersController {
    * Atualiza as permissões de um administrador.
    */
   public async updateAdminPermissions(req: Request, res: Response): Promise<Response> {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
     try {
       const { targetUserId } = req.params;
       const { permissions } = req.body;
@@ -127,10 +110,6 @@ class AdminUsersController {
    * Rebaixa um administrador para usuário comum.
    */
   public async demoteAdmin(req: Request, res: Response): Promise<Response> {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
     try {
       const { targetUserId } = req.params;
       const { reason, twoFactorCode } = req.body;
