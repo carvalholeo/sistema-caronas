@@ -48,6 +48,24 @@ export enum NotificationType {
   SYSTEM_NOTIFICATION = 'system_notification'
 }
 
+export enum NotificationCategory {
+  Security = 'security',
+  Rides = 'rides',
+  Chats = 'chats',
+  Communication = 'communication',
+  System = 'system',
+}
+
+export enum NotificationWeekDays {
+  Dom = 0,
+  Seg = 1,
+  Ter = 2,
+  Qua = 3,
+  Qui = 4,
+  Sex = 5,
+  Sab = 6
+}
+
 export enum VehicleStatus {
   Active = 'active',
   Inactive = 'inactive',

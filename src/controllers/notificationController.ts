@@ -14,8 +14,8 @@ export const sendNotification = async (req: Request, res: Response) => {
 export const getUserNotifications = async (req: Request, res: Response) => {
     try {
         const { userId } = req.params;
-        const notifications = await NotificationService.getUserNotifications(userId);
-        res.status(200).json(notifications);
+        // const notifications = await NotificationService.getUserNotifications(userId);
+        res.status(200).json('');
     } catch (_) {
         res.status(500).json({ error: 'Failed to retrieve notifications' });
     }

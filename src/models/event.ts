@@ -1,6 +1,5 @@
-import mongoose, { Schema, model, Types, Document } from 'mongoose';
+import { Schema, model } from 'mongoose';
 import { IEventBase, INotificationEvent, IRideViewEvent, ISearchEvent } from 'types';
-import { NotificationStatusHistory } from 'types/types/events';
 
 const baseOptions = {
   discriminatorKey: 'kind', // campo que identifica o subtipo

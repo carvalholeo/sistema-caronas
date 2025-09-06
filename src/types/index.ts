@@ -1,5 +1,5 @@
 import { Types, Document } from 'mongoose';
-import { AuditActionType, AuditLogCategory, AuditLogSeverityLevels, BlockStatus, LocationLogAction, MessageStatus, NotificationType, PassengerStatus, PasswordResetStatus, PrivacyRequestStatus, PrivacyRequestType, RideStatus, UserRole, UserStatus, VehicleStatus } from './enums/enums';
+import { AuditActionType, AuditLogCategory, AuditLogSeverityLevels, BlockStatus, LocationLogAction, MessageStatus, NotificationCategory, NotificationType, NotificationWeekDays, PassengerStatus, PasswordResetStatus, PrivacyRequestStatus, PrivacyRequestType, RideStatus, UserRole, UserStatus, VehicleStatus } from './enums/enums';
 import { EventKind, NotificationEventCategory, NotificationStatusHistory } from './types/events';
 // src/types/index.ts
 
@@ -123,15 +123,6 @@ export interface INotificationEvent extends IEventBase {
   isCritical: boolean;
 }
 
-export interface ISessionEvent extends Document {
-  user: Types.ObjectId;
-  type: 'refresh_token_rotation' | 'global_logout_admin';
-  device?: string;
-  ipAddress?: string;
-  adminUser?: Types.ObjectId;
-  timestamp: Date;
-}
-
 export interface IVehicle extends Document {
   owner: Types.ObjectId;
   plate: string;
@@ -182,6 +173,23 @@ export interface INotification extends Document {
   expiresAt?: Date;
 }
 
+export interface INotificationPayload {
+  category: NotificationCategory;
+  title: string;
+  body: string;
+  url?: string; // URL para abrir ao clicar na notificação
+  icon?: string;
+  badge?: string;
+}
+
+export interface INotificationKind {
+  security: boolean;
+  rides: boolean;
+  chats: boolean;
+  communication: boolean;
+  system: boolean;
+}
+
 export interface INotificationSubscription extends Document {
   user: Types.ObjectId;
   deviceIdentifier: string;
@@ -189,11 +197,17 @@ export interface INotificationSubscription extends Document {
   endpoint: string;
   keys: { p256dh: string; auth: string };
   isPermissionGranted: boolean;
-  preferences: {
-    security: boolean;
-    rides: boolean;
-    communication: boolean;
-  };
+  notificationsKinds: INotificationKind;
+  preferences: INotificationPreferences;
+}
+
+export interface INotificationPreferences {
+  startMinute: number;
+  endMinute: number;
+  timezone: string;
+  weekMask: NotificationWeekDays;
+  maskToDays(mask: number): NotificationWeekDays[];
+  daysToMask(days: NotificationWeekDays[]): number;
 }
 
 export interface ISuppressedNotification extends Document {
@@ -215,13 +229,6 @@ export interface IPrivacyRequest extends Document {
   requestedAt: Date;
   completedAt?: Date;
   adminUser?: Types.ObjectId;
-}
-
-export interface IAccessDenialLog extends Document {
-  adminUser: Types.ObjectId;
-  requiredPermission: string;
-  attemptedAction: string;
-  target?: object;
 }
 
 export interface ILoginAttempt extends Document {
@@ -257,5 +264,5 @@ export interface ILocationLog extends Document {
 export interface IEventBase extends Document {
   _id: Types.ObjectId;
   kind: EventKind;
-  user?: Types.ObjectId | null; // alguns eventos têm user diretamente
+  user?: Types.ObjectId | null;
 }
