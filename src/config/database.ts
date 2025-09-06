@@ -1,27 +1,24 @@
-import { MongoClient } from 'mongodb';
+import mongoose, { Mongoose, ConnectOptions } from 'mongoose';
 import { config } from 'dotenv';
 
 config();
 
 const uri = process.env.MONGODB_URI || 'mongodb://localhost:27017/carpool';
-const options = {
-  useNewUrlParser: true,
-  useUnifiedTopology: true
-};
+const options: ConnectOptions = {};
 
-let client: MongoClient | null;
+let client: Mongoose | null = null;
 
-export const connectToDatabase = async () => {
-  if (!client) {
-    client = new MongoClient(uri);
-    await client.connect();
+export async function connectToDatabase(): Promise<Mongoose> {
+  mongoose.set('runValidators', true);
+  if (client === null) {
+    client = await mongoose.connect(uri, options);
   }
-  return client.db();
+  return client;
 };
 
-export const closeDatabaseConnection = async () => {
+export async function closeDatabaseConnection(): Promise<void> {
   if (client) {
-    await client.close();
+    await client.disconnect();
     client = null;
   }
 };

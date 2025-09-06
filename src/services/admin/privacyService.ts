@@ -51,7 +51,7 @@ class AdminPrivacyService {
         category: AuditLogCategory.PRIVACY
       },
       target: {
-        resourceType: 'user',
+        resourceType: UserModel.baseModelName,
         resourceId: targetUserId
       },
       metadata: {
@@ -87,7 +87,7 @@ class AdminPrivacyService {
         category: AuditLogCategory.PRIVACY
       },
       target: {
-        resourceType: 'user',
+        resourceType: UserModel.baseModelName,
         resourceId: targetUserId
       },
       metadata: {
@@ -111,7 +111,7 @@ class AdminPrivacyService {
         category: AuditLogCategory.PRIVACY
       },
       target: {
-        resourceType: 'user',
+        resourceType: UserModel.baseModelName,
         resourceId: targetUserId
       },
       metadata: {
@@ -154,7 +154,7 @@ class AdminPrivacyService {
         category: AuditLogCategory.PRIVACY
       },
       target: {
-        resourceType: 'user',
+        resourceType: UserModel.baseModelName,
         resourceId: targetUserId
       },
       metadata: {

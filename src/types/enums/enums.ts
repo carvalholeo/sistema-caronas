@@ -155,3 +155,33 @@ const StatusToActionLog: Record<UserStatus, AuditActionType> = {
 export function toAuditActionType(status: UserStatus): AuditActionType {
   return StatusToActionLog[status];
 }
+
+export enum PasswordResetStatus {
+  INITIATED = 'initiated',
+  COMPLETED = 'completed',
+  CANCELLED = 'canceled',
+  EXPIRED = 'expired',
+  VERIFIED = 'verified'
+}
+
+export enum PrivacyRequestStatus {
+  REQUESTED = 'requested',
+  INITIATED = 'initiated',
+  COMPLETED = 'completed',
+  CANCELLED = 'canceled',
+  EXPIRED = 'expired',
+  DENIED = 'denied'
+}
+
+export enum PrivacyRequestType {
+  ACCESS = 'access',
+  CORRECTION = 'correction',
+  PORTABILITY = 'portability',
+  REMOVAL = 'removal'
+}
+
+export enum BlockStatus {
+  APPLIED = 'applied',
+  REVERSED = 'reversed',
+  REVERSED_BY_ADMIN = 'reversed_by_admin'
+}

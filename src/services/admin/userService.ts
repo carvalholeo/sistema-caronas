@@ -60,7 +60,7 @@ class AdminUsersService {
         detail: reason
       },
       target: {
-        resourceType: 'user',
+        resourceType: UserModel.baseModelName,
         resourceId: targetUserId
       },
       metadata: {
@@ -106,7 +106,7 @@ class AdminUsersService {
           detail: reason
         },
         target: {
-          resourceType: 'user',
+          resourceType: UserModel.baseModelName,
           resourceId: targetUserId
         },
         metadata: {
@@ -133,7 +133,7 @@ class AdminUsersService {
           detail: reason
         },
         target: {
-          resourceType: 'user',
+          resourceType: UserModel.baseModelName,
           resourceId: targetUserId
         },
         metadata: {
@@ -177,7 +177,7 @@ class AdminUsersService {
         category: AuditLogCategory.USER,
       },
       target: {
-        resourceType: 'user',
+        resourceType: UserModel.baseModelName,
         resourceId: targetUserId
       },
       metadata: {
@@ -216,7 +216,7 @@ class AdminUsersService {
         detail: reason
       },
       target: {
-        resourceType: 'user',
+        resourceType: UserModel.baseModelName,
         resourceId: targetUserId
       },
       metadata: {
@@ -256,7 +256,7 @@ class AdminUsersService {
         category: AuditLogCategory.USER,
       },
       target: {
-        resourceType: 'user',
+        resourceType: UserModel.baseModelName,
         resourceId: targetUserId,
         beforeState: oldPermissions,
         afterState: permissions

@@ -2,7 +2,7 @@ import { Server, Socket } from 'socket.io';
 import { RideModel } from '../models/ride';
 import { LocationLogModel } from '../models/locationLog';
 import { BlockModel } from '../models/block';
-import mongoose, { Types } from 'mongoose';
+import { Types } from 'mongoose';
 import { RideStatus, LocationLogAction } from 'types/enums/enums';
 
 class LocationService {
@@ -90,8 +90,8 @@ class LocationService {
 
       const isBlocked = await BlockModel.findOne({
         $or: [
-          { blocker: new mongoose.Types.ObjectId(socket.userId), blocked: new mongoose.Types.ObjectId(targetSocket.userId) },
-          { blocker: new mongoose.Types.ObjectId(targetSocket.userId), blocked: new mongoose.Types.ObjectId(socket.userId) }
+          { blocker: new Types.ObjectId(socket.userId), blocked: new Types.ObjectId(targetSocket.userId) },
+          { blocker: new Types.ObjectId(targetSocket.userId), blocked: new Types.ObjectId(socket.userId) }
         ]
       });
 

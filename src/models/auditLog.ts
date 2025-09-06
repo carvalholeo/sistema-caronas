@@ -21,11 +21,11 @@ const AuditLogSchema = new Schema<IAuditLog>({
   },
   action: {
     actionType: {
-      type: AuditActionType,
+      type: Object.values(AuditActionType),
       required: true,
     },
     category: {
-      type: AuditLogCategory,
+      type: Object.values(AuditLogCategory),
       required: true
     },
     detail: {
@@ -40,7 +40,7 @@ const AuditLogSchema = new Schema<IAuditLog>({
   },
   metadata: {
     severity: {
-      type: AuditLogSeverityLevels,
+      type: Object.values(AuditLogSeverityLevels),
     },
     relatedResources: {
       type: {

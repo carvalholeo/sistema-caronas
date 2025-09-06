@@ -28,7 +28,7 @@ class AdminSecurityService {
           category: AuditLogCategory.SECURITY,
         },
         target: {
-          resourceType: 'block',
+          resourceType: BlockModel.baseModelName,
           resourceId: blockId
         },
         metadata: {
@@ -61,7 +61,7 @@ class AdminSecurityService {
           category: AuditLogCategory.SECURITY,
         },
         target: {
-          resourceType: 'user',
+          resourceType: UserModel.baseModelName,
           resourceId: targetUserId
         },
         metadata: {

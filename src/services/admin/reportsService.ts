@@ -3,8 +3,7 @@ import { UserModel } from '../../models/user';
 import { VehicleModel } from '../../models/vehicle';
 import { RideModel } from '../../models/ride';
 import { ChatMessageModel } from '../../models/chat';
-import { SearchEventModel } from '../../models/searchEvent';
-import { RideViewEventModel } from '../../models/rideViewEvent';
+import { EventModel } from 'models/event';
 import { LoginAttemptModel } from '../../models/loginAttempt';
 import { PasswordResetModel } from '../../models/passwordReset';
 import { AuditLogModel } from '../../models/auditLog';
@@ -20,29 +19,63 @@ class AdminReportsService {
   // == RELATÓRIOS DE USUÁRIOS
   // =================================================================
 
-  // !VAI DAR PROBLEMA
   public async getRegistrationReport(startDate: Date, endDate: Date) {
     const dateFilter = { createdAt: { $gte: startDate, $lte: endDate } };
-    const pipeline: PipelineStage[]  = [
-      { $match: dateFilter },
-      { $unwind: { path: '$auditHistory', preserveNullAndEmptyArrays: true } },
-      { $sort: { 'auditHistory.timestamp': 1 } },
+    const pipeline: PipelineStage[] = [
+      // 1. Encontrar todos os usuários registrados no período
       {
-        $group: {
-          _id: '$_id',
-          createdAt: { $first: '$createdAt' },
-          status: { $last: '$status' },
-          decisionEntry: { $first: { $cond: [{ $in: ['$auditHistory.action', ['status_changed_to_approved', 'status_changed_to_rejected']] }, '$auditHistory', null] } }
+        $match: dateFilter
+      },
+      // 2. Para cada usuário, buscar o primeiro log de decisão (aprovação/rejeição)
+      {
+        $lookup: {
+          from: 'AuditLog', // O nome da coleção do AuditLogModel
+          let: { userId: '$_id' },
+          pipeline: [
+            {
+              $match: {
+                $expr: {
+                  $and: [
+                    { $eq: ['$target.resourceId', '$$userId'] },
+                    { $eq: ['$target.resourceType', 'User'] },
+                    { $in: ['$action.actionType', [
+                        AuditActionType.USER_APPROVED_BY_ADMIN,
+                        AuditActionType.USER_REJECTED_BY_ADMIN
+                      ]]
+                    }
+                  ]
+                }
+              }
+            },
+            { $sort: { createdAt: 1 } }, // Pega o mais antigo primeiro
+            { $limit: 1 }
+          ],
+          as: 'decisionLog'
         }
       },
+      // 3. Transforma o array 'decisionLog' em um único objeto (ou null se não houver decisão)
+      {
+        $addFields: {
+          decisionEntry: { $arrayElemAt: ['$decisionLog', 0] }
+        }
+      },
+      // 4. Agrupar tudo para calcular os KPIs
       {
         $group: {
           _id: null,
           totalRegistrations: { $sum: 1 },
-          approved: { $sum: { $cond: [{ $eq: ['$status', 'approved'] }, 1, 0] } },
-          rejected: { $sum: { $cond: [{ $eq: ['$status', 'rejected'] }, 1, 0] } },
-          pending: { $sum: { $cond: [{ $eq: ['$status', 'pending'] }, 1, 0] } },
-          totalDecisionTime: { $sum: { $cond: ['$decisionEntry', { $subtract: ['$decisionEntry.timestamp', '$createdAt'] }, 0] } },
+          approved: { $sum: { $cond: [{ $eq: ['$status', UserStatus.Approved] }, 1, 0] } },
+          rejected: { $sum: { $cond: [{ $eq: ['$status', UserStatus.Rejected] }, 1, 0] } },
+          pending: { $sum: { $cond: [{ $eq: ['$status', UserStatus.Pending] }, 1, 0] } },
+          totalDecisionTime: {
+            $sum: {
+              $cond: [
+                '$decisionEntry',
+                { $subtract: ['$decisionEntry.createdAt', '$createdAt'] }, // Usa o createdAt do log
+                0
+              ]
+            }
+          },
           decidedCount: { $sum: { $cond: ['$decisionEntry', 1, 0] } }
         }
       }
@@ -50,7 +83,7 @@ class AdminReportsService {
 
     const result = await UserModel.aggregate(pipeline);
     const data = result[0] || {};
-    const avgDecisionTimeMs = (data.decidedCount > 0) ? (data.totalDecisionTime / data.decidedCount) : 0;
+    const avgDecisionTimeMs = ((data?.decidedCount || 0) > 0 ) ? (data.totalDecisionTime / data.decidedCount) : 0;
 
     return {
       totalRegistrations: data.totalRegistrations || 0,
@@ -231,10 +264,16 @@ class AdminReportsService {
   }
 
   public async getRideBookingReport(startDate: Date, endDate: Date) {
-    const dateFilter = { timestamp: { $gte: startDate, $lte: endDate } };
+    const dateFilter = { createdAt: { $gte: startDate, $lte: endDate } };
 
-    const searches = await SearchEventModel.countDocuments(dateFilter);
-    const views = await RideViewEventModel.countDocuments(dateFilter);
+    const searches = await EventModel.countDocuments({
+      ...dateFilter,
+      kind: 'search'
+    });
+    const views = await EventModel.countDocuments({
+      ...dateFilter,
+      kind: 'ride_view'
+    })
 
     const bookingAnalysis = await RideModel.aggregate([
       { $unwind: '$passengers' },
@@ -300,8 +339,8 @@ class AdminReportsService {
   }
 
   public async getGeoPerformanceReport(startDate: Date, endDate: Date) {
-    const performance = await SearchEventModel.aggregate([
-      { $match: { timestamp: { $gte: startDate, $lte: endDate } } },
+    const performance = await EventModel.aggregate([
+      { $match: { createdAt: { $gte: startDate, $lte: endDate }, kind: 'search' } },
       {
         $group: {
           _id: null,

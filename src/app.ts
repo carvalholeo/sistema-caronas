@@ -1,7 +1,6 @@
 import { createServer, Server as HttpServer } from 'http';
 
 import express from 'express';
-import mongoose from 'mongoose';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import slowDown from 'express-slow-down';
@@ -27,6 +26,7 @@ import { errorHandler } from './middlewares/errorHandler';
 import auditLogger from './middlewares/auditLogger';
 import { setupLocationSockets } from 'socket/locationSocket';
 import { initializeChatSockets } from 'socket/chatSocket';
+import { closeDatabaseConnection, connectToDatabase } from 'config/database';
 
 config();
 
@@ -58,8 +58,7 @@ class CarpoolApp {
 
   private async initializeDatabase(): Promise<void> {
     try {
-      const mongoUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/carpool';
-      await mongoose.connect(mongoUri);
+      await connectToDatabase();
       logger.info('Connected to MongoDB successfully');
     } catch (error) {
       logger.error('MongoDB connection failed:', error);
@@ -208,7 +207,7 @@ class CarpoolApp {
   }
 
   private async close(): Promise<void> {
-    await mongoose.connection.close();
+    await closeDatabaseConnection();
     await this.redisClient.quit();
     this.server.close();
   }

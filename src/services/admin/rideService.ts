@@ -20,7 +20,7 @@ class AdminRidesService {
           category: AuditLogCategory.RIDE
         },
         target: {
-          resourceType: 'ride',
+          resourceType: RideModel.baseModelName,
           resourceId: ride._id
         },
         metadata: {
@@ -50,7 +50,7 @@ class AdminRidesService {
           detail: reason
         },
         target: {
-          resourceType: 'ride',
+          resourceType: RideModel.baseModelName,
           resourceId: ride._id
         },
         metadata: {
@@ -87,7 +87,7 @@ class AdminRidesService {
           detail: reason
         },
         target: {
-          resourceType: 'ride',
+          resourceType: RideModel.baseModelName,
           resourceId: ride._id
         },
         metadata: {
@@ -148,7 +148,7 @@ class AdminRidesService {
           detail: reason
         },
         target: {
-          resourceType: 'ride',
+          resourceType: RideModel.baseModelName,
           resourceId: ride._id,
           beforeState: { ...ride.toObject() },
           afterState: updateData,

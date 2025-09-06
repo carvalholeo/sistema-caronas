@@ -1,5 +1,6 @@
-import {Types, Document} from 'mongoose';
-import { AuditActionType, AuditLogCategory, AuditLogSeverityLevels, LocationLogAction, MessageStatus, NotificationType, PassengerStatus, RideStatus, UserRole, UserStatus, VehicleStatus } from './enums/enums';
+import { Types, Document } from 'mongoose';
+import { AuditActionType, AuditLogCategory, AuditLogSeverityLevels, BlockStatus, LocationLogAction, MessageStatus, NotificationType, PassengerStatus, PasswordResetStatus, PrivacyRequestStatus, PrivacyRequestType, RideStatus, UserRole, UserStatus, VehicleStatus } from './enums/enums';
+import { EventKind, NotificationEventCategory, NotificationStatusHistory } from './types/events';
 // src/types/index.ts
 
 export interface IUser extends Document {
@@ -42,7 +43,7 @@ export interface IBlock extends Document {
   blockerUser: Types.ObjectId;
   blockedUser: Types.ObjectId;
   reason: string;
-  status: 'active' | 'reversed_by_admin';
+  status: BlockStatus;
   createdAt: Date;
 }
 
@@ -99,18 +100,27 @@ export interface IRide extends Document {
   cancelReason?: string;
 }
 
-export interface IRideViewEvent extends Document {
+export interface IRideViewEvent extends IEventBase {
+  kind: 'ride_view';
   user: Types.ObjectId;
   ride: Types.ObjectId;
   searchEventId?: Types.ObjectId;
-  timestamp: Date;
 }
 
-export interface ISearchEvent extends Document {
+export interface ISearchEvent extends IEventBase {
+  kind: 'search';
   user: Types.ObjectId;
   durationMs: number;
   resultsCount: number;
-  timestamp: Date;
+}
+
+export interface INotificationEvent extends IEventBase {
+  kind: 'notification';
+  subscription: Types.ObjectId;
+  category: NotificationEventCategory;
+  statusHistory: Array<{ status: NotificationStatusHistory; timestamp: Date; details?: string }>;
+  isAggregated: boolean;
+  isCritical: boolean;
 }
 
 export interface ISessionEvent extends Document {
@@ -172,14 +182,6 @@ export interface INotification extends Document {
   expiresAt?: Date;
 }
 
-export interface INotificationEvent extends Document {
-  subscription: Types.ObjectId;
-  category: 'security' | 'rides' | 'communication' | 'critical';
-  statusHistory: { status: 'sent' | 'delivered' | 'clicked' | 'failed'; timestamp: Date; details?: string }[];
-  isAggregated: boolean;
-  isCritical: boolean;
-}
-
 export interface INotificationSubscription extends Document {
   user: Types.ObjectId;
   deviceIdentifier: string;
@@ -201,15 +203,15 @@ export interface ISuppressedNotification extends Document {
 
 export interface IPasswordReset extends Document {
   user: Types.ObjectId;
-  status: 'initiated' | 'completed';
+  status: PasswordResetStatus;
   initiatedAt: Date;
   completedAt?: Date;
 }
 
 export interface IPrivacyRequest extends Document {
   user: Types.ObjectId;
-  type: 'access' | 'correction' | 'portability' | 'removal';
-  status: 'pending' | 'in_progress' | 'completed' | 'denied';
+  type: PrivacyRequestType;
+  status: PrivacyRequestStatus;
   requestedAt: Date;
   completedAt?: Date;
   adminUser?: Types.ObjectId;
@@ -250,4 +252,10 @@ export interface ILocationLog extends Document {
   user: Types.ObjectId;
   action: LocationLogAction;
   timestamp: Date;
+}
+
+export interface IEventBase extends Document {
+  _id: Types.ObjectId;
+  kind: EventKind;
+  user?: Types.ObjectId | null; // alguns eventos têm user diretamente
 }

@@ -84,4 +84,47 @@ UserSchema.pre<IUser>('save', function(next) {
   next();
 });
 
+UserSchema.pre<IUser>('validate', function (next) {
+  const doc = this;
+
+  if (!doc.isModified('status')) {
+    return next();
+  }
+
+  // valor anterior do status (Mongoose 8: use opção previous)
+  const prevStatus: UserStatus | undefined = doc.get('status', null, { previous: true });
+
+  // documento novo: apenas Pending é permitido por padrão
+  if (doc.isNew) {
+    if (doc.status !== UserStatus.Pending) {
+      return next(new Error(`Invalid initial status: ${doc.status}. Must start as "pending"`));
+    }
+    return next();
+  }
+
+  if (prevStatus && prevStatus !== doc.status) {
+    const allowed = allowedTransitions[prevStatus] || [];
+    if (!allowed.includes(doc.status)) {
+      return next(new Error(`Invalid transition: ${prevStatus} -> ${doc.status}`));
+    }
+  }
+
+  // Estados terminais: anonymized é terminal
+  if (prevStatus === UserStatus.Anonymized && doc.isModified('status')) {
+    return next(new Error('User is anonymized (terminal); status cannot change'));
+  }
+
+  return next();
+});
+
+const allowedTransitions: Record<UserStatus, UserStatus[]> = {
+  [UserStatus.Pending]: [UserStatus.Approved, UserStatus.Rejected, UserStatus.Suspended, UserStatus.Banned, UserStatus.Anonymized],
+  [UserStatus.Approved]: [UserStatus.Suspended, UserStatus.Banned, UserStatus.Anonymized],
+  [UserStatus.Suspended]: [UserStatus.Approved, UserStatus.Banned, UserStatus.Anonymized],
+  [UserStatus.Banned]: [UserStatus.Suspended, UserStatus.Anonymized],
+  [UserStatus.Rejected]: [UserStatus.Pending, UserStatus.Anonymized],
+  [UserStatus.Anonymized]: [],
+};
+
+
 export const UserModel = model<IUser>('User', UserSchema);

@@ -2,8 +2,7 @@ import { RideModel } from '../models/ride';
 import { IRide } from '../types'
 import { VehicleModel } from '../models/vehicle';
 import { randomUUID } from 'crypto';
-import { SearchEventModel } from '../models/searchEvent';
-import { RideViewEventModel } from '../models/rideViewEvent';
+import { EventModel } from 'models/event';
 import { Types } from 'mongoose';
 import { VehicleStatus, RideStatus, PassengerStatus } from 'types/enums/enums';
 
@@ -69,7 +68,12 @@ class RideService {
         }).populate('driver', 'name');
 
         const durationMs = Date.now() - startTime;
-        await new SearchEventModel({ user: userId, durationMs, resultsCount: rides.length }).save();
+        await EventModel.create({
+            kind: 'search',
+            user: userId,
+            durationMs,
+            resultsCount: rides.length
+        });
 
         return rides;
     }
@@ -154,7 +158,11 @@ class RideService {
         const ride = await RideModel.findById(rideId).populate('driver', 'name email').populate('passengers.user', 'name');
         if (!ride) throw new Error("Carona não encontrada.");
 
-        await new RideViewEventModel({ user: userId, ride: rideId }).save();
+        await EventModel.create({
+            kind: 'ride_view',
+            user: userId,
+            ride: rideId
+        });
 
         const isDriver = ride.driver._id.toString() === userId.toString();
         const passengerInfo = ride.passengers.find(p => p.user._id.toString() === userId.toString() && p.status === PassengerStatus.Approved);

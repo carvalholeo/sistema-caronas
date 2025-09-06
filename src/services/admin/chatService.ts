@@ -8,19 +8,39 @@ import { AuditActionType, AuditLogCategory, AuditLogSeverityLevels } from 'types
 
 class AdminChatService {
   public async readConversation(rideId: Types.ObjectId, senderId: Types.ObjectId, adminId: IUser): Promise<IChatMessage[]> {
-    await new AuditLogModel({
-      adminUser: adminId._id,
-      action: 'chat:ler',
-      target: { type: 'chat', id: `${rideId}` },
-      details: { extra: { mensagem: 'Admin leu a conversa' } }
-    }).save();
+    const auditEntry = new AuditLogModel({
+      actor: {
+        userId: adminId._id,
+        isAdmin: true,
+        ip: '::1',
+      },
+      action: {
+        actionType: AuditActionType.CHAT_HISTORY_VIEWED_BY_ADMIN,
+        category: AuditLogCategory.CHAT
+      },
+      target: {
+        resourceType: ChatMessageModel.baseModelName,
+        resourceId: rideId
+      },
+      metadata: {
+        severity: AuditLogSeverityLevels.CRITICAL,
+        extra: {
+          targetUser: {
+            resourceType: 'user',
+            resourceId: senderId._id
+          }
+        }
+      }
+    });
+    await auditEntry.save();
+
 
     return ChatMessageModel.find({
       $or: [
         { sender: senderId },
         { ride: rideId, }
       ]
-    }).populate('sender receiver', 'name matricula');
+    }).populate('sender', 'name matricula');
   }
 
   public async moderateMessage(messageId: Types.ObjectId, adminId: IUser, reason: string): Promise<IChatMessage | null> {
@@ -37,6 +57,28 @@ class AdminChatService {
     message.content = "[Mensagem removida pela moderação]";
 
     await message.save();
+
+    const auditEntry = new AuditLogModel({
+      actor: {
+        userId: adminId._id,
+        isAdmin: true,
+        ip: '::1',
+      },
+      action: {
+        actionType: AuditActionType.CHAT_MESSAGE_MODERATED_BY_ADMIN,
+        category: AuditLogCategory.CHAT,
+        detail: reason
+      },
+      target: {
+        resourceType: ChatMessageModel.baseModelName,
+        resourceId: messageId
+      },
+      metadata: {
+        severity: AuditLogSeverityLevels.CRITICAL
+      }
+    });
+    await auditEntry.save();
+
     return message;
   }
 
@@ -56,7 +98,7 @@ class AdminChatService {
         category: AuditLogCategory.CHAT
       },
       target: {
-        resourceType: 'chat',
+        resourceType: ChatMessageModel.baseModelName,
         resourceId: rideId
       },
       metadata: {
