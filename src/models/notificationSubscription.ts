@@ -62,9 +62,10 @@ PreferencesSchema.methods.maskToDays = (mask: number): NotificationWeekDays[] =>
 const NotificationSubscriptionSchema = new Schema<INotificationSubscription>({
   user: { type: Schema.Types.ObjectId, ref: 'User', required: true },
   deviceIdentifier: { type: String, required: true },
-  platform: { type: String, enum: ['web', 'ios', 'android'], required: true, default: 'web' },
+  platform: { type: String, enum: ['web', 'ios', 'android', 'email'], required: true, default: 'web' },
   endpoint: { type: String, required: true },
   keys: { p256dh: { type: String }, auth: { type: String } },
+  destination: { type: String },
   isPermissionGranted: { type: Boolean, default: true },
   notificationsKinds: {
     security: { type: Boolean, default: true },

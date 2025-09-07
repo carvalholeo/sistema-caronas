@@ -1,8 +1,8 @@
 import webpush from 'web-push';
 import { INotificationProvider } from './INotificationProvider';
-import { INotificationPayload } from 'types';
-import { INotificationSubscription } from 'types';
+import { INotificationPayload, INotificationSubscription } from 'types';
 import { NotificationSubscriptionModel } from 'models/notificationSubscription';
+import logger from 'utils/logger';
 
 export class WebPushProvider implements INotificationProvider {
   constructor() {
@@ -13,7 +13,7 @@ export class WebPushProvider implements INotificationProvider {
         process.env.VAPID_PRIVATE_KEY
       );
     } else {
-      console.warn('VAPID keys não configuradas para WebPushProvider.');
+      logger.warn('VAPID keys não configuradas para WebPushProvider.');
     }
   }
 
@@ -28,10 +28,10 @@ export class WebPushProvider implements INotificationProvider {
     } catch (error: any) {
       // Se a assinatura for inválida, remove do banco de dados.
       if (error.statusCode === 410 || error.statusCode === 404) {
-        console.log(`Assinatura WebPush para ${subscription.endpoint} é inválida. Removendo.`);
+        logger.info(`Assinatura WebPush para ${subscription.endpoint} é inválida. Removendo.`);
         await NotificationSubscriptionModel.deleteOne({ endpoint: subscription.endpoint });
       } else {
-        console.error('Erro ao enviar notificação via WebPush:', error.message);
+        logger.error('Erro ao enviar notificação via WebPush:', error.message);
       }
     }
   }

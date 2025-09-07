@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import logger from 'utils/logger';
 
 interface CustomError extends Error {
   statusCode?: number;
@@ -14,7 +15,7 @@ export const errorHandler = (err: CustomError, req: Request, res: Response) => {
   const statusCode = err.statusCode || 500;
 
   // Loga o erro no console para depuração (em um ambiente de produção, use um logger mais robusto)
-  console.error(`[ERROR] ${new Date().toISOString()} - ${err.stack}`);
+  logger.error(`[ERROR] ${new Date().toISOString()} - ${err.stack}`);
 
   // Monta a resposta de erro
   const errorResponse = {

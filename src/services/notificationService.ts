@@ -1,10 +1,13 @@
 import { INotificationProvider } from 'providers/notifications/INotificationProvider';
 import { NotificationSubscriptionModel } from '../models/notificationSubscription';
-import { INotificationPayload } from '../types';
+import { INotificationPayload, IUpdatePreferencesData } from '../types';
 import { INotificationSubscription } from 'types';
 import { shouldNotifyNow } from 'utils/quietHours';
-import { WebPushProvider } from 'providers/notifications/WebNotification';
+import { WebPushProvider } from 'providers/notifications/WebPushProvider';
 import logger from 'utils/logger';
+import { AndroidProvider } from 'providers/notifications/AndroidProvider';
+import { IosProvider } from 'providers/notifications/IosProvider';
+import { EmailProvider } from 'providers/notifications/EmailProvider';
 
 class NotificationService {
   private providers: Map<string, INotificationProvider>;
@@ -13,8 +16,9 @@ class NotificationService {
     this.providers = new Map();
     // Registra os provedores disponíveis. Para adicionar um novo (ex: FCM), basta adicionar uma linha aqui.
     this.providers.set('web', new WebPushProvider());
-    // this.providers.set('android', new FcmProvider()); // Exemplo de como seria extensível
-    // this.providers.set('ios', new ApnProvider());     // Exemplo de como seria extensível
+    this.providers.set('android', new AndroidProvider());
+    this.providers.set('ios', new IosProvider());
+    this.providers.set('email', new EmailProvider());
   }
 
   /**
@@ -24,16 +28,55 @@ class NotificationService {
    * @returns A assinatura criada ou atualizada.
    */
   public async subscribe(data: Partial<INotificationSubscription>): Promise<INotificationSubscription> {
-    const { user, deviceIdentifier, platform } = data;
+    const { user, deviceIdentifier } = data;
     if (!user || !deviceIdentifier) {
       throw new Error('User ID e Device Identifier são obrigatórios.');
     }
 
     const subscription = await NotificationSubscriptionModel.findOneAndUpdate(
-      { user, deviceIdentifier, platform },
+      { user, deviceIdentifier },
       { $set: data },
       { new: true, upsert: true, runValidators: true }
     );
+    return subscription;
+  }
+
+  /**
+   * NOVO: Atualiza as preferências de notificação para uma assinatura específica.
+   * @param userId - O ID do utilizador.
+   * @param deviceIdentifier - O identificador único do dispositivo.
+   * @param preferencesData - Os novos dados de preferência a serem aplicados.
+   * @returns A assinatura atualizada.
+   */
+  public async updatePreferences(userId: string, deviceIdentifier: string, preferencesData: IUpdatePreferencesData): Promise<INotificationSubscription> {
+    const subscription = await NotificationSubscriptionModel.findOne({ user: userId, deviceIdentifier });
+
+    if (!subscription) {
+      throw new Error('Assinatura de notificação não encontrada para este dispositivo.');
+    }
+
+    // Atualiza os tipos de notificação (kinds) se forem fornecidos
+    if (preferencesData.kinds) {
+      Object.assign(subscription.notificationsKinds, preferencesData.kinds);
+    }
+
+    // Atualiza as preferências de "Não Perturbe" (quiet hours)
+    if (preferencesData.quietHours === null) {
+      subscription.preferences = undefined;
+    } else  if (preferencesData.quietHours) {
+      // Usa os métodos do schema para converter e salvar os dados corretamente
+      const { startHour, endHour, weekDays, timezone } = preferencesData.quietHours;
+      const weekMask = subscription?.preferences?.daysToMask(weekDays);
+
+      subscription?.preferences?.convertHourToDatabase( {
+        startMinute: startHour,
+        endMinute: endHour,
+        weekMask: weekMask!,
+        timezone,
+      });
+    }
+
+    await subscription.save();
     return subscription;
   }
 

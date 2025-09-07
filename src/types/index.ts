@@ -193,21 +193,43 @@ export interface INotificationKind {
 export interface INotificationSubscription extends Document {
   user: Types.ObjectId;
   deviceIdentifier: string;
-  platform: 'web' | 'ios' | 'android';
+  platform: 'web' | 'ios' | 'android' | 'email';
   endpoint: string;
   keys: { p256dh: string; auth: string };
+  destination: string;
   isPermissionGranted: boolean;
   notificationsKinds: INotificationKind;
-  preferences: INotificationPreferences;
+  preferences: INotificationPreferences | undefined;
 }
 
-export interface INotificationPreferences {
+export interface IUpdatePreferencesData {
+  kinds?: {
+    security?: boolean;
+    rides?: boolean;
+    chats?: boolean;
+    communication?: boolean;
+    system?: boolean;
+  };
+  quietHours?: {
+    startHour: number;
+    endHour: number;
+    weekDays: NotificationWeekDays[];
+    timezone: string;
+  } | null;
+}
+
+export interface INotificationPreferences extends INotificationTime {
+  maskToDays(mask: number): NotificationWeekDays[];
+  daysToMask(days: NotificationWeekDays[]): number;
+  convertHourFromDatabase(p: INotificationTime): INotificationTime;
+  convertHourToDatabase(timeObject: INotificationTime): INotificationTime;
+}
+
+export interface INotificationTime {
   startMinute: number;
   endMinute: number;
   timezone: string;
   weekMask: NotificationWeekDays;
-  maskToDays(mask: number): NotificationWeekDays[];
-  daysToMask(days: NotificationWeekDays[]): number;
 }
 
 export interface ISuppressedNotification extends Document {

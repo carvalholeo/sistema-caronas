@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { AuditLogModel } from '../models/auditLog';
 import { AuditActionType, AuditLogCategory, AuditLogSeverityLevels, UserRole } from 'types/enums/enums';
+import logger from 'utils/logger';
 
 const auditLogger = async (req: Request, res: Response, next: NextFunction) => {
     const { method, originalUrl, user } = req;
@@ -35,7 +36,7 @@ const auditLogger = async (req: Request, res: Response, next: NextFunction) => {
     try {
         await auditEntry.save();
     } catch (error) {
-        console.error('Error saving audit log:', error);
+        logger.error('Error saving audit log:', error);
     }
 
     next();
