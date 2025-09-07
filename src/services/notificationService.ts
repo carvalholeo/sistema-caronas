@@ -1,6 +1,6 @@
 import { INotificationProvider } from 'providers/notifications/INotificationProvider';
 import { NotificationSubscriptionModel } from '../models/notificationSubscription';
-import { INotificationPayload, IUpdatePreferencesData } from '../types';
+import { INotificationPayload, IUpdatePreferencesData, IUser } from '../types';
 import { INotificationSubscription } from 'types';
 import { shouldNotifyNow } from 'utils/quietHours';
 import { WebPushProvider } from 'providers/notifications/WebPushProvider';
@@ -34,7 +34,7 @@ class NotificationService {
     }
 
     const subscription = await NotificationSubscriptionModel.findOneAndUpdate(
-      { user, deviceIdentifier },
+      { user: user._id, deviceIdentifier },
       { $set: data },
       { new: true, upsert: true, runValidators: true }
     );
@@ -43,13 +43,13 @@ class NotificationService {
 
   /**
    * NOVO: Atualiza as preferências de notificação para uma assinatura específica.
-   * @param userId - O ID do utilizador.
+   * @param user - O ID do utilizador.
    * @param deviceIdentifier - O identificador único do dispositivo.
    * @param preferencesData - Os novos dados de preferência a serem aplicados.
    * @returns A assinatura atualizada.
    */
-  public async updatePreferences(userId: string, deviceIdentifier: string, preferencesData: IUpdatePreferencesData): Promise<INotificationSubscription> {
-    const subscription = await NotificationSubscriptionModel.findOne({ user: userId, deviceIdentifier });
+  public async updatePreferences(user: IUser, deviceIdentifier: string, preferencesData: IUpdatePreferencesData): Promise<INotificationSubscription> {
+    const subscription = await NotificationSubscriptionModel.findOne({ user: user._id, deviceIdentifier });
 
     if (!subscription) {
       throw new Error('Assinatura de notificação não encontrada para este dispositivo.');

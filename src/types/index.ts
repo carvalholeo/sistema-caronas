@@ -204,11 +204,9 @@ export interface INotificationSubscription extends Document {
 
 export interface IUpdatePreferencesData {
   kinds?: {
-    security?: boolean;
     rides?: boolean;
     chats?: boolean;
     communication?: boolean;
-    system?: boolean;
   };
   quietHours?: {
     startHour: number;
