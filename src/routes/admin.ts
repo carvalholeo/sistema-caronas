@@ -79,8 +79,8 @@ adminRouter.get('/reports/chat-administration', dateRangeValidator, checkPermiss
 adminRouter.get('/reports/chat-moderation', dateRangeValidator, checkPermission('relatorios:chat:moderacao'), requestValidator, adminReportsController.getChatModerationReport);
 
 // --- Relatórios de Notificações ---
-// adminRouter.get('/reports/notification-delivery', dateRangeValidator, checkPermission('relatorios:notificacoes:entrega'), requestValidator, adminReportsController.getNotificationDeliveryReport);
-// adminRouter.get('/reports/notification-limits', dateRangeValidator, checkPermission('relatorios:notificacoes:limites'), requestValidator, adminReportsController.getNotificationLimitsReport);
+adminRouter.get('/reports/notification-delivery', dateRangeValidator, checkPermission('relatorios:notificacoes:entrega'), requestValidator, adminReportsController.getNotificationDeliveryReport);
+adminRouter.get('/reports/notification-limits', dateRangeValidator, checkPermission('relatorios:notificacoes:limites'), requestValidator, adminReportsController.getNotificationLimitsReport);
 
 // --- Relatórios de Acessibilidade ---
 adminRouter.get('/reports/accessibility-usage', checkPermission('relatorios:acessibilidade:acessbilidade'), requestValidator, adminReportsController.getAccessibilityReport);

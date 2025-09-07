@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { adminReportsService } from '../../services/admin/reportsService';
+import { adminReportsService } from 'services/admin/reportsService';
 
 class AdminReportsController {
 
@@ -93,13 +93,13 @@ class AdminReportsController {
     return this.handleReportRequest(req, res, adminReportsService.getChatModerationReport);
   }
 
-  // public async getNotificationDeliveryReport(req: Request, res: Response): Promise<Response> {
-  //   return this.handleReportRequest(req, res, adminReportsService.getNotificationDeliveryReport);
-  // }
+  public async getNotificationDeliveryReport(req: Request, res: Response): Promise<Response> {
+    return this.handleReportRequest(req, res, adminReportsService.getNotificationDeliveryReport);
+  }
 
-  // public async getNotificationLimitsReport(req: Request, res: Response): Promise<Response> {
-  //   return this.handleReportRequest(req, res, adminReportsService.getNotificationLimitsReport);
-  // }
+  public async getNotificationLimitsReport(req: Request, res: Response): Promise<Response> {
+    return this.handleReportRequest(req, res, adminReportsService.getNotificationLimitsReport);
+  }
 
   public async getAccessibilityReport(req: Request, res: Response): Promise<Response> {
     return this.handleReportRequest(req, res, adminReportsService.getAccessibilityReport, false);
