@@ -4,7 +4,6 @@ import { EventKind, NotificationEventCategory, NotificationStatusHistory } from 
 // src/types/index.ts
 
 export interface IUser extends Document {
-  _id: Types.ObjectId;
   name: string;
   email: string;
   matricula: string;
@@ -19,8 +18,7 @@ export interface IUser extends Document {
   lastLogin?: Date;
   accessibilitySettings: IAccessibilitySettings;
   languagePreference: string;
-  createdAt: Date;
-  updatedAt: Date;
+  profilePictureUrl?: string;
   comparePassword(password: string): Promise<boolean>;
 }
 

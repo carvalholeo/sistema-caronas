@@ -4,6 +4,26 @@ import { IUser } from 'types';
 
 const userService = new UserService();
 
+/**
+   * Lida com o upload e atualização da foto de perfil.
+   */
+export const updateProfilePicture = async(req: Request, res: Response): Promise<Response> => {
+    if (!req.file) {
+      return res.status(400).json({ message: 'Nenhum arquivo enviado.' });
+    }
+
+    try {
+      const user = req.user!;
+      const updatedUser = await userService.updateProfilePicture(user._id!.toString(), req.file);
+      return res.status(200).json({
+        message: 'Foto de perfil atualizada com sucesso.',
+        profilePictureUrl: updatedUser.profilePictureUrl,
+      });
+    } catch (error: any) {
+      return res.status(500).json({ message: 'Erro ao atualizar a foto de perfil.', error: error.message });
+    }
+  }
+
 export const getUserProfile = async (req: Request, res: Response) => {
     try {
         const userId = req.params.id;

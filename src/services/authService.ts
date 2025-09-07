@@ -5,6 +5,7 @@ import authConfig from 'config/auth';
 import { generateToken } from 'utils/security';
 import { IUser } from 'types';
 import { UserRole, UserStatus } from 'types/enums/enums';
+import { Types } from 'mongoose';
 
 class AuthService {
     async register(userData: any): Promise<IUser> {
@@ -41,7 +42,7 @@ class AuthService {
         }
 
         attempt.wasSuccessful = true;
-        attempt.user = user._id;
+        attempt.user = user._id as unknown as Types.ObjectId;
         await attempt.save();
 
         user.lastLogin = new Date();

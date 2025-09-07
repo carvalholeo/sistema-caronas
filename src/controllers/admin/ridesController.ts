@@ -24,7 +24,7 @@ class AdminRidesController {
       const adminUser = req.user!;
       const rideDetails = await adminRidesService.getRideDetails(
         rideId as unknown as Types.ObjectId,
-        adminUser._id
+        adminUser._id as unknown as Types.ObjectId
       );
       return res.status(200).json(rideDetails);
     } catch (error: Error | any) {
@@ -62,7 +62,7 @@ class AdminRidesController {
       const adminUser = req.user!;
       const cancelledRide = await adminRidesService.cancelRide(
         rideId as unknown as Types.ObjectId,
-        adminUser._id,
+        adminUser._id as unknown as Types.ObjectId,
         reason);
       return res.status(200).json(cancelledRide);
     } catch (error: Error | any) {
@@ -80,7 +80,7 @@ class AdminRidesController {
       const adminUser = req.user!;
       const publishedRide = await adminRidesService.forcePublishRide(
         rideId as unknown as Types.ObjectId,
-        adminUser._id,
+        adminUser._id as unknown as Types.ObjectId,
         reason);
       return res.status(200).json(publishedRide);
     } catch (error: Error | any) {

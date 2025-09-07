@@ -50,7 +50,7 @@ class AdminChatService {
     message.isModerated = true;
     message.moderationDetails = {
       originalContent: message.content,
-      moderatedBy: adminId._id,
+      moderatedBy: adminId._id as unknown as Types.ObjectId,
       moderatedAt: new Date(),
       reason: reason,
     };

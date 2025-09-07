@@ -88,7 +88,7 @@ class AdminUsersService {
     if (disable2FA) {
       if (!adminUser.permissions.includes('usuarios:remover_2fa')) throw new Error('Permissão insuficiente para remover 2FA.');
       if (!reason || !twoFactorCode) throw new Error('Razão e código 2FA são obrigatórios para desativar 2FA.');
-      const is2FAValid = authService.verifyTwoFactorCode(adminUser._id.toString(), twoFactorCode);
+      const is2FAValid = authService.verifyTwoFactorCode((adminUser._id as unknown as Types.ObjectId).toString(), twoFactorCode);
       if (!is2FAValid) throw new Error('Código 2FA do administrador inválido.');
 
       if (!targetUser.twoFactorEnabled) throw new Error('O 2FA já está desativado para este usuário.');
@@ -159,7 +159,7 @@ class AdminUsersService {
       throw new Error('Promoção recusada. O usuário precisa ter o 2FA ativo antes de ser promovido.');
     }
 
-    const isPromoter2FAValid = await authService.verifyTwoFactorCode(promoterAdmin._id.toString(), promoterTwoFactorCode);
+    const isPromoter2FAValid = await authService.verifyTwoFactorCode((promoterAdmin._id as unknown as Types.ObjectId).toString(), promoterTwoFactorCode);
     if (!isPromoter2FAValid) throw new Error('Código 2FA do administrador inválido.');
 
     targetUser.roles.push(UserRole.Admin);

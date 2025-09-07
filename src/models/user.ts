@@ -49,6 +49,7 @@ const UserSchema = new Schema<IUser>({
   lastLogin: { type: Date },
   accessibilitySettings: { type: AccessibilitySettingsSchema, default: {} },
   languagePreference: { type: String, default: 'pt-BR' },
+  profilePictureUrl: { type: String },
 }, { timestamps: true });
 
 UserSchema.index({ email: 1 }, { unique: true });
@@ -78,11 +79,6 @@ UserSchema.pre<IUser>('save', async function(next) {
 UserSchema.methods.comparePassword = async function(password: string): Promise<boolean> {
   return await bcrypt.compare(password, this.password);
 };
-
-UserSchema.pre<IUser>('save', function(next) {
-  this.updatedAt = new Date();
-  next();
-});
 
 UserSchema.pre<IUser>('validate', function (next) {
   const doc = this;

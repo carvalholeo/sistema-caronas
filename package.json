@@ -18,6 +18,7 @@
     "precommit": "lint-staged"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.883.0",
     "bcrypt": "^6.0.0",
     "compression": "^1.8.1",
     "cors": "^2.8.5",
