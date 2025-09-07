@@ -3,7 +3,7 @@ import { UserModel } from '../../models/user';
 import { VehicleModel } from '../../models/vehicle';
 import { RideModel } from '../../models/ride';
 import { ChatMessageModel } from '../../models/chat';
-import { EventModel, NotificationEventModel } from 'models/event';
+import { NotificationEventModel, RideViewEventModel, SearchEventModel } from 'models/event';
 import { LoginAttemptModel } from '../../models/loginAttempt';
 import { PasswordResetModel } from '../../models/passwordReset';
 import { AuditLogModel } from '../../models/auditLog';
@@ -268,13 +268,11 @@ class AdminReportsService {
   public async getRideBookingReport(startDate: Date, endDate: Date) {
     const dateFilter = { createdAt: { $gte: startDate, $lte: endDate } };
 
-    const searches = await EventModel.countDocuments({
-      ...dateFilter,
-      kind: 'search'
+    const searches = await SearchEventModel.countDocuments({
+      ...dateFilter
     });
-    const views = await EventModel.countDocuments({
-      ...dateFilter,
-      kind: 'ride_view'
+    const views = await RideViewEventModel.countDocuments({
+      ...dateFilter
     })
 
     const bookingAnalysis = await RideModel.aggregate([
@@ -341,8 +339,8 @@ class AdminReportsService {
   }
 
   public async getGeoPerformanceReport(startDate: Date, endDate: Date) {
-    const performance = await EventModel.aggregate([
-      { $match: { createdAt: { $gte: startDate, $lte: endDate }, kind: 'search' } },
+    const performance = await SearchEventModel.aggregate([
+      { $match: { createdAt: { $gte: startDate, $lte: endDate } } },
       {
         $group: {
           _id: null,
@@ -526,7 +524,7 @@ class AdminReportsService {
     ]);
 
     // 3. Tempo médio até a entrega (da criação do evento até a atualização do status)
-    const deliveryTime = await EventModel.aggregate([
+    const deliveryTime = await NotificationEventModel.aggregate([
       { $match: { ...dateFilter, status: { $in: ['delivered'] } } },
       {
         $group: {

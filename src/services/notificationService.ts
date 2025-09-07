@@ -11,6 +11,7 @@ import { EmailProvider } from 'providers/notifications/EmailProvider';
 import { NotificationEventModel } from 'models/event';
 import { Types } from 'mongoose';
 import { NotificationScope } from 'types/enums/enums';
+import { SuppressedNotificationModel } from 'models/suppressedNotification';
 
 class NotificationService {
   private providers: Map<string, INotificationProvider>;
@@ -106,6 +107,8 @@ class NotificationService {
           if (wasSent && sub.isPermissionGranted) {
             pushSentToActiveDevice = true;
           }
+        } else {
+          await new SuppressedNotificationModel({ user: userId._id, reason: 'Envio de notificação não permitida no canal/horário.'}).save();
         }
       }
 

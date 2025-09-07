@@ -2,7 +2,7 @@ import { RideModel } from '../models/ride';
 import { IRide } from '../types'
 import { VehicleModel } from '../models/vehicle';
 import { randomUUID } from 'crypto';
-import { EventModel } from 'models/event';
+import { RideViewEventModel, SearchEventModel } from 'models/event';
 import { Types } from 'mongoose';
 import { VehicleStatus, RideStatus, PassengerStatus } from 'types/enums/enums';
 
@@ -68,8 +68,7 @@ class RideService {
         }).populate('driver', 'name');
 
         const durationMs = Date.now() - startTime;
-        await EventModel.create({
-            kind: 'search',
+        await SearchEventModel.create({
             user: userId,
             durationMs,
             resultsCount: rides.length
@@ -158,7 +157,7 @@ class RideService {
         const ride = await RideModel.findById(rideId).populate('driver', 'name email').populate('passengers.user', 'name');
         if (!ride) throw new Error("Carona não encontrada.");
 
-        await EventModel.create({
+        await RideViewEventModel.create({
             kind: 'ride_view',
             user: userId,
             ride: rideId
