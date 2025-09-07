@@ -1,7 +1,7 @@
 import { Router } from 'express';
-import { rideController } from '../controllers/rideController';
-import { rideValidator, recurrentRideValidator, manageSeatValidator } from '../middlewares/validators/rides';
-import { authMiddleware } from '../middlewares/auth';
+import { rideController } from 'controllers/rideController';
+import { rideValidator, recurrentRideValidator, manageSeatValidator } from 'middlewares/validators/rides';
+import { authMiddleware } from 'middlewares/auth';
 import { requestValidator } from 'middlewares/requestValidator';
 
 const rideRouter = Router();

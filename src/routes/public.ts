@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
-import { DataReportModel } from '../models/dataReport';
-import { verifyReportValidator } from '../middlewares/validators/admin/privacy';
+import { DataReportModel } from 'models/dataReport';
+import { verifyReportValidator } from 'middlewares/validators/admin/privacy';
 import { requestValidator } from 'middlewares/requestValidator';
 
 const publicRouter = Router();

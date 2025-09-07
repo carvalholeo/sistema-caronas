@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { adminRidesService } from '../../services/admin/rideService';
+import { adminRidesService } from 'services/admin/rideService';
 import { Types } from 'mongoose';
 
 class AdminRidesController {

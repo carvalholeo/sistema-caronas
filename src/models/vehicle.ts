@@ -1,4 +1,4 @@
-import { Schema, Types, model } from 'mongoose';
+import { Schema, model } from 'mongoose';
 import { IVehicle } from 'types';
 import { RideStatus, VehicleStatus } from 'types/enums/enums';
 

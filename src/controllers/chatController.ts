@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { chatService } from '../services/chatService';
+import { chatService } from 'services/chatService';
 import { Types } from 'mongoose';
 
 class ChatController {

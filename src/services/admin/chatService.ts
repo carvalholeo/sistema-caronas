@@ -1,7 +1,7 @@
 // Lógica de negócio para moderação e auditoria de chats.
-import { ChatMessageModel } from '../../models/chat';
-import { AuditLogModel } from '../../models/auditLog';
-import { authService } from '../authService';
+import { ChatMessageModel } from 'models/chat';
+import { AuditLogModel } from 'models/auditLog';
+import { authService } from 'services/authService';
 import { Types } from 'mongoose';
 import { IChatMessage, IUser } from 'types';
 import { AuditActionType, AuditLogCategory, AuditLogSeverityLevels } from 'types/enums/enums';

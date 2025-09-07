@@ -1,7 +1,6 @@
 import { INotificationProvider } from 'providers/notifications/INotificationProvider';
-import { NotificationSubscriptionModel } from '../models/notificationSubscription';
-import { INotificationPayload, IUpdatePreferencesData, IUser } from '../types';
-import { INotificationSubscription } from 'types';
+import { NotificationSubscriptionModel } from 'models/notificationSubscription';
+import { INotificationPayload, IUpdatePreferencesData, IUser, INotificationSubscription } from 'types';
 import { shouldNotifyNow } from 'utils/quietHours';
 import { WebPushProvider } from 'providers/notifications/WebPushProvider';
 import logger from 'utils/logger';

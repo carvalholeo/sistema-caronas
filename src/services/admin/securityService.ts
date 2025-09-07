@@ -1,8 +1,8 @@
 // Lógica de negócio para o painel de segurança.
-import { BlockModel } from '../../models/block';
-import { UserModel } from '../../models/user';
-import { AuditLogModel } from '../../models/auditLog';
-import { authService } from '../authService';
+import { BlockModel } from 'models/block';
+import { UserModel } from 'models/user';
+import { AuditLogModel } from 'models/auditLog';
+import { authService } from 'services/authService';
 import { Types } from 'mongoose';
 import { IBlock, IUser } from 'types';
 import { AuditActionType, AuditLogCategory, AuditLogSeverityLevels } from 'types/enums/enums';

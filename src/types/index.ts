@@ -1,6 +1,6 @@
 import { Types, Document } from 'mongoose';
-import { AuditActionType, AuditLogCategory, AuditLogSeverityLevels, BlockStatus, LocationLogAction, MessageStatus, NotificationCategory, NotificationScope, NotificationType, NotificationWeekDays, PassengerStatus, PasswordResetStatus, PrivacyRequestStatus, PrivacyRequestType, RideStatus, UserRole, UserStatus, VehicleStatus } from './enums/enums';
-import { EventKind, NotificationEventCategory, NotificationStatusHistory } from './types/events';
+import { AuditActionType, AuditLogCategory, AuditLogSeverityLevels, BlockStatus, LocationLogAction, MessageStatus, NotificationScope, NotificationType, NotificationWeekDays, PassengerStatus, PasswordResetStatus, PrivacyRequestStatus, PrivacyRequestType, RideStatus, UserRole, UserStatus, VehicleStatus } from 'types/enums/enums';
+import { EventKind, NotificationEventCategory, NotificationStatusHistory } from 'types/types/events';
 // src/types/index.ts
 
 export interface IUser extends Document {

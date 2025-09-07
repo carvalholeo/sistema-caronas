@@ -1,5 +1,5 @@
 import CarpoolApp from './app';
-import logger from './utils/logger';
+import logger from 'utils/logger';
 
 const app = new CarpoolApp();
 

@@ -1,6 +1,6 @@
 // Lógica de negócio para ações administrativas em caronas.
 import { IRide, IUser } from 'types';
-import { RideModel } from '../../models/ride';
+import { RideModel } from 'models/ride';
 import { Types } from 'mongoose';
 import { AuditLogModel } from 'models/auditLog';
 import { AuditActionType, AuditLogCategory, AuditLogSeverityLevels, RideStatus } from 'types/enums/enums';

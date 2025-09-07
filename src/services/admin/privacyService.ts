@@ -1,8 +1,8 @@
 // Lógica de negócio para o painel de privacidade (LGPD/GDPR).
-import { UserModel } from '../../models/user';
-import { DataReportModel } from '../../models/dataReport';
-import { AuditLogModel } from '../../models/auditLog';
-import { authService } from '../authService';
+import { UserModel } from 'models/user';
+import { DataReportModel } from 'models/dataReport';
+import { AuditLogModel } from 'models/auditLog';
+import { authService } from 'services/authService';
 import crypto from 'crypto';
 import { Types } from 'mongoose';
 import { IAuditLog, IUser } from 'types';

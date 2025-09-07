@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { adminPrivacyService } from '../../services/admin/privacyService';
+import { adminPrivacyService } from 'services/admin/privacyService';
 import { Types } from 'mongoose';
 
 class AdminPrivacyController {

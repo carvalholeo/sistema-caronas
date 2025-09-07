@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { adminSecurityService } from '../../services/admin/securityService';
+import { adminSecurityService } from 'services/admin/securityService';
 import { Types } from 'mongoose';
 
 class AdminSecurityController {

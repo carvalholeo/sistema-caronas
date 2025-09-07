@@ -14,16 +14,16 @@ import { config } from 'dotenv';
 
 import logger from './utils/logger';
 
-import authRoutes from './routes/auth';
-import userRoutes from './routes/users';
-import rideRoutes from './routes/rides';
-import vehicleRoutes from './routes/vehicles';
-import chatRoutes from './routes/chat';
-import notificationRoutes from './routes/notifications';
-import adminRoutes from './routes/admin';
-import publicRoutes from './routes/public';
-import { errorHandler } from './middlewares/errorHandler';
-import auditLogger from './middlewares/auditLogger';
+import authRoutes from 'routes/auth';
+import userRoutes from 'routes/users';
+import rideRoutes from 'routes/rides';
+import vehicleRoutes from 'routes/vehicles';
+import chatRoutes from 'routes/chat';
+import notificationRoutes from 'routes/notifications';
+import adminRoutes from 'routes/admin';
+import publicRoutes from 'routes/public';
+import { errorHandler } from 'middlewares/errorHandler';
+import auditLogger from 'middlewares/auditLogger';
 import { setupLocationSockets } from 'socket/locationSocket';
 import { initializeChatSockets } from 'socket/chatSocket';
 import { closeDatabaseConnection, connectToDatabase } from 'config/database';

@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { AuditLogModel } from '../models/auditLog';
+import { AuditLogModel } from 'models/auditLog';
 import { AuditActionType, AuditLogCategory, AuditLogSeverityLevels, UserRole } from 'types/enums/enums';
 import logger from 'utils/logger';
 

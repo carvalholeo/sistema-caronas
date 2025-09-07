@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 
 import { IUpdatePreferencesData } from 'types';
-import notificationService from '../services/notificationService';
+import notificationService from 'services/notificationService';
 
 class NotificationController {
   /**

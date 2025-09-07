@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { adminUsersService } from '../../services/admin/userService';
+import { adminUsersService } from 'services/admin/userService';
 import { Types } from 'mongoose';
 import { IUser } from 'types';
 

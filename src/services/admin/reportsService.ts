@@ -1,15 +1,15 @@
 // Lógica de negócio para todos os relatórios do painel administrativo.
-import { UserModel } from '../../models/user';
-import { VehicleModel } from '../../models/vehicle';
-import { RideModel } from '../../models/ride';
-import { ChatMessageModel } from '../../models/chat';
+import { UserModel } from 'models/user';
+import { VehicleModel } from 'models/vehicle';
+import { RideModel } from 'models/ride';
+import { ChatMessageModel } from 'models/chat';
 import { NotificationEventModel, RideViewEventModel, SearchEventModel } from 'models/event';
-import { LoginAttemptModel } from '../../models/loginAttempt';
-import { PasswordResetModel } from '../../models/passwordReset';
-import { AuditLogModel } from '../../models/auditLog';
-import { PrivacyRequestModel } from '../../models/privacyRequest';
-import { DataReportModel } from '../../models/dataReport';
-import { BlockModel } from '../../models/block';
+import { LoginAttemptModel } from 'models/loginAttempt';
+import { PasswordResetModel } from 'models/passwordReset';
+import { AuditLogModel } from 'models/auditLog';
+import { PrivacyRequestModel } from 'models/privacyRequest';
+import { DataReportModel } from 'models/dataReport';
+import { BlockModel } from 'models/block';
 import { PipelineStage } from 'mongoose';
 import { UserStatus, VehicleStatus, RideStatus, AuditActionType, AuditLogCategory } from 'types/enums/enums';
 import { NotificationSubscriptionModel } from 'models/notificationSubscription';

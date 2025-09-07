@@ -3,8 +3,8 @@ import {
     getUserProfile,
     updateUserProfile,
     approveUserRegistration
-} from '../controllers/userController';
-import { authMiddleware } from '../middlewares/auth';
+} from 'controllers/userController';
+import { authMiddleware } from 'middlewares/auth';
 import { userUpdateValidator } from 'middlewares/validators/users';
 import { requestValidator } from 'middlewares/requestValidator';
 

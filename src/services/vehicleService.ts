@@ -1,6 +1,6 @@
 // Lógica de negócio para CRUD de veículos.
-import { VehicleModel } from '../models/vehicle';
-import { UserModel } from '../models/user';
+import { VehicleModel } from 'models/vehicle';
+import { UserModel } from 'models/user';
 import { Types } from 'mongoose';
 import { IVehicle } from 'types';
 import { VehicleStatus, UserRole } from 'types/enums/enums';

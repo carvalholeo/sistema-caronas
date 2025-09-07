@@ -1,6 +1,6 @@
 // Lógica de negócio para buscar e exportar mensagens de chat.
 import { IChatMessage } from 'types';
-import { ChatMessageModel } from '../models/chat';
+import { ChatMessageModel } from 'models/chat';
 import { Types } from 'mongoose';
 
 class ChatService {

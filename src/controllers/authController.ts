@@ -1,8 +1,8 @@
 import { Request, Response } from 'express';
-import { authService } from '../services/authService';
+import { authService } from 'services/authService';
 import qrcode from 'qrcode';
 import authConfig from 'config/auth';
-import * as security from '../utils/security';
+import * as security from 'utils/security';
 import { UserModel } from 'models/user';
 import { IUser } from 'types';
 

@@ -48,14 +48,6 @@ export enum NotificationType {
   SYSTEM_NOTIFICATION = 'system_notification'
 }
 
-export enum NotificationCategory {
-  Security = 'security',
-  Rides = 'rides',
-  Chats = 'chats',
-  Communication = 'communication',
-  System = 'system',
-}
-
 export enum NotificationScope {
   General = 'general',
   Privacy = 'privacy'

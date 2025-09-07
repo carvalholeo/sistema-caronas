@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { adminChatService } from '../../services/admin/chatService';
+import { adminChatService } from 'services/admin/chatService';
 import { Types } from 'mongoose';
 import { IUser } from 'types';
 

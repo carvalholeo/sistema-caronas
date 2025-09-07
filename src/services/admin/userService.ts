@@ -1,7 +1,7 @@
 // Lógica de negócio para todas as ações administrativas relacionadas a usuários.
 import { Types } from 'mongoose';
-import { UserModel } from '../../models/user';
-import { authService } from './../authService';
+import { UserModel } from 'models/user';
+import { authService } from 'services/authService';
 import { IUser } from 'types';
 import { UserStatus, UserRole, AuditActionType, AuditLogCategory, AuditLogSeverityLevels, toAuditActionType } from 'types/enums/enums';
 import { AuditLogModel } from 'models/auditLog';

@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { notificationController } from 'controllers/notificationController';
-import { authMiddleware } from '../middlewares/auth';
+import { authMiddleware } from 'middlewares/auth';
 import { requestValidator } from 'middlewares/requestValidator';
 import { subscribeValidator, updatePreferencesValidator } from 'middlewares/validators/notification';
 

@@ -1,7 +1,7 @@
-import { UserModel } from '../models/user';
+import { UserModel } from 'models/user';
 import speakeasy from 'speakeasy';
-import { LoginAttemptModel } from '../models/loginAttempt';
-import authConfig from '../config/auth';
+import { LoginAttemptModel } from 'models/loginAttempt';
+import authConfig from 'config/auth';
 import { generateToken } from 'utils/security';
 import { IUser } from 'types';
 import { UserRole, UserStatus } from 'types/enums/enums';

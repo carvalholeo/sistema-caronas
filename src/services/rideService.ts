@@ -1,6 +1,6 @@
-import { RideModel } from '../models/ride';
-import { IRide } from '../types'
-import { VehicleModel } from '../models/vehicle';
+import { RideModel } from 'models/ride';
+import { IRide } from 'types'
+import { VehicleModel } from 'models/vehicle';
 import { randomUUID } from 'crypto';
 import { RideViewEventModel, SearchEventModel } from 'models/event';
 import { Types } from 'mongoose';
