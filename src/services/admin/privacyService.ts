@@ -5,9 +5,9 @@ import { AuditLogModel } from '../../models/auditLog';
 import { authService } from '../authService';
 import crypto from 'crypto';
 import { Types } from 'mongoose';
-import { FormalNotificationModel } from 'models/formalNotification';
 import { IAuditLog, IUser } from 'types';
-import { AuditActionType, AuditLogCategory, AuditLogSeverityLevels, UserStatus } from 'types/enums/enums';
+import { AuditActionType, AuditLogCategory, AuditLogSeverityLevels, NotificationScope, UserStatus } from 'types/enums/enums';
+import { NotificationEventModel } from 'models/event';
 
 interface IReportData {
   profile: object;
@@ -135,11 +135,18 @@ class AdminPrivacyService {
       throw new Error('Usuário alvo não encontrado.');
     }
 
-    const notification = new FormalNotificationModel({
-      user: targetUserId,
-      sentBy: adminUser._id,
-      subject,
-      body,
+    const notification = new NotificationEventModel({
+      scope: NotificationScope.Privacy,
+      user: targetUser._id,
+      category: 'system',
+      statusHistory: [{
+        status: 'sent',
+        timestamp: new Date(),
+        details: ''
+      }],
+      payload: JSON.stringify({ title: subject, body }),
+      isAggregated: false,
+      isCritical: true
     });
     await notification.save();
 

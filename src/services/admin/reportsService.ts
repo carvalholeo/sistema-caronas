@@ -3,7 +3,7 @@ import { UserModel } from '../../models/user';
 import { VehicleModel } from '../../models/vehicle';
 import { RideModel } from '../../models/ride';
 import { ChatMessageModel } from '../../models/chat';
-import { EventModel } from 'models/event';
+import { EventModel, NotificationEventModel } from 'models/event';
 import { LoginAttemptModel } from '../../models/loginAttempt';
 import { PasswordResetModel } from '../../models/passwordReset';
 import { AuditLogModel } from '../../models/auditLog';
@@ -12,6 +12,8 @@ import { DataReportModel } from '../../models/dataReport';
 import { BlockModel } from '../../models/block';
 import { PipelineStage } from 'mongoose';
 import { UserStatus, VehicleStatus, RideStatus, AuditActionType, AuditLogCategory } from 'types/enums/enums';
+import { NotificationSubscriptionModel } from 'models/notificationSubscription';
+import { SuppressedNotificationModel } from 'models/suppressedNotification';
 
 class AdminReportsService {
 
@@ -438,19 +440,112 @@ class AdminReportsService {
   // == RELATÓRIOS DE NOTIFICAÇÕES
   // =================================================================
 
-  // public async getNotificationDeliveryReport(startDate: Date, endDate: Date) {
-  //   // Depende da implementação completa de notificações
-  //   return {
-  //     optInRate: "Not implemented",
-  //     sentVsDeliveredVsClicked: "Not implemented",
-  //   };
-  // }
-  // public async getNotificationLimitsReport(startDate: Date, endDate: Date) {
-  //   return {
-  //     aggregationsApplied: "Not implemented",
-  //     eventsSuppressed: "Not implemented",
-  //   };
-  // }
+  public async getNotificationDeliveryReport(startDate: Date, endDate: Date) {
+    const dateFilter = { createdAt: { $gte: startDate, $lte: endDate } };
+    const totalActiveUsers = await UserModel.countDocuments({ status: UserStatus.Approved });
+
+    // 1. Taxa de Opt-in
+    const optInStats = await NotificationSubscriptionModel.aggregate([
+      {
+        $group: {
+          _id: null,
+          // Cria um conjunto de IDs de usuários únicos que têm pelo menos uma permissão concedida
+          usersWithAnyPermission: { $addToSet: { $cond: ['$isPermissionGranted', '$user', null] } },
+          // Conta as permissões por categoria
+          ridesOptIn: { $sum: { $cond: ['$notificationsKinds.rides', 1, 0] } },
+          chatsOptIn: { $sum: { $cond: ['$notificationsKinds.chats', 1, 0] } },
+          communicationOptIn: { $sum: { $cond: ['$notificationsKinds.communication', 1, 0] } },
+          totalSubscriptions: { $sum: 1 }
+        }
+      },
+      {
+        $project: {
+          _id: 0,
+          totalUsersWithOptIn: { $size: { $filter: { input: '$usersWithAnyPermission', as: 'user', cond: '$$user' } } },
+          categoryRates: {
+            rides: { $cond: [{ $gt: ['$totalSubscriptions', 0] }, { $divide: ['$ridesOptIn', '$totalSubscriptions'] }, 0] },
+            chats: { $cond: [{ $gt: ['$totalSubscriptions', 0] }, { $divide: ['$chatsOptIn', '$totalSubscriptions'] }, 0] },
+            communication: { $cond: [{ $gt: ['$totalSubscriptions', 0] }, { $divide: ['$communicationOptIn', '$totalSubscriptions'] }, 0] }
+          }
+        }
+      }
+    ]);
+    const optInData = optInStats[0] || {};
+    const generalOptInRate = totalActiveUsers > 0 ? (optInData.totalUsersWithOptIn || 0) / totalActiveUsers : 0;
+
+    // 2. Funil de Entrega
+    const funnel = await NotificationEventModel.aggregate([
+      { $match: dateFilter },
+      {
+        $group: {
+          _id: null,
+          sent: { $sum: 1 }, // Todos os eventos criados são tentativas de envio
+          delivered: { $sum: { $cond: [{ $in: ['$status', ['delivered']] }, 1, 0] } },
+        }
+      }
+    ]);
+    const funnelData = funnel[0] || { sent: 0, delivered: 0, clicked: 0 };
+
+    // 3. Dispositivos sem permissão
+    const devicesWithoutPermission = await NotificationSubscriptionModel.countDocuments({ isPermissionGranted: false });
+
+    // 4. Notificações críticas entregues
+    const criticalDelivered = await NotificationEventModel.countDocuments({
+      ...dateFilter,
+      category: { $in: ['security', 'system'] },
+      status: { $in: ['delivered'] }
+    });
+
+    return {
+      optInRate: {
+        general: generalOptInRate,
+        byCategory: optInData.categoryRates || {}
+      },
+      deliveryFunnel: funnelData,
+      devicesWithoutPermission,
+      criticalNotificationsDelivered: criticalDelivered
+    };
+  }
+
+  public async getNotificationLimitsReport(startDate: Date, endDate: Date) {
+    const dateFilter = { createdAt: { $gte: startDate, $lte: endDate } };
+
+    // 1. Eventos suprimidos (assumindo que o SuppressedNotificationModel existe)
+    const suppressedEvents = await SuppressedNotificationModel.aggregate([
+        { $match: dateFilter },
+        { $group: { _id: '$reason', count: { $sum: 1 } } }
+    ]);
+    const aggregationsApplied = suppressedEvents.find(e => e._id === 'aggregation')?.count || 0;
+    const rateLimitedEvents = suppressedEvents.find(e => e._id === 'rate_limit')?.count || 0;
+
+    // 2. Falhas de entrega por plataforma
+    const deliveryFailures = await NotificationEventModel.aggregate([
+      { $match: { ...dateFilter, status: 'failed' } },
+      { $group: { _id: '$platform', count: { $sum: 1 } } },
+      { $sort: { count: -1 } }
+    ]);
+
+    // 3. Tempo médio até a entrega (da criação do evento até a atualização do status)
+    const deliveryTime = await EventModel.aggregate([
+      { $match: { ...dateFilter, status: { $in: ['delivered'] } } },
+      {
+        $group: {
+          _id: null,
+          totalTime: { $sum: { $subtract: ['$updatedAt', '$createdAt'] } },
+          count: { $sum: 1 }
+        }
+      }
+    ]);
+    const deliveryTimeData = deliveryTime[0] || {};
+    const averageDeliveryTimeMs = deliveryTimeData.count > 0 ? deliveryTimeData.totalTime / deliveryTimeData.count : 0;
+
+    return {
+      aggregationsApplied,
+      eventsSuppressedByLimit: rateLimitedEvents,
+      deliveryFailuresByPlatform: deliveryFailures,
+      averageTimeToDeliverySeconds: (averageDeliveryTimeMs / 1000).toFixed(2)
+    };
+  }
 
   // =================================================================
   // == RELATÓRIOS DE ACESSIBILIDADE

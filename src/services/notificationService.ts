@@ -1,6 +1,6 @@
 import { INotificationProvider } from 'providers/notifications/INotificationProvider';
 import { NotificationSubscriptionModel } from '../models/notificationSubscription';
-import { INotificationEvent, INotificationPayload, IUpdatePreferencesData, IUser } from '../types';
+import { INotificationPayload, IUpdatePreferencesData, IUser } from '../types';
 import { INotificationSubscription } from 'types';
 import { shouldNotifyNow } from 'utils/quietHours';
 import { WebPushProvider } from 'providers/notifications/WebPushProvider';
@@ -8,8 +8,9 @@ import logger from 'utils/logger';
 import { AndroidProvider } from 'providers/notifications/AndroidProvider';
 import { IosProvider } from 'providers/notifications/IosProvider';
 import { EmailProvider } from 'providers/notifications/EmailProvider';
-import { EventModel } from 'models/event';
+import { NotificationEventModel } from 'models/event';
 import { Types } from 'mongoose';
+import { NotificationScope } from 'types/enums/enums';
 
 class NotificationService {
   private providers: Map<string, INotificationProvider>;
@@ -131,6 +132,7 @@ class NotificationService {
     }
 
     const notificationEventLog = {
+      scope: NotificationScope.General,
       subscription: sub._id as Types.ObjectId,
       category: payload.category,
       statusHistory: [{
@@ -145,12 +147,12 @@ class NotificationService {
 
     try {
       // 1. Cria o registro do evento ANTES de tentar enviar.
-      await new EventModel(notificationEventLog).save();
+      await new NotificationEventModel(notificationEventLog).save();
       await provider.send(sub, payload);
 
       notificationEventLog.statusHistory[0].status = 'delivered';
       notificationEventLog.statusHistory[0].timestamp = new Date();
-      await new EventModel(notificationEventLog).save();
+      await new NotificationEventModel(notificationEventLog).save();
 
       return true;
     } catch (error) {
@@ -159,7 +161,7 @@ class NotificationService {
       notificationEventLog.statusHistory[0].timestamp = new Date();
       notificationEventLog.payload = '';
 
-      await new EventModel(notificationEventLog).save();
+      await new NotificationEventModel(notificationEventLog).save();
 
       return false;
     }

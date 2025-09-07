@@ -1,5 +1,5 @@
 import { Types, Document } from 'mongoose';
-import { AuditActionType, AuditLogCategory, AuditLogSeverityLevels, BlockStatus, LocationLogAction, MessageStatus, NotificationCategory, NotificationType, NotificationWeekDays, PassengerStatus, PasswordResetStatus, PrivacyRequestStatus, PrivacyRequestType, RideStatus, UserRole, UserStatus, VehicleStatus } from './enums/enums';
+import { AuditActionType, AuditLogCategory, AuditLogSeverityLevels, BlockStatus, LocationLogAction, MessageStatus, NotificationCategory, NotificationScope, NotificationType, NotificationWeekDays, PassengerStatus, PasswordResetStatus, PrivacyRequestStatus, PrivacyRequestType, RideStatus, UserRole, UserStatus, VehicleStatus } from './enums/enums';
 import { EventKind, NotificationEventCategory, NotificationStatusHistory } from './types/events';
 // src/types/index.ts
 
@@ -116,7 +116,9 @@ export interface ISearchEvent extends IEventBase {
 
 export interface INotificationEvent extends IEventBase {
   kind: 'notification';
-  subscription: Types.ObjectId;
+  scope: NotificationScope;
+  subscription?: Types.ObjectId;
+  user?: Types.ObjectId;
   category: NotificationEventCategory;
   type: NotificationType;
   payload: string;
@@ -249,14 +251,6 @@ export interface ILoginAttempt extends Document {
   device: string;
   wasSuccessful: boolean;
   timestamp: Date;
-}
-
-export interface IFormalNotification extends Document {
-  user: Types.ObjectId;
-  privacyRequest?: Types.ObjectId;
-  subject: string;
-  sentAt: Date;
-  adminUser: Types.ObjectId;
 }
 
 export interface Location extends Document {

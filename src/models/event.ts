@@ -1,6 +1,6 @@
 import { Schema, model } from 'mongoose';
 import { IEventBase, INotificationEvent, IRideViewEvent, ISearchEvent } from 'types';
-import { NotificationType } from 'types/enums/enums';
+import { NotificationScope, NotificationType } from 'types/enums/enums';
 
 const baseOptions = {
   discriminatorKey: 'kind', // campo que identifica o subtipo
@@ -16,34 +16,29 @@ const EventSchema = new Schema<IEventBase>(
   baseOptions
 );
 
-const NotificationEventSchema = new Schema<INotificationEvent>(
+export const NotificationEventSchema = new Schema<INotificationEvent>(
   {
-    subscription: { type: Schema.Types.ObjectId, ref: 'NotificationSubscription', required: true, index: true },
+    scope: { type: String, enum: Object.values(NotificationScope), default: NotificationScope.General, index: true },
+    // alvo: ou subscription (push subscr.) ou user (notificação direta)
+    subscription: { type: Schema.Types.ObjectId, ref: 'NotificationSubscription', index: true },
+    user: { type: Schema.Types.ObjectId, ref: 'User', index: true }, // permite override do base quando necessário
     category: { type: String, required: true, index: true },
     type: { type: String, enum: Object.values(NotificationType) },
     payload: {
       type: String,
-      validate: {
-        validator: validationFields,
-        message: 'Notification payload cannot contain sensitive information'
-      }
+      validate: { validator: validationFields, message: 'Notification payload cannot contain sensitive information' }
     },
-    statusHistory: [
-      {
-        status: { type: String, required: true },
-        timestamp: { type: Date, default: Date.now },
-        details: {
-          type: String,
-          validate: {
-            validator: validationFields,
-            message: 'Notification payload cannot contain sensitive information'
-          }
-        },
-        _id: false,
+    statusHistory: [{
+      status: { type: String, required: true },
+      timestamp: { type: Date, default: Date.now },
+      details: {
+        type: String,
+        validate: { validator: validationFields, message: 'Notification payload cannot contain sensitive information' }
       },
-    ],
+      _id: false
+    }],
     isAggregated: { type: Boolean, default: false, index: true },
-    isCritical: { type: Boolean, default: false, index: true },
+    isCritical: { type: Boolean, default: false, index: true }
   },
   { _id: false }
 );
@@ -68,10 +63,23 @@ const SearchEventSchema = new Schema<ISearchEvent>(
 
 export const EventModel = model<IEventBase>('Event', EventSchema);
 
-export const NotificationEventModel = EventModel.discriminator<INotificationEvent>(
+NotificationEventSchema.pre('validate', function(next) {
+  const doc = this as any;
+  // Exija subscription OU user; se scope = privacy, exija user
+  if (!doc.subscription && !doc.user) {
+    return next(new Error('Either subscription or user must be set for a notification'));
+  }
+  if (doc.scope === 'privacy' && !doc.user) {
+    return next(new Error('Privacy notifications must target a user'));
+  }
+  next();
+});
+
+export const NotificationEventModel = EventModel.discriminator(
   'notification',
   NotificationEventSchema
 );
+
 export const RideViewEventModel = EventModel.discriminator<IRideViewEvent>(
   'ride_view',
   RideViewEventSchema

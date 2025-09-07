@@ -56,6 +56,11 @@ export enum NotificationCategory {
   System = 'system',
 }
 
+export enum NotificationScope {
+  General = 'general',
+  Privacy = 'privacy'
+}
+
 export enum NotificationWeekDays {
   Dom = 0,
   Seg = 1,
