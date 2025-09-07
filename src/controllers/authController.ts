@@ -64,6 +64,35 @@ class AuthController {
             return res.status(401).json({ message: error.message });
         }
     }
+
+    /**
+     * Lida com a requisição para iniciar a redefinição de senha.
+     */
+    public async requestReset(req: Request, res: Response): Promise<Response> {
+        try {
+            const { email } = req.body;
+            await authService.initiateReset(email);
+
+            // Sempre retorne uma mensagem genérica para evitar enumeração de usuários
+            return res.status(200).json({ message: 'Se um usuário com este e-mail existir, um link de redefinição de senha foi enviado.' });
+        } catch (error: any) {
+            return res.status(500).json({ message: 'Erro interno ao processar a solicitação.', error: error.message });
+        }
+    }
+
+    /**
+     * Lida com a requisição para concluir a redefinição de senha.
+     */
+    public async completeReset(req: Request, res: Response): Promise<Response> {
+        try {
+            const { token, newPassword } = req.body;
+            await authService.completeReset(token, newPassword);
+            return res.status(200).json({ message: 'Senha redefinida com sucesso.' });
+        } catch (error: any) {
+            // Retorne uma mensagem genérica para tokens inválidos
+            return res.status(400).json({ message: error.message });
+        }
+    }
 }
 
 export const authController = new AuthController();

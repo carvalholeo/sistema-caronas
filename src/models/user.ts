@@ -73,6 +73,8 @@ UserSchema.pre<IUser>('save', async function(next) {
   if (!this.isModified('password')) return next();
 
   this.password = await bcrypt.hash(this.password, authConfig.saltRounds);
+  this.forcePasswordChangeOnNextLogin = false;
+  this.sessionVersion = (this.sessionVersion || 0) + 1;
   next();
 });
 

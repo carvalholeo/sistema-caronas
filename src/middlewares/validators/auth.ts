@@ -16,3 +16,14 @@ export const twoFactorValidator = [
     body('code').isLength({ min: 6, max: 6 }).withMessage('O código 2FA deve ter 6 dígitos.'),
     body('token').notEmpty().withMessage('O token é obrigatório.')
 ];
+
+export const requestResetValidator = [
+  body('email', 'Por favor, forneça um e-mail válido.').isEmail().normalizeEmail(),
+];
+
+export const completeResetValidator = [
+  body('token', 'O token é obrigatório.').notEmpty().isHexadecimal().isLength({ min: 64, max: 64 }),
+  body('newPassword', 'A senha deve ter no mínimo 8 caracteres, incluindo letras e números.')
+    .isLength({ min: 8 })
+    .matches(/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d@$!%*?&]{8,}$/),
+];

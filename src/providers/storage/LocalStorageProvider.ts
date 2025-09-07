@@ -1,6 +1,7 @@
 import { IStorageProvider } from './IStorageProvider';
 import fs from 'fs/promises';
 import path from 'path';
+import logger from 'utils/logger';
 
 export class LocalStorageProvider implements IStorageProvider {
   private uploadsDir = path.resolve(__dirname, '..', '..', '..', 'uploads');
@@ -25,7 +26,7 @@ export class LocalStorageProvider implements IStorageProvider {
     } catch (error: any) {
       // Ignora erros se o arquivo não existir
       if (error.code !== 'ENOENT') {
-        console.error('Erro ao deletar arquivo local:', error);
+        logger.error('Erro ao deletar arquivo local:', error);
       }
     }
   }

@@ -3,9 +3,15 @@ import speakeasy from 'speakeasy';
 import { LoginAttemptModel } from 'models/loginAttempt';
 import authConfig from 'config/auth';
 import { generateToken } from 'utils/security';
-import { IUser } from 'types';
-import { UserRole, UserStatus } from 'types/enums/enums';
+import { INotificationPayload, IUser } from 'types';
+import { PasswordResetStatus, UserRole, UserStatus } from 'types/enums/enums';
 import { Types } from 'mongoose';
+import crypto from 'crypto';
+import { PasswordResetModel } from 'models/passwordReset';
+import logger from 'utils/logger';
+import notificationService from './notificationService';
+import { emailService } from './emailService';
+import { EmailTemplate } from 'types/enums/email';
 
 class AuthService {
     async register(userData: any): Promise<IUser> {
@@ -74,6 +80,81 @@ class AuthService {
             token: code,
             window: 1
         });
+    }
+
+    /**
+   * Inicia o processo de redefinição de senha para um usuário.
+   * @param email - O e-mail do usuário.
+   */
+    public async initiateReset(email: string): Promise<void> {
+        const user = await UserModel.findOne({ email });
+
+        // Para evitar ataques de enumeração de usuários, não retorne um erro se o usuário não for encontrado.
+        // Apenas prossiga se o usuário existir e estiver em um status ativo.
+        if (user && user.status === 'approved') {
+            const rawToken = crypto.randomBytes(32).toString('hex');
+            const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
+
+            // O token expira em 15 minutos
+            const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
+
+            await new PasswordResetModel({
+                user: user._id,
+                tokenHash,
+                expiresAt,
+            }).save();
+
+            // Lógica de envio de e-mail
+            const resetLink = `${process.env.FRONTEND_URL}/reset-password?token=${rawToken}`;
+            const userToSend = user as unknown as IUser;
+
+            const emailBody = await emailService.prepareEmailTemplate(
+                EmailTemplate.PasswordResetRequest,
+                {
+                    userName: user.name,
+                    resetLink
+                }
+            );
+
+            const notificationContent: INotificationPayload = {
+              category: 'system',
+              title: 'Solicitação de reset de senha',
+              body: emailBody
+            };
+            notificationService.sendNotification([userToSend], notificationContent);
+        }
+    }
+
+    /**
+     * Conclui o processo de redefinição de senha.
+     * @param token - O token bruto recebido pelo usuário.
+     * @param newPassword - A nova senha fornecida pelo usuário.
+     */
+    public async completeReset(token: string, newPassword: string): Promise<void> {
+        const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+
+        const resetRequest = await PasswordResetModel.findOne({
+            tokenHash,
+            status: PasswordResetStatus.INITIATED, // Garante que o token não foi usado
+            expiresAt: { $gt: new Date() }, // Garante que o token não expirou
+        });
+
+        if (!resetRequest) {
+            throw new Error('Token de redefinição inválido ou expirado.');
+        }
+
+        const user = await UserModel.findById(resetRequest.user);
+        if (!user) {
+            throw new Error('Usuário não encontrado.');
+        }
+
+        // Atualiza a senha do usuário
+        user.password = newPassword;
+        await user.save();
+
+        // Marca a solicitação como concluída
+        resetRequest.status = PasswordResetStatus.COMPLETED;
+        await resetRequest.save();
     }
 }
 

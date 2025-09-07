@@ -5,6 +5,7 @@ import {
 } from '@aws-sdk/client-s3';
 import { IStorageProvider } from './IStorageProvider';
 import crypto from 'crypto';
+import logger from 'utils/logger';
 
 export class S3StorageProvider implements IStorageProvider {
   private s3Client: S3Client;
@@ -53,7 +54,7 @@ export class S3StorageProvider implements IStorageProvider {
       const fileUrl = `https://${this.bucketName}.s3.${this.region}.amazonaws.com/${fileKey}`;
       return fileUrl;
     } catch (error) {
-      console.error('Erro ao fazer upload do arquivo para o S3:', error);
+      logger.error('Erro ao fazer upload do arquivo para o S3:', error);
       throw new Error('Falha ao salvar o arquivo no S3.');
     }
   }
@@ -72,7 +73,7 @@ export class S3StorageProvider implements IStorageProvider {
 
       await this.s3Client.send(command);
     } catch (error) {
-      console.error('Erro ao deletar o arquivo do S3:', error);
+      logger.error('Erro ao deletar o arquivo do S3:', error);
       // Não lançamos um erro aqui para não quebrar o fluxo caso o arquivo já tenha sido deletado.
     }
   }

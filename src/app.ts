@@ -1,16 +1,11 @@
 import { createServer, Server as HttpServer } from 'http';
 
 import express from 'express';
-import helmet from 'helmet';
-import rateLimit from 'express-rate-limit';
-import slowDown from 'express-slow-down';
-import cors from 'cors';
 import compression from 'compression';
 
 import { Server } from 'socket.io';
-import { createClient } from 'redis';
-import { config } from 'dotenv';
 
+import { config } from 'dotenv';
 
 import logger from './utils/logger';
 
@@ -24,9 +19,16 @@ import adminRoutes from 'routes/admin';
 import publicRoutes from 'routes/public';
 import { errorHandler } from 'middlewares/errorHandler';
 import auditLogger from 'middlewares/auditLogger';
-import { setupLocationSockets } from 'socket/locationSocket';
-import { initializeChatSockets } from 'socket/chatSocket';
-import { closeDatabaseConnection, connectToDatabase } from 'config/database';
+import { setupLocationSockets } from 'providers/socket/locationSocket';
+import { initializeChatSockets } from 'providers/socket/chatSocket';
+import { closeDatabaseConnection, connectToDatabase } from 'providers/database/mongoose';
+import { idempotencyMiddleware } from 'middlewares/idempotencyMiddleware';
+import { closeRedisConnection, connectToRedis } from 'providers/cache/redis';
+import { globalLimiter } from 'middlewares/limiters/globalLimiter';
+import { speedLimiter } from 'middlewares/limiters/speedLimiter';
+import { loginLimiter } from 'middlewares/limiters/loginLimiter';
+import { helmetCSP } from 'middlewares/security/helmetCSP';
+import { corsValidation } from 'middlewares/security/corsValidation';
 
 config();
 
@@ -34,7 +36,6 @@ class CarpoolApp {
   public app: express.Application;
   public server: HttpServer;
   public io: Server;
-  private redisClient: any;
   private isShuttingDown: boolean = false;
   private isReloading = false;
 
@@ -68,9 +69,7 @@ class CarpoolApp {
 
   private async initializeRedis(): Promise<void> {
     try {
-      const redisUri = process.env.REDIS_URI || 'redis://localhost:6379';
-      this.redisClient = createClient({ url: redisUri });
-      await this.redisClient.connect();
+      await connectToRedis();
       logger.info('Connected to Redis successfully');
     } catch (error) {
       logger.error('Redis connection failed:', error);
@@ -80,24 +79,10 @@ class CarpoolApp {
 
   private initializeMiddleware(): void {
     // Security middleware
-    this.app.use(helmet({
-      contentSecurityPolicy: {
-        directives: {
-          defaultSrc: ["'self'"],
-          styleSrc: ["'self'", "'unsafe-inline'"],
-          scriptSrc: ["'self'"],
-          imgSrc: ["'self'", "data:", "https:"],
-        },
-      },
-    }));
+    this.app.use(helmetCSP);
 
     // CORS configuration
-    this.app.use(cors({
-      origin: process.env.FRONTEND_URL || "http://localhost:3000",
-      credentials: true,
-      methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-      allowedHeaders: ['Content-Type', 'Authorization', 'x-two-factor-token']
-    }));
+    this.app.use(corsValidation);
 
     // Compression
     this.app.use(compression());
@@ -108,30 +93,12 @@ class CarpoolApp {
     this.app.use(auditLogger);
 
     // Rate limiting - Global
-    const globalLimiter = rateLimit({
-      windowMs: 15 * 60 * 1000, // 15 minutes
-      max: 100, // limit each IP to 100 requests per windowMs
-      message: 'Too many requests from this IP, please try again later.',
-      standardHeaders: true,
-      legacyHeaders: false,
-    });
     this.app.use(globalLimiter);
 
     // Slow down middleware
-    const speedLimiter = slowDown({
-      windowMs: 15 * 60 * 1000, // 15 minutes
-      delayAfter: 50, // allow 50 requests per 15 minutes without delay
-      delayMs: 500 // add 500ms delay per request after delayAfter
-    });
     this.app.use(speedLimiter);
 
     // Login rate limiter
-    const loginLimiter = rateLimit({
-      windowMs: 15 * 60 * 1000, // 15 minutes
-      max: 5, // limit each IP to 5 login attempts per windowMs
-      skipSuccessfulRequests: true,
-      message: 'Too many login attempts, please try again later.',
-    });
     this.app.use('/api/auth/login', loginLimiter);
 
     // Audit logging
@@ -158,6 +125,7 @@ class CarpoolApp {
     });
 
     // API routes
+    this.app.use('/api', idempotencyMiddleware);
     this.app.use('/api/public', publicRoutes);
     this.app.use('/api/auth', authRoutes);
     this.app.use('/api/users', userRoutes);
@@ -208,7 +176,7 @@ class CarpoolApp {
 
   private async close(): Promise<void> {
     await closeDatabaseConnection();
-    await this.redisClient.quit();
+    await closeRedisConnection();
     this.server.close();
   }
 

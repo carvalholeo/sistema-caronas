@@ -231,6 +231,7 @@ export interface IPasswordReset extends Document {
   status: PasswordResetStatus;
   initiatedAt: Date;
   completedAt?: Date;
+  expiresAt: Date;
 }
 
 export interface IPrivacyRequest extends Document {

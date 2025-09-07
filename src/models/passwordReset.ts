@@ -7,6 +7,7 @@ const PasswordResetSchema = new Schema<IPasswordReset>({
   status: { type: String, enum: Object.values(PasswordResetStatus), default: PasswordResetStatus.INITIATED },
   initiatedAt: { type: Date, default: Date.now },
   completedAt: { type: Date },
+  expiresAt: { type: Date, required: true, expires: 0}
 }, { timestamps: false });
 
 PasswordResetSchema.pre<IPasswordReset>('save', function (next) {
