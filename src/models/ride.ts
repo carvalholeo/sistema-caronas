@@ -1,4 +1,4 @@
-import { Schema, model } from 'mongoose';
+import { Schema, Types, model } from 'mongoose';
 import { IRide, Location, RidePassenger } from '../types';
 import { PassengerStatus, RideStatus, VehicleStatus } from 'types/enums/enums';
 
@@ -211,6 +211,32 @@ RideSchema.pre<IRide>('validate', function (next) {
 RideSchema.pre<IRide>('save', async function (next) {
   const doc = this;
 
+  if (doc.isNew) {
+    const oneHour = 60 * 60 * 1000; // 1 hora em milissegundos
+    const newDepartureTime = doc.departureTime.getTime();
+
+    // Define a janela de tempo de verificação: 1h antes e 1h depois.
+    const lowerBound = new Date(newDepartureTime - oneHour);
+    const upperBound = new Date(newDepartureTime + oneHour);
+
+    // Procura por caronas conflitantes no banco de dados.
+    const conflictingRide = await RideModel.findOne({
+      driver: doc.driver,
+      // Apenas caronas agendadas ou em andamento podem conflitar.
+      status: { $in: [RideStatus.Scheduled, RideStatus.InProgress, RideStatus.Completed] },
+      // Verifica se a partida de alguma carona existente está dentro da janela.
+      departureTime: {
+        $gte: lowerBound,
+        $lte: upperBound,
+      },
+    });
+
+    // Se uma carona conflitante for encontrada, bloqueia a criação.
+    if (conflictingRide) {
+      return next(new Error('Driver already has a scheduled ride within one hour of this departure time.'));
+    }
+  }
+
   // No máximo 4 corridas no mesmo dia (por driver)
   // Considera o dia do departureTime
   if (doc.driver && doc.departureTime) {
@@ -273,6 +299,7 @@ RideSchema.pre<IRide>('save', async function (next) {
 
   return next();
 });
+
 
 const allowedTransitionsPassengers: Record<PassengerStatus, PassengerStatus[]> = {
   [PassengerStatus.Pending]: [PassengerStatus.Approved, PassengerStatus.Rejected, PassengerStatus.Cancelled],

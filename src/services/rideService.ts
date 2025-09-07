@@ -56,16 +56,80 @@ class RideService {
         return RideModel.insertMany(ridesToCreate);
     }
 
-    public async searchRides(searchParams: any, userId: Types.ObjectId): Promise<IRide[]> {
+    /**
+     * Busca por caronas e calcula as vagas disponíveis em uma única consulta otimizada.
+     * @param searchParams - Os parâmetros de busca (from, to, date).
+     * @param userId - O ID do usuário que está buscando.
+     * @returns Uma lista de caronas com o campo 'remainingSeats' adicionado.
+     */
+    public async searchRides(searchParams: any, userId: Types.ObjectId): Promise<any[]> {
         const startTime = Date.now();
         const { from, to, date } = searchParams;
         const searchDate = new Date(date);
-        const rides = await RideModel.find({
-            'origin.point': { $near: { $geometry: { type: "Point", coordinates: from }, $maxDistance: 5000 } },
-            'destination.point': { $near: { $geometry: { type: "Point", coordinates: to }, $maxDistance: 5000 } },
-            status: RideStatus.Scheduled,
-            departureTime: { $gte: searchDate, $lt: new Date(searchDate.getTime() + 24 * 60 * 60 * 1000) }
-        }).populate('driver', 'name');
+
+        // Constrói a pipeline de agregação
+        const pipeline = [
+            // Estágio 1: Encontrar as caronas que correspondem aos critérios de busca.
+            // Usamos $match, que é a versão do 'find' para agregações.
+            {
+                $match: {
+                    'origin.point': { $near: { $geometry: { type: "Point", coordinates: from }, $maxDistance: 5000 } },
+                    'destination.point': { $near: { $geometry: { type: "Point", coordinates: to }, $maxDistance: 5000 } },
+                    status: RideStatus.Scheduled,
+                    departureTime: { $gte: searchDate, $lt: new Date(searchDate.getTime() + 24 * 60 * 60 * 1000) }
+                }
+            },
+            // Estágio 2: Adicionar um novo campo ('remainingSeats') com o cálculo.
+            // Esta é a mesma lógica do método estático, agora integrada na busca.
+            {
+                $addFields: {
+                    approvedCount: {
+                        $size: {
+                            $filter: {
+                                input: '$passengers',
+                                as: 'passenger',
+                                cond: { $eq: ['$$passenger.status', PassengerStatus.Approved] }
+                            }
+                        }
+                    }
+                }
+            },
+            {
+                $addFields: {
+                    remainingSeats: {
+                        $max: [0, { $subtract: ['$availableSeats', '$approvedCount'] }]
+                    }
+                }
+            },
+            // Estágio 3: Popular os dados do motorista (equivalente ao .populate()).
+            {
+                $lookup: {
+                    from: 'users', // O nome da coleção de usuários
+                    localField: 'driver',
+                    foreignField: '_id',
+                    as: 'driverInfo'
+                }
+            },
+            // Estágio 4: Formatar a saída para um formato mais limpo.
+            {
+                $project: {
+                    // Inclui todos os campos originais da carona
+                    driver: 1,
+                    vehicle: 1,
+                    origin: 1,
+                    destination: 1,
+                    departureTime: 1,
+                    price: 1,
+                    status: 1,
+                    // Adiciona o novo campo calculado
+                    remainingSeats: 1,
+                    // Formata os dados do motorista
+                    driverInfo: { $arrayElemAt: ['$driverInfo.name', 0] }
+                }
+            }
+        ];
+
+        const rides = await RideModel.aggregate(pipeline);
 
         const durationMs = Date.now() - startTime;
         await SearchEventModel.create({
@@ -76,6 +140,7 @@ class RideService {
 
         return rides;
     }
+
     public async getMyRidesAsDriver(driverId: Types.ObjectId): Promise<IRide[]> {
         return RideModel.find({ driver: driverId }).sort({ departureTime: -1 });
     }
