@@ -1,5 +1,6 @@
 import { Schema, model } from 'mongoose';
 import { IEventBase, INotificationEvent, IRideViewEvent, ISearchEvent } from 'types';
+import { NotificationType } from 'types/enums/enums';
 
 const baseOptions = {
   discriminatorKey: 'kind', // campo que identifica o subtipo
@@ -19,11 +20,25 @@ const NotificationEventSchema = new Schema<INotificationEvent>(
   {
     subscription: { type: Schema.Types.ObjectId, ref: 'NotificationSubscription', required: true, index: true },
     category: { type: String, required: true, index: true },
+    type: { type: String, enum: Object.values(NotificationType) },
+    payload: {
+      type: String,
+      validate: {
+        validator: validationFields,
+        message: 'Notification payload cannot contain sensitive information'
+      }
+    },
     statusHistory: [
       {
         status: { type: String, required: true },
         timestamp: { type: Date, default: Date.now },
-        details: { type: String },
+        details: {
+          type: String,
+          validate: {
+            validator: validationFields,
+            message: 'Notification payload cannot contain sensitive information'
+          }
+        },
         _id: false,
       },
     ],
@@ -66,3 +81,13 @@ export const SearchEventModel = EventModel.discriminator<ISearchEvent>(
   'search',
   SearchEventSchema
 );
+
+function validationFields(data: object) {
+  // Ensure data doesn't contain sensitive information
+  if (typeof data === 'object' && data !== null) {
+    const sensitiveFields = ['password', 'token', 'secret', 'key'];
+    const dataString = JSON.stringify(data).toLowerCase();
+    return !sensitiveFields.some(field => dataString.includes(field));
+  }
+  return true;
+}

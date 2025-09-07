@@ -118,6 +118,8 @@ export interface INotificationEvent extends IEventBase {
   kind: 'notification';
   subscription: Types.ObjectId;
   category: NotificationEventCategory;
+  type: NotificationType;
+  payload: string;
   statusHistory: Array<{ status: NotificationStatusHistory; timestamp: Date; details?: string }>;
   isAggregated: boolean;
   isCritical: boolean;
@@ -162,19 +164,8 @@ export interface IChatMessage extends Document {
   updatedAt: Date;
 }
 
-export interface INotification extends Document {
-  user: Types.ObjectId;
-  type: NotificationType,
-  title: string;
-  content: string;
-  data?: string;
-  isRead: boolean;
-  createdAt: Date;
-  expiresAt?: Date;
-}
-
 export interface INotificationPayload {
-  category: NotificationCategory;
+  category: NotificationEventCategory;
   title: string;
   body: string;
   url?: string; // URL para abrir ao clicar na notificação

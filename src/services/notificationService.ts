@@ -1,6 +1,6 @@
 import { INotificationProvider } from 'providers/notifications/INotificationProvider';
 import { NotificationSubscriptionModel } from '../models/notificationSubscription';
-import { INotificationPayload, IUpdatePreferencesData, IUser } from '../types';
+import { INotificationEvent, INotificationPayload, IUpdatePreferencesData, IUser } from '../types';
 import { INotificationSubscription } from 'types';
 import { shouldNotifyNow } from 'utils/quietHours';
 import { WebPushProvider } from 'providers/notifications/WebPushProvider';
@@ -8,6 +8,8 @@ import logger from 'utils/logger';
 import { AndroidProvider } from 'providers/notifications/AndroidProvider';
 import { IosProvider } from 'providers/notifications/IosProvider';
 import { EmailProvider } from 'providers/notifications/EmailProvider';
+import { EventModel } from 'models/event';
+import { Types } from 'mongoose';
 
 class NotificationService {
   private providers: Map<string, INotificationProvider>;
@@ -63,12 +65,12 @@ class NotificationService {
     // Atualiza as preferências de "Não Perturbe" (quiet hours)
     if (preferencesData.quietHours === null) {
       subscription.preferences = undefined;
-    } else  if (preferencesData.quietHours) {
+    } else if (preferencesData.quietHours) {
       // Usa os métodos do schema para converter e salvar os dados corretamente
       const { startHour, endHour, weekDays, timezone } = preferencesData.quietHours;
       const weekMask = subscription?.preferences?.daysToMask(weekDays);
 
-      subscription?.preferences?.convertHourToDatabase( {
+      subscription?.preferences?.convertHourToDatabase({
         startMinute: startHour,
         endMinute: endHour,
         weekMask: weekMask!,
@@ -85,36 +87,81 @@ class NotificationService {
    * @param userIds - Array de IDs dos usuários que receberão a notificação.
    * @param payload - O conteúdo da notificação (título, corpo, categoria, etc.).
    */
-  public async sendNotification(userIds: string[], payload: INotificationPayload): Promise<void> {
-    const alwaysAllowedFilter = {
-      notificationsKinds: {
-        security: true,
-        system: true
-      },
-      isPermissionGranted: { $in: [true, false] }
-    };
-    const regularFilter = {
-      isPermissonGranted: true
+  public async sendNotification(userIds: IUser[], payload: INotificationPayload): Promise<void> {
+    const isCriticalNotification = payload.category === 'security' || payload.category === 'system';
+
+    for (const userId of userIds) {
+      const allSubscriptions = await NotificationSubscriptionModel.find({ user: userId._id });
+      if (allSubscriptions.length === 0) continue;
+
+      let pushSentToActiveDevice = false;
+
+      for (const sub of allSubscriptions) {
+        if (sub.platform === 'email') continue;
+
+        if (this.shouldSend(sub, payload)) {
+          // A lógica de envio e log agora está em um método separado
+          const wasSent = await this.sendAndLogNotification(sub, payload);
+          if (wasSent && sub.isPermissionGranted) {
+            pushSentToActiveDevice = true;
+          }
+        }
+      }
+
+      if (isCriticalNotification && !pushSentToActiveDevice) {
+        const emailSubscription = allSubscriptions.find(s => s.platform === 'email');
+        if (emailSubscription) {
+          logger.info(`Fallback: Enviando notificação crítica por e-mail para o usuário ${userId}`);
+          await this.sendAndLogNotification(emailSubscription, payload);
+        }
+      }
+    }
+  }
+
+  /**
+   * Orquestra o envio e o registro do log para uma única subscrição.
+   * @param sub - A subscrição do destinatário.
+   * @param payload - O conteúdo da notificação.
+   * @returns `true` se o envio foi bem-sucedido, `false` caso contrário.
+   */
+  private async sendAndLogNotification(sub: INotificationSubscription, payload: INotificationPayload): Promise<boolean> {
+    const provider = this.providers.get(sub.platform);
+    if (!provider) {
+      return false;
     }
 
-    const isCriticalNotification = payload.category === 'security' || payload.category === 'system';
-    const filter = isCriticalNotification ? alwaysAllowedFilter : regularFilter;
-    const subscriptions = await NotificationSubscriptionModel.find({
-      user: { $in: userIds },
-      ...filter
-    });
+    const notificationEventLog = {
+      subscription: sub._id as Types.ObjectId,
+      category: payload.category,
+      statusHistory: [{
+        status: 'sent',
+        timestamp: new Date(),
+        details: ''
+      }],
+      payload: JSON.stringify({ title: payload.title, body: payload.body }),
+      isAggregated: false,
+      isCritical: payload.category === 'security' || payload.category === 'system'
+    }
 
-    for (const sub of subscriptions) {
-      if (!this.shouldSend(sub, payload)) {
-        continue; // Pula se as preferências do usuário não permitirem
-      }
+    try {
+      // 1. Cria o registro do evento ANTES de tentar enviar.
+      await new EventModel(notificationEventLog).save();
+      await provider.send(sub, payload);
 
-      const provider = this.providers.get(sub.platform);
-      if (provider) {
-        await provider.send(sub, payload);
-      } else {
-        logger.warn(`Nenhum provedor de notificação encontrado para a plataforma: ${sub.platform}`);
-      }
+      notificationEventLog.statusHistory[0].status = 'delivered';
+      notificationEventLog.statusHistory[0].timestamp = new Date();
+      await new EventModel(notificationEventLog).save();
+
+      return true;
+    } catch (error) {
+      notificationEventLog.statusHistory[0].status = 'failed';
+      notificationEventLog.statusHistory[0].details = (error as Error).message;
+      notificationEventLog.statusHistory[0].timestamp = new Date();
+      notificationEventLog.payload = '';
+
+      await new EventModel(notificationEventLog).save();
+
+      return false;
     }
   }
 
@@ -126,6 +173,16 @@ class NotificationService {
    * @returns `true` se a notificação deve ser enviada, `false` caso contrário.
    */
   private shouldSend(sub: INotificationSubscription, payload: INotificationPayload): boolean {
+    const isCriticalNotification = payload.category === 'security' || payload.category === 'system';
+    // Se for uma notificação crítica, ignore todas as outras preferências do usuário e envie.
+    if (isCriticalNotification) {
+      return sub.isPermissionGranted;
+    }
+
+    if (!sub.isPermissionGranted) {
+      return false;
+    }
+
     // 1. Verifica a categoria
     if (!sub.notificationsKinds[payload.category]) {
       return false;
@@ -141,13 +198,8 @@ class NotificationService {
       weekMask: sub.preferences.weekMask,
       timezone: sub.preferences.timezone
     };
-    const canNotify = shouldNotifyNow(new Date(), prefs);
 
-    if (!canNotify) {
-      return false;
-    }
-
-    return true;
+    return shouldNotifyNow(new Date(), prefs);
   }
 }
 
