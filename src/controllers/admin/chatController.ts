@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { adminChatService } from 'services/admin/chatService';
 import { Types } from 'mongoose';
-import { IUser } from 'types';
+import { IChatMessage, IRide, IUser } from 'types';
 
 class AdminChatController {
   /**
@@ -13,8 +13,8 @@ class AdminChatController {
       const { rideId, senderId } = req.params;
       const adminUser = req.user!;
       const messages = await adminChatService.readConversation(
-        rideId as unknown as Types.ObjectId,
-        senderId as unknown as Types.ObjectId,
+        rideId as unknown as IRide,
+        senderId as unknown as IUser,
         adminUser);
       return res.status(200).json(messages);
     } catch (error: Error | any) {
@@ -32,7 +32,7 @@ class AdminChatController {
       const { reason } = req.body;
       const adminUser = req.user!;
       const moderatedMessage = await adminChatService.moderateMessage(
-        messageId as unknown as Types.ObjectId,
+        messageId as unknown as IChatMessage,
         adminUser,
         reason
       );
@@ -53,7 +53,7 @@ class AdminChatController {
       const adminUser = req.user!;
 
       const content = await adminChatService.exportConversation(
-        rideId as unknown as Types.ObjectId,
+        rideId as unknown as IRide,
         senderId as unknown as IUser,
         adminUser,
         twoFactorCode

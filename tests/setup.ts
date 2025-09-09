@@ -57,3 +57,15 @@ process.env.NODE_ENV = 'test';
 process.env.JWT_SECRET = 'test-jwt-secret-key-for-unit-tests';
 process.env.JWT_REFRESH_SECRET = 'test-refresh-secret-key-for-unit-tests';
 process.env.MONGODB_URI = global.__MONGO_URI__;
+
+// beforeAll(async () => {
+//   await setupTestDatabase();
+// }, 10000);
+
+// afterAll(async () => {
+//   await teardownTestDatabase();
+// });
+
+// afterEach(async () => {
+//   await clearDatabase();
+// });

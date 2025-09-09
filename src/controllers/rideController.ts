@@ -73,7 +73,7 @@ class RideController {
   public async getDetails(req: Request, res: Response): Promise<Response> {
     try {
       const { id } = req.params;
-      const rideDetails = await rideService.getRideDetails(id as unknown as Types.ObjectId, req.user!._id as unknown as Types.ObjectId);
+      const rideDetails = await rideService.getRideDetails({_id: id}, {_id: req.user!._id});
       return res.status(200).json(rideDetails);
     } catch (error: Error | any) {
       // Usa 403 (Proibido) se o usuário não tiver permissão para ver

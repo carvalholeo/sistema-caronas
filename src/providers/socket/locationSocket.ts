@@ -1,8 +1,7 @@
 import { Server, Socket } from 'socket.io';
 import { RideModel } from 'models/ride';
 import { LocationLogModel } from 'models/locationLog';
-import { BlockModel } from 'models/block';
-import mongoose, { Types } from 'mongoose';
+import { Types } from 'mongoose';
 import { locationService } from 'services/locationService';
 import { RideStatus, LocationLogAction } from 'types/enums/enums';
 
@@ -20,8 +19,14 @@ export const setupLocationSockets = (io: Server) => {
           return;
         }
 
-        const isDriver = ride.driver._id.toString() === socket.userId.toString();
-        const isApprovedPassenger = ride.passengers.some(p => p.user._id.toString() === socket.userId.toString() && p.status === 'approved');
+        const driverId = (ride.driver._id as Types.ObjectId).toString();
+        const socketUserId = (socket.userId._id as Types.ObjectId).toString();
+
+        const isDriver = driverId === socketUserId;
+        const isApprovedPassenger = ride.passengers.some(p => {
+          const passengerId = (p.user._id as Types.ObjectId).toString();
+          return passengerId === socketUserId && p.status === 'approved'
+        });
 
         if (isDriver || isApprovedPassenger) {
           const room = `ride-location-${rideId}`;
@@ -40,7 +45,13 @@ export const setupLocationSockets = (io: Server) => {
      */
     socket.on('startSharingLocation', async (rideId: string) => {
       const ride = await RideModel.findById(rideId);
-      if (ride && ride.driver._id.toString() === socket.userId.toString()) {
+      if (!ride) return;
+
+
+      const driverId = (ride.driver._id as Types.ObjectId).toString();
+      const socketUserId = (socket.userId._id as Types.ObjectId).toString();
+
+      if (driverId === socketUserId) {
         await new LocationLogModel({ ride: rideId, user: socket.userId, action: LocationLogAction.SharingStarted }).save();
       }
     });
@@ -50,7 +61,6 @@ export const setupLocationSockets = (io: Server) => {
      */
     socket.on('updateLocation', async (data: { rideId: Types.ObjectId; lat: number; lng: number }) => {
       const { rideId, lat, lng } = data;
-      const room = `ride-location-${rideId}`;
 
       locationService.broadcastLocationUpdate(
         io,
@@ -61,40 +71,6 @@ export const setupLocationSockets = (io: Server) => {
           lng
         }
       );
-
-      // Verifica se o socket está na sala correta
-      if (socket.rooms.has(room)) {
-        const ride = await RideModel.findById(rideId).lean();
-        if (!ride) return;
-
-        const isDriver = ride.driver._id.toString() === socket.userId.toString();
-        const role = isDriver ? 'driver' : 'passenger';
-
-        // Em vez de transmitir para todos, enviamos individualmente para verificar bloqueios
-        const socketsInRoom = await io.in(room).fetchSockets();
-
-        for (const targetSocket of socketsInRoom) {
-          // Não envia a localização do usuário para ele mesmo
-          if (targetSocket.id === socket.id) continue;
-
-          // Verifica se há um bloqueio mútuo
-          const isBlocked = await BlockModel.findOne({
-            $or: [
-              { blocker: new mongoose.Types.ObjectId(socket.userId), blocked: new mongoose.Types.ObjectId(targetSocket.userId) },
-              { blocker: new mongoose.Types.ObjectId(targetSocket.userId), blocked: new mongoose.Types.ObjectId(socket.userId) }
-            ]
-          });
-
-          if (!isBlocked) {
-            targetSocket.emit('locationUpdate', {
-              userId: socket.userId,
-              lat,
-              lng,
-              role
-            });
-          }
-        }
-      }
     });
 
     /**
@@ -102,7 +78,12 @@ export const setupLocationSockets = (io: Server) => {
      */
     socket.on('stopSharingLocation', async (rideId: string) => {
       const ride = await RideModel.findById(rideId);
-      if (ride && ride.driver.toString() === socket.userId.toString()) {
+      if (!ride) return;
+
+      const driverId = (ride.driver._id as Types.ObjectId).toString();
+      const socketUserId = (socket.userId._id as Types.ObjectId).toString();
+
+      if (driverId === socketUserId) {
         await new LocationLogModel({ ride: rideId, user: socket.userId, action: LocationLogAction.SharingStopped }).save();
       }
     });

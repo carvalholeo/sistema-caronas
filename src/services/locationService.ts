@@ -4,6 +4,7 @@ import { LocationLogModel } from 'models/locationLog';
 import { BlockModel } from 'models/block';
 import { Types } from 'mongoose';
 import { RideStatus, LocationLogAction } from 'types/enums/enums';
+import { IRide, IUser } from 'types';
 
 class LocationService {
 
@@ -14,8 +15,8 @@ class LocationService {
    * @returns O objeto da carona se a validação for bem-sucedida.
    * @throws Um erro se o usuário não tiver permissão ou a carona não estiver em andamento.
    */
-  public async validateUserForLocationRoom(rideId: Types.ObjectId, userId: Types.ObjectId) {
-    const ride = await RideModel.findById(rideId).lean(); // .lean() para performance
+  public async validateUserForLocationRoom(rideId: IRide, userId: IUser) {
+    const ride = await RideModel.findById(rideId); // .lean() para performance
 
     if (!ride) {
       throw new Error('Carona não encontrada.');
@@ -25,8 +26,15 @@ class LocationService {
       throw new Error('Não é possível entrar na sala: a carona não está em andamento.');
     }
 
-    const isDriver = ride.driver._id.toString() === userId.toString();
-    const isApprovedPassenger = ride.passengers.some(p => p.user.toString() === userId.toString() && p.status === 'approved');
+    const driverId = (ride.driver._id as Types.ObjectId).toString();
+    const serviceUserId = (userId._id as Types.ObjectId).toString();
+
+    const isDriver = driverId === serviceUserId;
+
+    const isApprovedPassenger = ride.passengers.some(p => {
+      const passengerId = (p.user._id as Types.ObjectId).toString();
+      return passengerId === serviceUserId && p.status === 'approved';
+    });
 
     if (!isDriver && !isApprovedPassenger) {
       throw new Error('Você não tem permissão para acessar a localização desta carona.');
@@ -44,7 +52,12 @@ class LocationService {
   public async logSharingActivity(rideId: Types.ObjectId, userId: Types.ObjectId, action: LocationLogAction): Promise<void> {
     const ride = await RideModel.findById(rideId);
     // Garante que apenas o motorista da carona possa registrar essa atividade
-    if (ride && ride.driver._id.toString() === userId.toString()) {
+    if (!ride) return;
+
+    const driverId = (ride.driver._id as Types.ObjectId).toString();
+    const serviceUserId = (userId._id as Types.ObjectId).toString();
+
+    if (driverId === serviceUserId) {
       await new LocationLogModel({
         ride: rideId,
         user: userId,
@@ -70,10 +83,13 @@ class LocationService {
 
     if (!socket.rooms.has(room)) return;
 
-    const ride = await RideModel.findById(rideId).lean();
+    const ride = await RideModel.findById(rideId);
     if (!ride) return;
 
-    const isSenderDriver = ride.driver._id.toString() === socket.userId.toString();
+    const driverId = (ride.driver._id as Types.ObjectId).toString();
+    const socketUserId = (socket.userId._id as Types.ObjectId).toString();
+
+    const isSenderDriver = driverId === socketUserId;
     const senderRole = isSenderDriver ? 'driver' : 'passenger';
 
     const socketsInRoom = await io.in(room).fetchSockets();
@@ -81,7 +97,7 @@ class LocationService {
     for (const targetSocket of socketsInRoom) {
       if (targetSocket.id === socket.id) continue;
 
-      const isTargetDriver = ride.driver._id.toString() === targetSocket.userId;
+      const isTargetDriver = driverId === targetSocket.userId;
 
       // REGRA: Se o remetente é um passageiro, só envia a localização para o motorista.
       if (!isSenderDriver && !isTargetDriver) {
@@ -90,8 +106,8 @@ class LocationService {
 
       const isBlocked = await BlockModel.findOne({
         $or: [
-          { blocker: new Types.ObjectId(socket.userId), blocked: new Types.ObjectId(targetSocket.userId) },
-          { blocker: new Types.ObjectId(targetSocket.userId), blocked: new Types.ObjectId(socket.userId) }
+          { blocker: new Types.ObjectId(socketUserId), blocked: new Types.ObjectId(targetSocket.userId) },
+          { blocker: new Types.ObjectId(targetSocket.userId), blocked: new Types.ObjectId(socketUserId) }
         ]
       });
 

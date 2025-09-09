@@ -5,10 +5,8 @@ import authConfig from 'config/auth';
 import { generateToken } from 'utils/security';
 import { INotificationPayload, IUser } from 'types';
 import { PasswordResetStatus, UserRole, UserStatus } from 'types/enums/enums';
-import { Types } from 'mongoose';
 import crypto from 'crypto';
 import { PasswordResetModel } from 'models/passwordReset';
-import logger from 'utils/logger';
 import notificationService from './notificationService';
 import { emailService } from './emailService';
 import { EmailTemplate } from 'types/enums/email';
@@ -48,7 +46,7 @@ class AuthService {
         }
 
         attempt.wasSuccessful = true;
-        attempt.user = user._id as unknown as Types.ObjectId;
+        attempt.user = user as unknown as IUser;
         await attempt.save();
 
         user.lastLogin = new Date();

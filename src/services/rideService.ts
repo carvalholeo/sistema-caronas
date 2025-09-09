@@ -1,5 +1,5 @@
 import { RideModel } from 'models/ride';
-import { IRide } from 'types'
+import { IRide, IUser } from 'types'
 import { VehicleModel } from 'models/vehicle';
 import { randomUUID } from 'crypto';
 import { RideViewEventModel, SearchEventModel } from 'models/event';
@@ -218,7 +218,7 @@ class RideService {
         return ride;
     }
 
-    public async getRideDetails(rideId: Types.ObjectId, userId: Types.ObjectId): Promise<any> {
+    public async getRideDetails(rideId: Partial<IRide>, userId: Partial<IUser>): Promise<any> {
         const ride = await RideModel.findById(rideId).populate('driver', 'name email').populate('passengers.user', 'name');
         if (!ride) throw new Error("Carona não encontrada.");
 
@@ -228,8 +228,15 @@ class RideService {
             ride: rideId
         });
 
-        const isDriver = ride.driver._id.toString() === userId.toString();
-        const passengerInfo = ride.passengers.find(p => p.user._id.toString() === userId.toString() && p.status === PassengerStatus.Approved);
+        const driverId = (ride.driver._id as Types.ObjectId).toString();
+        const rideUserId = (userId._id as Types.ObjectId).toString();
+
+
+        const isDriver = driverId === rideUserId;
+        const passengerInfo = ride.passengers.find(p => {
+            const passengerId = (p.user._id as Types.ObjectId).toString();
+            return passengerId === rideUserId && p.status === PassengerStatus.Approved
+        });
 
         if (isDriver) {
             const passengers = ride.passengers.filter(p => p.status === PassengerStatus.Approved);

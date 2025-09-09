@@ -12,6 +12,13 @@ export async function connectToRedis(): Promise<RedisClientType> {
   return client;
 }
 
+export function getRedisClient() {
+  if (!client) {
+    throw new Error('Redis client not initialized');
+  }
+  return client;
+}
+
 export async function closeRedisConnection(): Promise<void> {
   if (client) {
     await client.quit();

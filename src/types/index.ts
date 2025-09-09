@@ -30,16 +30,16 @@ export interface IAccessibilitySettings extends Document {
 }
 
 export interface IDataReport extends Document {
-  user: Types.ObjectId;
-  adminUser: Types.ObjectId;
+  user: IUser;
+  adminUser: IUser;
   hash: Types.UUID;
   includedDataPoints: string[];
   createdAt: Date;
 }
 
 export interface IBlock extends Document {
-  blockerUser: Types.ObjectId;
-  blockedUser: Types.ObjectId;
+  blockerUser: IUser;
+  blockedUser: IUser;
   reason: string;
   status: BlockStatus;
   createdAt: Date;
@@ -47,7 +47,7 @@ export interface IBlock extends Document {
 
 export interface IAuditLog extends Document {
   actor: {
-    userId: Types.ObjectId;
+    userId: IUser;
     isAdmin: boolean;
     ip: string;
     userAgent?: string;
@@ -74,8 +74,8 @@ export interface IAuditLog extends Document {
 }
 
 export interface IRide extends Document {
-  driver: Types.ObjectId;
-  vehicle: Types.ObjectId;
+  driver: IUser;
+  vehicle: IVehicle;
   origin: { type: string; coordinates: [number, number] };
   destination: { type: string; coordinates: [number, number] };
   intermediateStops: { location: string; point: object }[];
@@ -84,7 +84,7 @@ export interface IRide extends Document {
   price: number;
   status: RideStatus;
   passengers: {
-    user: Types.ObjectId;
+    user: IUser;
     status: PassengerStatus;
     requestedAt: Date;
     managedAt?: Date;
@@ -100,14 +100,14 @@ export interface IRide extends Document {
 
 export interface IRideViewEvent extends IEventBase {
   kind: 'ride_view';
-  user: Types.ObjectId;
-  ride: Types.ObjectId;
-  searchEventId?: Types.ObjectId;
+  user: IUser;
+  ride: IRide;
+  searchEventId?: ISearchEvent;
 }
 
 export interface ISearchEvent extends IEventBase {
   kind: 'search';
-  user: Types.ObjectId;
+  user: IUser;
   durationMs: number;
   resultsCount: number;
 }
@@ -115,8 +115,8 @@ export interface ISearchEvent extends IEventBase {
 export interface INotificationEvent extends IEventBase {
   kind: 'notification';
   scope: NotificationScope;
-  subscription?: Types.ObjectId;
-  user?: Types.ObjectId;
+  subscription?: INotificationSubscription;
+  user?: IUser;
   category: NotificationEventCategory;
   type: NotificationType;
   payload: string;
@@ -126,7 +126,7 @@ export interface INotificationEvent extends IEventBase {
 }
 
 export interface IVehicle extends Document {
-  owner: Types.ObjectId;
+  owner: IUser;
   plate: string;
   make: string;
   carModel: string;
@@ -140,14 +140,14 @@ export interface IVehicle extends Document {
 }
 
 export interface RidePassenger extends Document {
-  user: Types.ObjectId;
+  user: IUser;
   status: PassengerStatus;
   requestedAt: Date;
   managedAt?: Date;
 }
 
 export interface IChatMessage extends Document {
-  ride: Types.ObjectId;
+  ride: IRide;
   sender: IUser;
   content: string;
   status: MessageStatus;
@@ -156,7 +156,7 @@ export interface IChatMessage extends Document {
   readAt?: Date;
   moderationDetails?: {
     originalContent: string;
-    moderatedBy: Types.ObjectId;
+    moderatedBy: IUser;
     moderatedAt: Date;
     reason: string;
   };
@@ -182,7 +182,7 @@ export interface INotificationKind {
 }
 
 export interface INotificationSubscription extends Document {
-  user: Types.ObjectId;
+  user: IUser;
   deviceIdentifier: string;
   platform: 'web' | 'ios' | 'android' | 'email';
   endpoint: string;
@@ -222,12 +222,12 @@ export interface INotificationTime {
 }
 
 export interface ISuppressedNotification extends Document {
-  user: Types.ObjectId;
+  user: IUser;
   reason: 'rate_limit' | 'aggregation';
 }
 
 export interface IPasswordReset extends Document {
-  user: Types.ObjectId;
+  user: IUser;
   status: PasswordResetStatus;
   initiatedAt: Date;
   completedAt?: Date;
@@ -235,16 +235,16 @@ export interface IPasswordReset extends Document {
 }
 
 export interface IPrivacyRequest extends Document {
-  user: Types.ObjectId;
+  user: IUser;
   type: PrivacyRequestType;
   status: PrivacyRequestStatus;
   requestedAt: Date;
   completedAt?: Date;
-  adminUser?: Types.ObjectId;
+  adminUser?: IUser;
 }
 
 export interface ILoginAttempt extends Document {
-  user?: Types.ObjectId;
+  user?: IUser;
   email: string;
   ipAddress: string;
   device: string;
@@ -259,8 +259,8 @@ export interface Location extends Document {
 }
 
 export interface ILocationLog extends Document {
-  ride: Types.ObjectId;
-  user: Types.ObjectId;
+  ride: IRide;
+  user: IUser;
   action: LocationLogAction;
   timestamp: Date;
 }
@@ -268,5 +268,5 @@ export interface ILocationLog extends Document {
 export interface IEventBase extends Document {
   _id: Types.ObjectId;
   kind: EventKind;
-  user?: Types.ObjectId | null;
+  user?: IUser | null;
 }

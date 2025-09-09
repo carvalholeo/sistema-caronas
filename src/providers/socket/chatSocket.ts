@@ -29,11 +29,6 @@ export const initializeChatSockets = (io: Server) => {
     // Join user to their personal room
     socket.join(`user:${socket.userId}`);
 
-    // Location sharing
-    socket.on('share_location', (data) => {
-      locationService.validateUserForLocationRoom(socket.userId!, data);
-    });
-
     // Chat events
     socket.on('join_chat', (rideId) => {
       socket.join(`ride:${rideId}`);

@@ -2,15 +2,14 @@
 import { ChatMessageModel } from 'models/chat';
 import { AuditLogModel } from 'models/auditLog';
 import { authService } from 'services/authService';
-import { Types } from 'mongoose';
-import { IChatMessage, IUser } from 'types';
+import { IChatMessage, IRide, IUser } from 'types';
 import { AuditActionType, AuditLogCategory, AuditLogSeverityLevels } from 'types/enums/enums';
 
 class AdminChatService {
-  public async readConversation(rideId: Types.ObjectId, senderId: Types.ObjectId, adminId: IUser): Promise<IChatMessage[]> {
+  public async readConversation(rideId: IRide, senderId: IUser, adminId: IUser): Promise<IChatMessage[]> {
     const auditEntry = new AuditLogModel({
       actor: {
-        userId: adminId._id,
+        userId: adminId,
         isAdmin: true,
         ip: '::1',
       },
@@ -27,7 +26,7 @@ class AdminChatService {
         extra: {
           targetUser: {
             resourceType: 'user',
-            resourceId: senderId._id
+            resourceId: senderId
           }
         }
       }
@@ -43,14 +42,14 @@ class AdminChatService {
     }).populate('sender', 'name matricula');
   }
 
-  public async moderateMessage(messageId: Types.ObjectId, adminId: IUser, reason: string): Promise<IChatMessage | null> {
+  public async moderateMessage(messageId: IChatMessage, adminId: IUser, reason: string): Promise<IChatMessage | null> {
     const message = await ChatMessageModel.findById(messageId);
     if (!message) throw new Error("Mensagem não encontrada.");
 
     message.isModerated = true;
     message.moderationDetails = {
       originalContent: message.content,
-      moderatedBy: adminId._id as unknown as Types.ObjectId,
+      moderatedBy: adminId as unknown as IUser,
       moderatedAt: new Date(),
       reason: reason,
     };
@@ -60,7 +59,7 @@ class AdminChatService {
 
     const auditEntry = new AuditLogModel({
       actor: {
-        userId: adminId._id,
+        userId: adminId,
         isAdmin: true,
         ip: '::1',
       },
@@ -82,14 +81,14 @@ class AdminChatService {
     return message;
   }
 
-  public async exportConversation(rideId: Types.ObjectId, senderId: IUser, adminUser: IUser, twoFactorCode: string): Promise<string> {
+  public async exportConversation(rideId: IRide, senderId: IUser, adminUser: IUser, twoFactorCode: string): Promise<string> {
     if (!authService.verifyTwoFactorCode(adminUser.twoFactorSecret, twoFactorCode)) {
       throw new Error("Código 2FA inválido.");
     }
 
     const auditEntry = new AuditLogModel({
       actor: {
-        userId: adminUser._id,
+        userId: adminUser,
         isAdmin: true,
         ip: '::1',
       },
@@ -106,14 +105,14 @@ class AdminChatService {
         extra: {
           targetUser: {
             resourceType: 'user',
-            resourceId: senderId._id
+            resourceId: senderId
           }
         }
       }
     });
     await auditEntry.save();
 
-    const messages = await this.readConversation(rideId, senderId.id, adminUser);
+    const messages = await this.readConversation(rideId, senderId, adminUser);
     return messages.map(msg => `[${msg.createdAt}] ${msg.sender.name}: ${msg.content}`).join('\n');
   }
 }
