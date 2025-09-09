@@ -4,7 +4,7 @@ import { LocationLogModel } from 'models/locationLog';
 import { BlockModel } from 'models/block';
 import { Types } from 'mongoose';
 import { RideStatus, LocationLogAction } from 'types/enums/enums';
-import { IRide, IUser } from 'types';
+import { IRide } from 'types';
 
 class LocationService {
 
@@ -15,7 +15,7 @@ class LocationService {
    * @returns O objeto da carona se a validação for bem-sucedida.
    * @throws Um erro se o usuário não tiver permissão ou a carona não estiver em andamento.
    */
-  public async validateUserForLocationRoom(rideId: IRide, userId: IUser) {
+  public async validateUserForLocationRoom(rideId: IRide, userId: string) {
     const ride = await RideModel.findById(rideId); // .lean() para performance
 
     if (!ride) {
@@ -27,7 +27,7 @@ class LocationService {
     }
 
     const driverId = (ride.driver._id as Types.ObjectId).toString();
-    const serviceUserId = (userId._id as Types.ObjectId).toString();
+    const serviceUserId = userId;
 
     const isDriver = driverId === serviceUserId;
 
@@ -87,7 +87,7 @@ class LocationService {
     if (!ride) return;
 
     const driverId = (ride.driver._id as Types.ObjectId).toString();
-    const socketUserId = (socket.userId._id as Types.ObjectId).toString();
+    const socketUserId = socket.userId;
 
     const isSenderDriver = driverId === socketUserId;
     const senderRole = isSenderDriver ? 'driver' : 'passenger';

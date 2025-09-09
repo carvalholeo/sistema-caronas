@@ -20,7 +20,7 @@ export const setupLocationSockets = (io: Server) => {
         }
 
         const driverId = (ride.driver._id as Types.ObjectId).toString();
-        const socketUserId = (socket.userId._id as Types.ObjectId).toString();
+        const socketUserId = socket.userId;
 
         const isDriver = driverId === socketUserId;
         const isApprovedPassenger = ride.passengers.some(p => {
@@ -49,7 +49,7 @@ export const setupLocationSockets = (io: Server) => {
 
 
       const driverId = (ride.driver._id as Types.ObjectId).toString();
-      const socketUserId = (socket.userId._id as Types.ObjectId).toString();
+      const socketUserId = socket.userId;
 
       if (driverId === socketUserId) {
         await new LocationLogModel({ ride: rideId, user: socket.userId, action: LocationLogAction.SharingStarted }).save();
@@ -81,7 +81,7 @@ export const setupLocationSockets = (io: Server) => {
       if (!ride) return;
 
       const driverId = (ride.driver._id as Types.ObjectId).toString();
-      const socketUserId = (socket.userId._id as Types.ObjectId).toString();
+      const socketUserId = socket.userId;
 
       if (driverId === socketUserId) {
         await new LocationLogModel({ ride: rideId, user: socket.userId, action: LocationLogAction.SharingStopped }).save();

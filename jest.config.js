@@ -13,6 +13,16 @@ module.exports = {
   ],
   setupFilesAfterEnv: ['<rootDir>/tests/setup.ts'],
   transform: {
-    "^.+\\.(ts|tsx)$": ['ts-jest', { tsconfig: 'tsconfig.json' }]
+    '^.+.(ts|tsx)$': ['ts-jest', { tsconfig: 'tsconfig.json' }]
+  },
+  moduleNameMapper: {
+    '^models/(.*)$': '<rootDir>/src/models/$1',
+    '^routes/(.*)$': '<rootDir>/src/routes/$1',
+    '^middlewares/(.*)$': '<rootDir>/src/middlewares/$1',
+    '^providers/(.*)$': '<rootDir>/src/providers/$1',
+    '^services/(.*)$': '<rootDir>/src/services/$1',
+    '^types/(.*)$': '<rootDir>/src/types/$1',
+    '^utils/(.*)$': '<rootDir>/src/utils/$1',
+    '^config/(.*)$': '<rootDir>/src/config/$1',
   },
 };

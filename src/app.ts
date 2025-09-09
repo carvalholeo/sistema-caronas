@@ -53,7 +53,6 @@ class CarpoolApp {
     this.initializeRedis();
     this.initializeMiddleware();
     this.initializeRoutes();
-    this.initializeSocketIO();
     this.initializeErrorHandling();
   }
 
@@ -167,6 +166,7 @@ class CarpoolApp {
 
   public listen(): void {
     this.isShuttingDown = false;
+    this.initializeSocketIO();
     const port = process.env.PORT || 3001;
     this.server.listen(port, () => {
       logger.info(`Server is running on port ${port}`);
