@@ -8,10 +8,6 @@ declare global {
 
 let mongoServer: MongoMemoryServer;
 
-beforeEach(async () => {
-  await clearDatabase();
-});
-
 export const setupTestDatabase = async () => {
   mongoServer = await MongoMemoryServer.create();
   const mongoUri = mongoServer.getUri();
@@ -20,8 +16,11 @@ export const setupTestDatabase = async () => {
   global.__MONGO_DB_NAME__ = 'test-carpool-db';
 
   await mongoose.connect(mongoUri, {
-    dbName: global.__MONGO_DB_NAME__
+    dbName: global.__MONGO_DB_NAME__,
+    autoIndex: true,
   });
+
+  mongoose.set('runValidators', true);
 };
 
 export const teardownTestDatabase = async () => {
@@ -58,14 +57,14 @@ process.env.JWT_SECRET = 'test-jwt-secret-key-for-unit-tests';
 process.env.JWT_REFRESH_SECRET = 'test-refresh-secret-key-for-unit-tests';
 process.env.MONGODB_URI = global.__MONGO_URI__;
 
-// beforeAll(async () => {
-//   await setupTestDatabase();
-// }, 10000);
+beforeAll(async () => {
+  await setupTestDatabase();
+});
 
-// afterAll(async () => {
-//   await teardownTestDatabase();
-// });
+afterAll(async () => {
+  await teardownTestDatabase();
+});
 
-// afterEach(async () => {
-//   await clearDatabase();
-// });
+afterEach(async () => {
+  await clearDatabase();
+});

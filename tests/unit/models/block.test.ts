@@ -4,18 +4,6 @@ import { BlockModel } from '../../../src/models/block';
 import { BlockStatus } from '../../../src/types/enums/enums';
 
 describe('Block state machine + unique constraint', () => {
-  beforeAll(async () => {
-    await mongoose.connect('mongodb://127.0.0.1:27017/block-sm', { dbName: 'block-sm' } as any);
-    await BlockModel.deleteMany({});
-    // garantir índices aplicados
-    await BlockModel.syncIndexes();
-  });
-
-  afterAll(async () => {
-    await mongoose.connection.dropDatabase();
-    await mongoose.disconnect();
-  });
-
   function newBlockPair() {
     return {
       blocker: new mongoose.Types.ObjectId(),
@@ -48,7 +36,6 @@ describe('Block state machine + unique constraint', () => {
   });
 
   it('permite applied -> reversed_by_admin e mantém reversedBy preenchido', async () => {
-    const adminId = new mongoose.Types.ObjectId();
     const { blocker, blocked } = newBlockPair();
     const b = await BlockModel.create({ blockerUser: blocker, blockedUser: blocked, reason: 'abuse' });
     b.status = BlockStatus.REVERSED_BY_ADMIN;

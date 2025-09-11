@@ -10,6 +10,7 @@ let client: Mongoose | null = null;
 
 export async function connectToDatabase(): Promise<Mongoose> {
   mongoose.set('runValidators', true);
+  mongoose.set('autoIndex', true);
   if (client === null) {
     client = await mongoose.connect(uri, options);
   }
