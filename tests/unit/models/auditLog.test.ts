@@ -8,15 +8,6 @@ import { AuditActionType, AuditLogCategory, AuditLogSeverityLevels } from '../..
 describe('AuditLog Model', () => {
   let actorUser: IUser;
 
-  beforeAll(async () => {
-    await mongoose.connect('mongodb://127.0.0.1:27017/auditlog-test', { dbName: 'auditlog-test' } as any);
-  });
-
-  afterAll(async () => {
-    await mongoose.connection.dropDatabase();
-    await mongoose.disconnect();
-  });
-
   beforeEach(async () => {
     await AuditLogModel.deleteMany({});
     await UserModel.deleteMany({});

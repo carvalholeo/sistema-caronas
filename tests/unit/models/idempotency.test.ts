@@ -4,15 +4,6 @@ import { IdempotencyRequestModel } from '../../../src/models/idempotency';
 import { v4 as uuidv4 } from 'uuid';
 
 describe('IdempotencyRequest Model', () => {
-  beforeAll(async () => {
-    await mongoose.connect('mongodb://127.0.0.1:27017/idempotency-test', { dbName: 'idempotency-test' } as any);
-  });
-
-  afterAll(async () => {
-    await mongoose.connection.dropDatabase();
-    await mongoose.disconnect();
-  });
-
   beforeEach(async () => {
     await IdempotencyRequestModel.deleteMany({});
   });

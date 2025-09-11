@@ -7,15 +7,6 @@ import { ISuppressedNotification, IUser } from '../../../src/types';
 describe('SuppressedNotification Model', () => {
   let user: IUser;
 
-  beforeAll(async () => {
-    await mongoose.connect('mongodb://127.0.0.1:27017/suppressed-notification-test', { dbName: 'suppressed-notification-test' } as any);
-  });
-
-  afterAll(async () => {
-    await mongoose.connection.dropDatabase();
-    await mongoose.disconnect();
-  });
-
   beforeEach(async () => {
     await SuppressedNotificationModel.deleteMany({});
     await UserModel.deleteMany({});

@@ -9,15 +9,6 @@ describe('DataReport Model', () => {
   let user: IUser;
   let adminUser: IUser;
 
-  beforeAll(async () => {
-    await mongoose.connect('mongodb://127.0.0.1:27017/datareport-test', { dbName: 'datareport-test' } as any);
-  });
-
-  afterAll(async () => {
-    await mongoose.connection.dropDatabase();
-    await mongoose.disconnect();
-  });
-
   beforeEach(async () => {
     await DataReportModel.deleteMany({});
     await UserModel.deleteMany({});

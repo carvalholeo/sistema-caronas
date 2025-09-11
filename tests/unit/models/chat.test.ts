@@ -10,16 +10,6 @@ describe('ChatMessage model', () => {
   });
   const RideModel = model('Ride', RideSchema);
 
-  beforeAll(async () => {
-    await mongoose.connect('mongodb://127.0.0.1:27017/chat-message-test', { dbName: 'chat-message-test' } as any);
-    await RideModel.deleteMany({});
-    await ChatMessageModel.deleteMany({});
-  });
-
-  afterAll(async () => {
-    await mongoose.connection.dropDatabase();
-    await mongoose.disconnect();
-  });
 
   it('valida conteúdo com Unicode e rejeita inválidos', async () => {
     const ride = await RideModel.create({ driver: new mongoose.Types.ObjectId(), passengers: [] });

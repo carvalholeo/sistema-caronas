@@ -1,6 +1,6 @@
 module.exports = {
   preset: 'ts-jest',
-  bail: true,
+  bail: false,
   testEnvironment: 'node',
   testPathIgnorePatterns: ['/node_modules/', '/dist/'],
   coverageDirectory: 'coverage',

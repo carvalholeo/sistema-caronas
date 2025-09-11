@@ -4,16 +4,6 @@ import { PrivacyRequestModel } from '../../../src/models/privacyRequest';
 import { PrivacyRequestStatus } from '../../../src/types/enums/enums';
 
 describe('PrivacyRequest state machine', () => {
-  beforeAll(async () => {
-    await mongoose.connect('mongodb://127.0.0.1:27017/privacy-request-sm', { dbName: 'privacy-request-sm' } as any);
-    await PrivacyRequestModel.deleteMany({});
-  });
-
-  afterAll(async () => {
-    await mongoose.connection.dropDatabase();
-    await mongoose.disconnect();
-  });
-
   function newReq() {
     return new PrivacyRequestModel({
       user: new mongoose.Types.ObjectId(),

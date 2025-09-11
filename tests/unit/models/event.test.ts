@@ -8,14 +8,6 @@ import {
 } from '../../../src/models/event';
 
 describe('Unified Event discriminators', () => {
-  beforeAll(async () => {
-    await mongoose.connect('mongodb://127.0.0.1:27017/events-disc', { dbName: 'events-disc' } as any);
-    await EventModel.deleteMany({});
-  });
-  afterAll(async () => {
-    await mongoose.connection.dropDatabase();
-    await mongoose.disconnect();
-  });
 
   it('stores all subtypes in the same collection', async () => {
     await NotificationEventModel.create({

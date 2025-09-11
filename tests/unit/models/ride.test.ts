@@ -10,15 +10,6 @@ describe('Ride Model', () => {
   let driver: IUser;
   let vehicle: IVehicle;
 
-  beforeAll(async () => {
-    await mongoose.connect('mongodb://127.0.0.1:27017/ride-model-test', { dbName: 'ride-model-test' } as any);
-  });
-
-  afterAll(async () => {
-    await mongoose.connection.dropDatabase();
-    await mongoose.disconnect();
-  });
-
   beforeEach(async () => {
     await RideModel.deleteMany({});
     await VehicleModel.deleteMany({});

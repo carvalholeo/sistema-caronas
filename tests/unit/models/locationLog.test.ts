@@ -10,15 +10,6 @@ describe('LocationLog Model', () => {
   let user: IUser;
   let ride: IRide;
 
-  beforeAll(async () => {
-    await mongoose.connect('mongodb://127.0.0.1:27017/locationlog-test', { dbName: 'locationlog-test' } as any);
-  });
-
-  afterAll(async () => {
-    await mongoose.connection.dropDatabase();
-    await mongoose.disconnect();
-  });
-
   beforeEach(async () => {
     await LocationLogModel.deleteMany({});
     await RideModel.deleteMany({});

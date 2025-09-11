@@ -5,16 +5,6 @@ import { UserStatus } from '../../../src/types/enums/enums';
 import { IUser } from '../../../src/types';
 
 describe('User status state machine', () => {
-  beforeAll(async () => {
-    await mongoose.connect('mongodb://127.0.0.1:27017/user-status-sm', { dbName: 'user-status-sm' } as any);
-    await UserModel.deleteMany({});
-  });
-
-  afterAll(async () => {
-    await mongoose.connection.dropDatabase();
-    await mongoose.disconnect();
-  });
-
   function newUser() {
     return new UserModel({
       name: 'Alice',

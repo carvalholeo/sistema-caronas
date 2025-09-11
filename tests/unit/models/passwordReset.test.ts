@@ -7,15 +7,6 @@ import { UserModel } from '../../../src/models/user';
 import { IUser } from '../../../src/types';
 
 describe('PasswordReset state machine', () => {
-  beforeAll(async () => {
-    await mongoose.connect('mongodb://127.0.0.1:27017/pr-state-test', { dbName: 'pr-state-test' } as any);
-    await PasswordResetModel.deleteMany({});
-  });
-
-  afterAll(async () => {
-    await mongoose.connection.dropDatabase();
-    await mongoose.disconnect();
-  });
 
   it('cria apenas em INITIATED', async () => {
     const ok = await PasswordResetModel.create({ user: new mongoose.Types.ObjectId() });

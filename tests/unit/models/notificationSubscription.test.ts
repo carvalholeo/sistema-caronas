@@ -8,15 +8,6 @@ import { NotificationWeekDays } from '../../../src/types/enums/enums';
 describe('NotificationSubscription Model', () => {
   let user: IUser;
 
-  beforeAll(async () => {
-    await mongoose.connect('mongodb://127.0.0.1:27017/notification-sub-test', { dbName: 'notification-sub-test' } as any);
-  });
-
-  afterAll(async () => {
-    await mongoose.connection.dropDatabase();
-    await mongoose.disconnect();
-  });
-
   beforeEach(async () => {
     await NotificationSubscriptionModel.deleteMany({});
     await UserModel.deleteMany({});

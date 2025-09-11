@@ -9,15 +9,6 @@ import { IVehicle, IUser } from '../../../src/types';
 describe('Vehicle Model', () => {
   let owner: IUser;
 
-  beforeAll(async () => {
-    await mongoose.connect('mongodb://127.0.0.1:27017/vehicle-model-test', { dbName: 'vehicle-model-test' } as any);
-  });
-
-  afterAll(async () => {
-    await mongoose.connection.dropDatabase();
-    await mongoose.disconnect();
-  });
-
   beforeEach(async () => {
     await VehicleModel.deleteMany({});
     await UserModel.deleteMany({});
