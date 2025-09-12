@@ -86,7 +86,7 @@ describe('ChatMessage model', () => {
         isModerated: true,
         moderationDetails: { reason: 'profanity' },
       })
-    ).rejects.toThrow(/moderationDetails\.(moderatedBy|moderatedAt|originalContent)/i);
+    ).rejects.toThrow(/moderationDetails fields/i);
 
     // preencher corretamente
     const modMsg = await ChatMessageModel.create({
@@ -104,3 +104,8 @@ describe('ChatMessage model', () => {
     expect(modMsg._id).toBeTruthy();
   });
 });
+
+
+// Mock do modelo User para referência
+const UserSchema = new Schema({ name: String });
+model('User', UserSchema);

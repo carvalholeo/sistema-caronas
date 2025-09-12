@@ -33,7 +33,7 @@ describe('LocationLog Model', () => {
     return {
       ride: ride._id,
       user: user._id,
-      action: LocationLogAction.START_RIDE,
+      action: LocationLogAction.SharingStarted,
       ...overrides,
     };
   }
@@ -46,7 +46,7 @@ describe('LocationLog Model', () => {
       expect(log._id).toBeDefined();
       expect(log.ride).toEqual(ride._id);
       expect(log.user).toEqual(user._id);
-      expect(log.action).toBe(LocationLogAction.START_RIDE);
+      expect(log.action).toBe(LocationLogAction.SharingStarted);
       expect(log.timestamp).toBeInstanceOf(Date);
     });
 

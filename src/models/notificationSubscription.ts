@@ -13,14 +13,13 @@ const PreferencesSchema = new Schema<INotificationPreferences>(
 );
 
 PreferencesSchema.pre<INotificationPreferences>('validate', function (next) {
-  const p = this;
-  if (typeof p.startMinute !== 'number' || typeof p.endMinute !== 'number') return next();
-  if (p.startMinute < 0 || p.startMinute > 1439) return next(new Error('startMinute out of range'));
-  if (p.endMinute < 0 || p.endMinute > 1439) return next(new Error('endMinute out of range'));
-  if (typeof p.weekMask !== 'number' || p.weekMask < 0 || p.weekMask > 127) {
+  if (typeof this.startMinute !== 'number' || typeof this.endMinute !== 'number') return next();
+  if (this.startMinute < 0 || this.startMinute > 1439) return next(new Error('startMinute out of range'));
+  if (this.endMinute < 0 || this.endMinute > 1439) return next(new Error('endMinute out of range'));
+  if (typeof this.weekMask !== 'number' || this.weekMask < 0 || this.weekMask > 127) {
     return next(new Error('weekMask out of range'));
   }
-  if (typeof p.timezone !== 'string' || !p.timezone.includes('/')) {
+  if (typeof this.timezone !== 'string' || !this.timezone.includes('/')) {
     return next(new Error('timezone must be a valid IANA name'));
   }
   return next();

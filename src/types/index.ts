@@ -20,6 +20,7 @@ export interface IUser extends Document {
   languagePreference: string;
   profilePictureUrl?: string;
   comparePassword(password: string): Promise<boolean>;
+  isTemporaryEmail(email: string): boolean;
 }
 
 export interface IAccessibilitySettings extends Document {
@@ -47,7 +48,7 @@ export interface IBlock extends Document {
 
 export interface IAuditLog extends Document {
   actor: {
-    userId: IUser;
+    userId: Types.ObjectId | IUser;
     isAdmin: boolean;
     ip: string;
     userAgent?: string;
@@ -71,6 +72,7 @@ export interface IAuditLog extends Document {
     }>;
     [key: string]: any;
   };
+  createdAt: Date;
 }
 
 export interface IRide extends Document {
@@ -126,7 +128,7 @@ export interface INotificationEvent extends IEventBase {
 }
 
 export interface IVehicle extends Document {
-  owner: IUser;
+  owner: Types.ObjectId | IUser;
   plate: string;
   make: string;
   carModel: string;
@@ -222,8 +224,10 @@ export interface INotificationTime {
 }
 
 export interface ISuppressedNotification extends Document {
-  user: IUser;
+  user: Types.ObjectId | IUser;
   reason: 'rate_limit' | 'aggregation';
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export interface IPasswordReset extends Document {

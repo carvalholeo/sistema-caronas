@@ -1,4 +1,4 @@
-import { Schema, Types, model } from 'mongoose';
+import { Schema, model } from 'mongoose';
 import { IRide, Location, RidePassenger } from 'types';
 import { PassengerStatus, RideStatus, VehicleStatus } from 'types/enums/enums';
 
@@ -27,7 +27,7 @@ const PassengerSchema = new Schema<RidePassenger>({
 });
 
 const RideSchema = new Schema<IRide>({
-  driver: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+  driver: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
   vehicle: { type: Schema.Types.ObjectId, ref: 'Vehicle', required: true },
   origin: { location: { type: String }, point: { type: PointSchema, required: true } },
   destination: { location: { type: String }, point: { type: PointSchema, required: true } },
@@ -42,7 +42,7 @@ const RideSchema = new Schema<IRide>({
   },
   availableSeats: { type: Number, required: true, min: 0, max: 7 },
   price: { type: Number, required: true, min: 0 },
-  status: { type: String, enum: Object.values(RideStatus), default: RideStatus.Scheduled },
+  status: { type: String, enum: Object.values(RideStatus), default: RideStatus.Scheduled, index: true },
   passengers: { type: [PassengerSchema], index: true, default: [] },
   isRecurrent: { type: Boolean, default: false },
   recurrenceId: { type: String, index: true },
@@ -52,9 +52,7 @@ const RideSchema = new Schema<IRide>({
 }, { timestamps: true });
 
 RideSchema.index({ 'origin.point': '2dsphere', 'destination.point': '2dsphere', departureTime: 1 });
-RideSchema.index({ driver: 1 });
 RideSchema.index({ 'passengers.user': 1 });
-RideSchema.index({ status: 1 });
 
 RideSchema.methods.canBeCancelled = function (): boolean {
   const now = new Date();
@@ -67,33 +65,31 @@ RideSchema.methods.canBeCancelled = function (): boolean {
 
 //Ride Passenger
 PassengerSchema.pre<RidePassenger>('validate', function (next) {
-  const doc = this;
-
   // requestedAt imutável após criação
-  if (!doc.isNew && doc.isModified('requestedAt')) {
+  if (!this.isNew && this.isModified('requestedAt')) {
     return next(new Error('requestedAt cannot be modified after creation'));
   }
 
-  if (doc.isModified('status')) {
-    const prev: PassengerStatus | undefined = doc.get('status', null, { previous: true });
+  if (this.isModified('status')) {
+    const prev: PassengerStatus | undefined = this.get('status', null, { previous: true });
 
-    if (doc.isNew) {
-      if (doc.status !== PassengerStatus.Pending) {
-        return next(new Error(`Invalid initial status: ${doc.status}. Must start as "pending"`));
+    if (this.isNew) {
+      if (this.status !== PassengerStatus.Pending) {
+        return next(new Error(`Invalid initial status: ${this.status}. Must start as "pending"`));
       }
       return next();
     }
 
-    if (prev && prev !== doc.status) {
+    if (prev && prev !== this.status) {
       const allowed = allowedTransitionsPassengers[prev] || [];
-      if (!allowed.includes(doc.status)) {
-        return next(new Error(`Invalid status transition: ${prev} -> ${doc.status}`));
+      if (!allowed.includes(this.status)) {
+        return next(new Error(`Invalid status transition: ${prev} -> ${this.status}`));
       }
     }
   }
 
   // coerência temporal: se já houver managedAt, deve ser >= requestedAt
-  if (doc.managedAt && doc.requestedAt && doc.managedAt < doc.requestedAt) {
+  if (this.managedAt && this.requestedAt && this.managedAt < this.requestedAt) {
     return next(new Error('managedAt cannot be earlier than requestedAt'));
   }
 
@@ -101,15 +97,13 @@ PassengerSchema.pre<RidePassenger>('validate', function (next) {
 });
 
 PassengerSchema.pre<RidePassenger>('save', function (next) {
-  const doc = this;
-
-  if (doc.isModified('status')) {
-    switch (doc.status as PassengerStatus) {
+  if (this.isModified('status')) {
+    switch (this.status as PassengerStatus) {
       case PassengerStatus.Approved:
       case PassengerStatus.Rejected:
       case PassengerStatus.Cancelled:
-        if (!doc.managedAt) doc.managedAt = new Date();
-        if (doc.requestedAt && doc.managedAt < doc.requestedAt) {
+        if (!this.managedAt) this.managedAt = new Date();
+        if (this.requestedAt && this.managedAt < this.requestedAt) {
           return next(new Error('managedAt cannot be earlier than requestedAt'));
         }
         break;
@@ -125,22 +119,20 @@ PassengerSchema.pre<RidePassenger>('save', function (next) {
 });
 
 RideSchema.pre<IRide>('validate', function (next) {
-  const doc = this;
-
   // departureTime mínimo 2h à frente também em updates
   if (!this.isNew && this.isModified('departureTime')) {
-    if (doc.departureTime.getTime() < Date.now() + 2 * 60 * 60 * 1000) {
+    if (this.departureTime.getTime() < Date.now() + 2 * 60 * 60 * 1000) {
       return next(new Error('Updated departure time must be at least 2 hours in the future'));
     }
   }
 
   // Edição bloqueada com passageiros pendentes/aceitos
   const hasBlockingPassengers =
-    Array.isArray(doc.passengers) &&
-    doc.passengers.some((p) => p.status === PassengerStatus.Pending || p.status === PassengerStatus.Approved);
+    Array.isArray(this.passengers) &&
+    this.passengers.some((p) => p.status === PassengerStatus.Pending || p.status === PassengerStatus.Approved);
 
   // Edição bloqueada até 1h antes (qualquer alteração estrutural)
-  const isWithinOneHour = doc.departureTime.getTime() - Date.now() <= 60 * 60 * 1000;
+  const isWithinOneHour = this.departureTime.getTime() - Date.now() <= 60 * 60 * 1000;
 
   // Quais paths não podem ser editados nessas condições?
   // Bloquear se QUALQUER modificação ocorrer quando deveria estar bloqueado
@@ -166,34 +158,34 @@ RideSchema.pre<IRide>('validate', function (next) {
 
   // validar transição de status
   if (this.isModified('status')) {
-    const prev: RideStatus | undefined = (this as any).get('status', null, { previous: true });
+    const prev: RideStatus | undefined = this.get('status', null, { previous: true });
 
     if (this.isNew) {
-      if (doc.status !== RideStatus.Scheduled) {
-        return next(new Error(`Invalid initial status: ${doc.status}. Must start as "scheduled"`));
+      if (this.status !== RideStatus.Scheduled) {
+        return next(new Error(`Invalid initial status: ${this.status}. Must start as "scheduled"`));
       }
-    } else if (prev && prev !== doc.status) {
+    } else if (prev && prev !== this.status) {
       const allowed = allowedTransitionsRide[prev] || [];
-      if (!allowed.includes(doc.status)) {
-        return next(new Error(`Invalid status transition: ${prev} -> ${doc.status}`));
+      if (!allowed.includes(this.status)) {
+        return next(new Error(`Invalid status transition: ${prev} -> ${this.status}`));
       }
     }
   }
 
   // regra de assentos: número de aprovados não pode exceder availableSeats
-  const approvedCount = Array.isArray(doc.passengers)
-    ? doc.passengers.filter((p) => p.status === PassengerStatus.Approved).length
+  const approvedCount = Array.isArray(this.passengers)
+    ? this.passengers.filter((p) => p.status === PassengerStatus.Approved).length
     : 0;
-  if (approvedCount > doc.availableSeats) {
-    return next(new Error(`Approved passengers (${approvedCount}) exceed available seats (${doc.availableSeats})`));
+  if (approvedCount > this.availableSeats) {
+    return next(new Error(`Approved passengers (${approvedCount}) exceed available seats (${this.availableSeats})`));
   }
 
   // impedir availableSeats negativo ou reduzir abaixo dos aprovados
   if (this.isModified('availableSeats')) {
-    if (doc.availableSeats < 0) {
+    if (this.availableSeats < 0) {
       return next(new Error('availableSeats cannot be negative'));
     }
-    if (approvedCount > doc.availableSeats) {
+    if (approvedCount > this.availableSeats) {
       return next(
         new Error(`Cannot reduce availableSeats below current approved passengers (${approvedCount})`)
       );
@@ -201,7 +193,7 @@ RideSchema.pre<IRide>('validate', function (next) {
   }
 
   // coerência temporal: canceledAt não pode ser antes de createdAt / nem antes de departureTime para certos fluxos
-  if (doc.canceledAt && doc.departureTime && doc.canceledAt.getTime() < doc.createdAt.getTime()) {
+  if (this.canceledAt && this.departureTime && this.canceledAt.getTime() < this.createdAt.getTime()) {
     return next(new Error('canceledAt cannot be earlier than createdAt'));
   }
 
@@ -209,11 +201,9 @@ RideSchema.pre<IRide>('validate', function (next) {
 });
 
 RideSchema.pre<IRide>('save', async function (next) {
-  const doc = this;
-
-  if (doc.isNew) {
+  if (this.isNew) {
     const oneHour = 60 * 60 * 1000; // 1 hora em milissegundos
-    const newDepartureTime = doc.departureTime.getTime();
+    const newDepartureTime = this.departureTime.getTime();
 
     // Define a janela de tempo de verificação: 1h antes e 1h depois.
     const lowerBound = new Date(newDepartureTime - oneHour);
@@ -221,7 +211,7 @@ RideSchema.pre<IRide>('save', async function (next) {
 
     // Procura por caronas conflitantes no banco de dados.
     const conflictingRide = await RideModel.findOne({
-      driver: doc.driver,
+      driver: this.driver,
       // Apenas caronas agendadas ou em andamento podem conflitar.
       status: { $in: [RideStatus.Scheduled, RideStatus.InProgress, RideStatus.Completed] },
       // Verifica se a partida de alguma carona existente está dentro da janela.
@@ -239,14 +229,15 @@ RideSchema.pre<IRide>('save', async function (next) {
 
   // No máximo 4 corridas no mesmo dia (por driver)
   // Considera o dia do departureTime
-  if (doc.driver && doc.departureTime) {
-    const { start, end } = dayBounds(doc.departureTime);
-    const criteria: any = {
-      driver: doc.driver,
+  if (this.driver && this.departureTime) {
+    const { start, end } = dayBounds(this.departureTime);
+    const criteria = {
+      _id: {},
+      driver: this.driver,
       departureTime: { $gte: start, $lte: end },
     };
     if (!this.isNew) {
-      criteria._id = { $ne: (doc as any)._id };
+      criteria._id = { $ne: this._id };
     }
     const count = await RideModel.countDocuments(criteria);
     if (count >= 4) {
@@ -273,9 +264,9 @@ RideSchema.pre<IRide>('save', async function (next) {
 
   if (this.isModified('status')) {
     const prev: RideStatus | undefined = this.get('status', null, { previous: true });
-    if (prev === RideStatus.Scheduled && doc.status !== RideStatus.Scheduled) {
-      if (Array.isArray(doc.passengers)) {
-        for (const p of doc.passengers) {
+    if (prev === RideStatus.Scheduled && this.status !== RideStatus.Scheduled) {
+      if (Array.isArray(this.passengers)) {
+        for (const p of this.passengers) {
           if ([PassengerStatus.Pending, PassengerStatus.Approved].includes(p.status)) {
             p.status = PassengerStatus.Cancelled;
           }
@@ -285,13 +276,13 @@ RideSchema.pre<IRide>('save', async function (next) {
   }
 
   if (this.isModified('status')) {
-    if (doc.status === RideStatus.Cancelled) {
-      if (!doc.canceledAt) doc.canceledAt = new Date();
-      if (!doc.cancelReason) {
+    if (this.status === RideStatus.Cancelled) {
+      if (!this.canceledAt) this.canceledAt = new Date();
+      if (!this.cancelReason) {
         return next(new Error('Cancel reason is required when cancelling a ride'));
       }
     }
-    doc.canceledAt = undefined;
+    this.canceledAt = undefined;
   }
 
   // Garantir que readaptações de passageiros aprovados comecem com Scheduled/InProgress

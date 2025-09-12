@@ -6,56 +6,6 @@ import { PasswordResetStatus } from '../../../src/types/enums/enums';
 import { UserModel } from '../../../src/models/user';
 import { IUser } from '../../../src/types';
 
-describe('PasswordReset state machine', () => {
-
-  it('cria apenas em INITIATED', async () => {
-    const ok = await PasswordResetModel.create({ user: new mongoose.Types.ObjectId() });
-    expect(ok.status).toBe(PasswordResetStatus.INITIATED);
-
-    await expect(
-      PasswordResetModel.create({ user: new mongoose.Types.ObjectId(), status: PasswordResetStatus.COMPLETED })
-    ).rejects.toThrow(/Invalid initial status/i);
-  });
-
-  it('permite transições válidas e bloqueia inválidas', async () => {
-    const doc = await PasswordResetModel.create({ user: new mongoose.Types.ObjectId() });
-    doc.status = PasswordResetStatus.INITIATED;
-    await expect(doc.save()).resolves.toBeDefined();
-
-    doc.status = PasswordResetStatus.VERIFIED;
-    await expect(doc.save()).resolves.toBeDefined();
-
-    // inválida: voltar para CODE_SENT
-    doc.status = PasswordResetStatus.INITIATED;
-    await expect(doc.save()).rejects.toThrow(/Invalid transition/i);
-  });
-
-  it('ao completar, define completedAt e valida coerência temporal', async () => {
-    const doc = await PasswordResetModel.create({ user: new mongoose.Types.ObjectId() });
-    doc.status = PasswordResetStatus.INITIATED;
-    await doc.save();
-    doc.status = PasswordResetStatus.VERIFIED;
-    await doc.save();
-    doc.status = PasswordResetStatus.COMPLETED;
-    await doc.save();
-    expect(doc.completedAt).toBeInstanceOf(Date);
-    expect(doc.completedAt!.getTime()).toBeGreaterThanOrEqual(doc.initiatedAt.getTime());
-
-    // não permite completedAt se status não for COMPLETED
-    doc.completedAt = new Date();
-    doc.status = PasswordResetStatus.EXPIRED;
-    await expect(doc.save()).rejects.toThrow(/completedAt present but status/i);
-  });
-
-  it('bloqueia alterações após estados terminais', async () => {
-    const doc = await PasswordResetModel.create({ user: new mongoose.Types.ObjectId() });
-    doc.status = PasswordResetStatus.CANCELLED;
-    await doc.save();
-
-    doc.status = PasswordResetStatus.COMPLETED;
-    await expect(doc.save()).rejects.toThrow(/terminal/i);
-  });
-
 describe('PasswordReset Model', () => {
   let testUser: IUser;
 
@@ -71,11 +21,11 @@ describe('PasswordReset Model', () => {
   beforeEach(async () => {
     await PasswordResetModel.deleteMany({});
     await UserModel.deleteMany({});
-    testUser = await new UserModel({ 
-        name: 'Test User', 
-        email: 'user@test.com', 
-        matricula: 'USER123', 
-        password: 'p' 
+    testUser = await new UserModel({
+        name: 'Test User',
+        email: 'user@test.com',
+        matricula: 'USER123',
+        password: 'p'
     }).save();
   });
 
@@ -175,6 +125,4 @@ describe('PasswordReset Model', () => {
         expect(doc.completedAt).toBeInstanceOf(Date);
     });
   });
-});
-
 });

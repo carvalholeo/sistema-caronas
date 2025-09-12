@@ -64,12 +64,11 @@ const SearchEventSchema = new Schema<ISearchEvent>(
 export const EventModel = model<IEventBase>('Event', EventSchema);
 
 NotificationEventSchema.pre('validate', function(next) {
-  const doc = this as any;
   // Exija subscription OU user; se scope = privacy, exija user
-  if (!doc.subscription && !doc.user) {
+  if (!this.subscription && !this.user) {
     return next(new Error('Either subscription or user must be set for a notification'));
   }
-  if (doc.scope === 'privacy' && !doc.user) {
+  if (this.scope === 'privacy' && !this.user) {
     return next(new Error('Privacy notifications must target a user'));
   }
   next();

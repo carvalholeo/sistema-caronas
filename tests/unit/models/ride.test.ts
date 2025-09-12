@@ -145,6 +145,93 @@ describe('Ride Model', () => {
         await expect(ride.save()).resolves.toBeDefined();
         expect(ride.status).toBe(RideStatus.Cancelled);
     });
+
+    it('should set canceledAt and require cancelReason when status is Cancelled', async () => {
+      const ride = await new RideModel(createRideData()).save();
+      ride.status = RideStatus.Cancelled;
+      await expect(ride.save()).rejects.toThrow('Cancel reason is required when cancelling a ride');
+
+      ride.cancelReason = 'Driver cancelled';
+      await expect(ride.save()).resolves.toBeDefined();
+      expect(ride.canceledAt).toBeInstanceOf(Date);
+    });
+
+    it('should clear canceledAt if status changes from Cancelled (if possible)', async () => {
+      // This scenario is unlikely in real app due to terminal state, but good for robustness
+      const ride = await new RideModel(createRideData({ status: RideStatus.Cancelled, cancelReason: 'test' })).save();
+      expect(ride.canceledAt).toBeInstanceOf(Date);
+
+      // Simulate changing status back (will fail validation, but tests the pre-save logic)
+      ride.status = RideStatus.Scheduled;
+      ride.cancelReason = undefined; // Clear reason as well
+      await expect(ride.save()).rejects.toThrow(); // Expecting invalid transition error
+
+      // Manually set status and check if canceledAt is cleared by pre-save hook
+      const ride2 = await new RideModel(createRideData({ status: RideStatus.Scheduled })).save();
+      ride2.canceledAt = new Date(); // Set it manually
+      ride2.status = RideStatus.Scheduled; // No change, but triggers save hook
+      await ride2.save();
+      expect(ride2.canceledAt).toBeUndefined();
+    });
+
+    it('should not allow canceledAt to be earlier than createdAt', async () => {
+      const ride = await new RideModel(createRideData()).save();
+      ride.status = RideStatus.Cancelled;
+      ride.cancelReason = 'test';
+      ride.canceledAt = new Date(ride.createdAt.getTime() - 1000);
+      await expect(ride.save()).rejects.toThrow('canceledAt cannot be earlier than createdAt');
+    });
+  });
+
+  describe('RideStatus Transitions', () => {
+    const allowedTransitionsRide: Record<RideStatus, RideStatus[]> = {
+      [RideStatus.Scheduled]: [RideStatus.InProgress, RideStatus.Cancelled],
+      [RideStatus.InProgress]: [RideStatus.Completed, RideStatus.Cancelled],
+      [RideStatus.Completed]: [],
+      [RideStatus.Cancelled]: [],
+    };
+
+    it('should only allow Scheduled as the initial status', async () => {
+      await expect(
+        new RideModel(createRideData({ status: RideStatus.InProgress })).save()
+      ).rejects.toThrow(/Invalid initial status/i);
+    });
+
+    for (const fromStatus of Object.values(RideStatus)) {
+      const allowed = allowedTransitionsRide[fromStatus] || [];
+      for (const toStatus of allowed) {
+        it(`should allow transition from ${fromStatus} to ${toStatus}`, async () => {
+          const ride = await new RideModel(createRideData({ status: fromStatus })).save();
+          ride.status = toStatus;
+          await expect(ride.save()).resolves.toBeDefined();
+        });
+      }
+
+      const disallowed = Object.values(RideStatus).filter(s => !allowed.includes(s) && s !== fromStatus);
+      for (const toStatus of disallowed) {
+        it(`should block transition from ${fromStatus} to ${toStatus}`, async () => {
+          const ride = await new RideModel(createRideData({ status: fromStatus })).save();
+          ride.status = toStatus;
+          await expect(ride.save()).rejects.toThrow(/Invalid status transition/i);
+        });
+      }
+    }
+
+    it('should cancel pending/approved passengers when ride status changes from Scheduled', async () => {
+      const ride = await new RideModel(createRideData()).save();
+      const passenger1 = new mongoose.Types.ObjectId();
+      const passenger2 = new mongoose.Types.ObjectId();
+      ride.passengers.push({ user: passenger1, status: PassengerStatus.Pending } as any);
+      ride.passengers.push({ user: passenger2, status: PassengerStatus.Approved } as any);
+      await ride.save();
+
+      ride.status = RideStatus.InProgress;
+      await ride.save();
+
+      const updatedRide = await RideModel.findById(ride._id);
+      expect(updatedRide?.passengers[0].status).toBe(PassengerStatus.Cancelled);
+      expect(updatedRide?.passengers[1].status).toBe(PassengerStatus.Cancelled);
+    });
   });
 
   describe('Passenger Management', () => {
@@ -177,6 +264,82 @@ describe('Ride Model', () => {
 
         ride.availableSeats = 0;
         await expect(ride.save()).rejects.toThrow('Cannot reduce availableSeats below current approved passengers (1)');
+    });
+  });
+
+  describe('PassengerStatus Transitions', () => {
+    const allowedTransitionsPassengers: Record<PassengerStatus, PassengerStatus[]> = {
+      [PassengerStatus.Pending]: [PassengerStatus.Approved, PassengerStatus.Rejected, PassengerStatus.Cancelled],
+      [PassengerStatus.Approved]: [],
+      [PassengerStatus.Rejected]: [],
+      [PassengerStatus.Cancelled]: [],
+    };
+
+    it('should only allow Pending as the initial status', async () => {
+      const ride = await new RideModel(createRideData()).save();
+      const passengerId = new mongoose.Types.ObjectId();
+      ride.passengers.push({ user: passengerId, status: PassengerStatus.Approved } as any);
+      await expect(ride.save()).rejects.toThrow(/Invalid initial status/i);
+    });
+
+    for (const fromStatus of Object.values(PassengerStatus)) {
+      const allowed = allowedTransitionsPassengers[fromStatus] || [];
+      for (const toStatus of allowed) {
+        it(`should allow transition from ${fromStatus} to ${toStatus}`, async () => {
+          const ride = await new RideModel(createRideData()).save();
+          const passengerId = new mongoose.Types.ObjectId();
+          ride.passengers.push({ user: passengerId, status: fromStatus } as any);
+          await ride.save();
+
+          const updatedRide = await RideModel.findById(ride._id);
+          updatedRide!.passengers[0].status = toStatus;
+          await expect(updatedRide!.save()).resolves.toBeDefined();
+        });
+      }
+
+      const disallowed = Object.values(PassengerStatus).filter(s => !allowed.includes(s) && s !== fromStatus);
+      for (const toStatus of disallowed) {
+        it(`should block transition from ${fromStatus} to ${toStatus}`, async () => {
+          const ride = await new RideModel(createRideData()).save();
+          const passengerId = new mongoose.Types.ObjectId();
+          ride.passengers.push({ user: passengerId, status: fromStatus } as any);
+          await ride.save();
+
+          const updatedRide = await RideModel.findById(ride._id);
+          updatedRide!.passengers[0].status = toStatus;
+          await expect(updatedRide!.save()).rejects.toThrow(/Invalid status transition/i);
+        });
+      }
+    }
+
+    it('should prevent requestedAt from being modified after creation', async () => {
+      const ride = await new RideModel(createRideData()).save();
+      const passengerId = new mongoose.Types.ObjectId();
+      ride.passengers.push({ user: passengerId } as any);
+      await ride.save();
+
+      const updatedRide = await RideModel.findById(ride._id);
+      const oldRequestedAt = updatedRide!.passengers[0].requestedAt;
+      updatedRide!.passengers[0].requestedAt = new Date(oldRequestedAt!.getTime() - 1000);
+      await expect(updatedRide!.save()).rejects.toThrow('requestedAt cannot be modified after creation');
+    });
+
+    it('should set managedAt and validate temporal consistency when status changes to Approved/Rejected/Cancelled', async () => {
+      const ride = await new RideModel(createRideData()).save();
+      const passengerId = new mongoose.Types.ObjectId();
+      ride.passengers.push({ user: passengerId } as any);
+      await ride.save();
+
+      const updatedRide = await RideModel.findById(ride._id);
+      updatedRide!.passengers[0].status = PassengerStatus.Approved;
+      await updatedRide!.save();
+      expect(updatedRide!.passengers[0].managedAt).toBeInstanceOf(Date);
+      expect(updatedRide!.passengers[0].managedAt!.getTime()).toBeGreaterThanOrEqual(updatedRide!.passengers[0].requestedAt!.getTime());
+
+      // Test temporal inconsistency
+      updatedRide!.passengers[0].status = PassengerStatus.Rejected;
+      updatedRide!.passengers[0].managedAt = new Date(updatedRide!.passengers[0].requestedAt!.getTime() - 1000);
+      await expect(updatedRide!.save()).rejects.toThrow('managedAt cannot be earlier than requestedAt');
     });
   });
 });

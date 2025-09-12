@@ -195,6 +195,11 @@ export enum PrivacyRequestType {
   REMOVAL = 'removal'
 }
 
+export enum SuppressionReason {
+  RATE_LIMIT = 'rate_limit',
+  AGGREGATION = 'aggregation',
+}
+
 export enum BlockStatus {
   APPLIED = 'applied',
   REVERSED = 'reversed',

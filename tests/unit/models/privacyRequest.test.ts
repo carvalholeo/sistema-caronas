@@ -7,7 +7,7 @@ describe('PrivacyRequest state machine', () => {
   function newReq() {
     return new PrivacyRequestModel({
       user: new mongoose.Types.ObjectId(),
-      type: 'erasure',
+      type: 'removal',
     });
   }
 

@@ -1,5 +1,5 @@
 
-import mongoose from 'mongoose';
+import mongoose, { Types } from 'mongoose';
 import { AuditLogModel } from '../../../src/models/auditLog';
 import { UserModel } from '../../../src/models/user';
 import { IAuditLog, IUser } from '../../../src/types';
@@ -9,21 +9,20 @@ describe('AuditLog Model', () => {
   let actorUser: IUser;
 
   beforeEach(async () => {
-    await AuditLogModel.deleteMany({});
     await UserModel.deleteMany({});
-    actorUser = await new UserModel({ name: 'Test Actor', email: 'actor@test.com', matricula: 'ACTOR123', password: 'p' }).save();
+    actorUser = await new UserModel({ name: 'Test Actor', email: 'actor@test.com', matricula: 'ACTOR123', password: 'password123' }).save();
   });
 
   function createAuditLogData(overrides = {}): Partial<IAuditLog> {
     return {
       actor: {
-        userId: actorUser._id,
+        userId: actorUser._id as Types.ObjectId,
         isAdmin: true,
         ip: '127.0.0.1',
       },
       action: {
-        actionType: AuditActionType.CREATE,
-        category: AuditLogCategory.USER_MANAGEMENT,
+        actionType: AuditActionType.LOGIN_SUCCESS,
+        category: AuditLogCategory.AUTH,
         detail: 'User created',
       },
       target: {

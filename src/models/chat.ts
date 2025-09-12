@@ -1,5 +1,5 @@
 import { Schema, Types, model } from 'mongoose';
-import { IChatMessage, IRide } from 'types';
+import { IChatMessage, IRide, RidePassenger } from 'types';
 import { MessageStatus } from 'types/enums/enums';
 
 const ChatMessageSchema = new Schema<IChatMessage>({
@@ -12,9 +12,6 @@ const ChatMessageSchema = new Schema<IChatMessage>({
     maxlength: 1000,
     validate: {
       validator: function (content: string) {
-        // Unicode property escapes precisam da flag 'u'; Mongoose aceita string/RegExp,
-        // mas aqui usamos RegExp literal com 'u'
-        // Permite letras, números, pontuação, espaços/separadores; proíbe controle não-impressos
         const re = /^[\p{L}\p{N}\p{P}\p{Z}\s]*$/u;
         return re.test(content);
       },
@@ -31,59 +28,18 @@ const ChatMessageSchema = new Schema<IChatMessage>({
     moderatedAt: { type: Date },
     reason: { type: String },
   },
-}, { timestamps: true });
+}, { timestamps: true, validateBeforeSave: true });
 
 ChatMessageSchema.index({ ride: 1, createdAt: 1 });
 ChatMessageSchema.index({ ride: 1, sender: 1, createdAt: 1 });
 
-// Validação condicional: moderationDetails requer campos quando isModerated = true
-ChatMessageSchema.pre<IChatMessage>('validate', function (next) {
-  const doc = this;
-  if (doc.isModerated) {
-    const md = doc.moderationDetails;
-    // moderatedBy e moderatedAt passam a ser obrigatórios quando moderado
-    if (!md?.moderatedBy) {
-      return next(new Error('moderationDetails.moderatedBy is required when isModerated is true'));
-    }
-    if (!md?.moderatedAt) {
-      return next(new Error('moderationDetails.moderatedAt is required when isModerated is true'));
-    }
-    if (!md?.originalContent) {
-      return next(new Error('moderationDetails.originalContent is required when isModerated is true'));
-    }
-  }
-  // coerência temporal básica
-  if (doc.readAt && doc.deliveredAt && doc.readAt < doc.deliveredAt) {
-    return next(new Error('readAt cannot be earlier than deliveredAt'));
-  }
-  return next();
-});
-
-// Máquina de estados para MessageStatus
 const allowedTransitions: Record<MessageStatus, MessageStatus[]> = {
-  [MessageStatus.Sent]: [MessageStatus.Received, MessageStatus.Read], // alguns sistemas marcam read sem received explícito
+  [MessageStatus.Sent]: [MessageStatus.Received, MessageStatus.Read],
   [MessageStatus.Received]: [MessageStatus.Read],
-  [MessageStatus.Read]: [], // terminal
+  [MessageStatus.Read]: [],
 };
 
-ChatMessageSchema.pre<IChatMessage>('validate', function (next) {
-  const doc = this;
-  if (!doc.isModified('status')) return next();
-
-  // valor anterior do status
-  const prevStatus: MessageStatus | undefined = doc.get('status', null, { previous: true });
-  if (!prevStatus) return next(); // novo doc, default é Sent
-
-  if (prevStatus !== doc.status) {
-    const allowed = allowedTransitions[prevStatus] || [];
-    if (!allowed.includes(doc.status)) {
-      return next(new Error(`Invalid status transition: ${prevStatus} -> ${doc.status}`));
-    }
-  }
-  return next();
-});
-
-ChatMessageSchema.pre<IChatMessage>('save', async function (next) {
+ChatMessageSchema.pre<IChatMessage>('validate', async function (next) {
   if (this.isNew) {
     const Ride = model<IRide>('Ride');
     const ride = await Ride.findById(this.ride).select({ driver: 1, passengers: 1 });
@@ -94,8 +50,7 @@ ChatMessageSchema.pre<IChatMessage>('save', async function (next) {
 
     const senderStr = this.sender.toString();
     const isDriver = ride.driver?.toString?.() === senderStr;
-
-    const isPassenger = Array.isArray(ride.passengers) && ride.passengers.some((p: any) => {
+    const isPassenger = Array.isArray(ride.passengers) && ride.passengers.some((p: Partial<RidePassenger>) => {
       const id = (p && (p._id || p)) as Types.ObjectId;
       return id.toString() === senderStr;
     });
@@ -103,24 +58,49 @@ ChatMessageSchema.pre<IChatMessage>('save', async function (next) {
     if (!isDriver && !isPassenger) {
       return next(new Error('Users must be part of the ride to chat'));
     }
+  }
 
-    // Set deliveredAt/readAt conforme status
-    if (this.isModified('status')) {
-      switch (this.status as MessageStatus) {
-        case MessageStatus.Received:
-          if (!this.deliveredAt) this.deliveredAt = new Date();
-          break;
-        case MessageStatus.Read:
-          if (!this.deliveredAt) this.deliveredAt = new Date(); // garantir ordem
-          if (!this.readAt) this.readAt = new Date();
-          break;
-        default:
-          break;
+  if (this.isModerated) {
+    const md = this.moderationDetails;
+    if (!md?.moderatedBy || !md?.moderatedAt || !md?.originalContent) {
+      return next(new Error('moderationDetails fields (moderatedBy, moderatedAt, originalContent) are required when isModerated is true'));
+    }
+  }
+
+  if (this.readAt && this.deliveredAt && this.readAt < this.deliveredAt) {
+    return next(new Error('readAt cannot be earlier than deliveredAt'));
+  }
+
+  if (this.isModified('status')) {
+    const persisted = await (this.constructor as typeof ChatMessageModel).findById(this._id).select('status').lean();
+    const prevStatus: MessageStatus | undefined = persisted?.status;
+
+    if (prevStatus && prevStatus !== this.status) {
+      const allowed = allowedTransitions[prevStatus] || [];
+      if (!allowed.includes(this.status)) {
+        return next(new Error(`Invalid status transition: ${prevStatus} -> ${this.status}`));
       }
     }
   }
 
-  // Garantir coerência: readAt >= deliveredAt quando ambos existir
+  return next();
+});
+
+ChatMessageSchema.pre<IChatMessage>('save', function (next) {
+  if (this.isModified('status')) {
+    switch (this.status as MessageStatus) {
+      case MessageStatus.Received:
+        if (!this.deliveredAt) this.deliveredAt = new Date();
+        break;
+      case MessageStatus.Read:
+        if (!this.deliveredAt) this.deliveredAt = new Date();
+        if (!this.readAt) this.readAt = new Date();
+        break;
+      default:
+        break;
+    }
+  }
+
   if (this.readAt && this.deliveredAt && this.readAt < this.deliveredAt) {
     return next(new Error('readAt cannot be earlier than deliveredAt'));
   }

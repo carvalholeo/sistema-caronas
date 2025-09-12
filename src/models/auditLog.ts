@@ -21,12 +21,14 @@ const AuditLogSchema = new Schema<IAuditLog>({
   },
   action: {
     actionType: {
-      type: Object.values(AuditActionType),
+      type: String,
       required: true,
+      enum: Object.values(AuditActionType),
     },
     category: {
-      type: Object.values(AuditLogCategory),
-      required: true
+      type: String,
+      required: true,
+      enum: Object.values(AuditLogCategory),
     },
     detail: {
       type: Schema.Types.String

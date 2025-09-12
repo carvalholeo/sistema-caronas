@@ -3,7 +3,6 @@ import { validationResult } from 'express-validator';
 import { privacyActionValidator, verifyReportValidator } from '../../../../../src/middlewares/validators/admin/privacy';
 import { Request } from 'express';
 import mongoose from 'mongoose';
-import { v4 as uuidv4 } from 'uuid';
 
 // Helper to run validation checks
 const runValidation = async (req: Request, validations: any[]) => {
@@ -40,29 +39,25 @@ describe('Admin Privacy Validators', () => {
   });
 
   describe('verifyReportValidator', () => {
-    it('should pass with a valid UUID hash', async () => {
-      // Note: The validation is isUUID().isLength({ min: 64, max: 64 }), which is contradictory.
-      // A standard UUID is not 64 chars long. Assuming the intent is a hex string of 64 chars.
-      const validHash = 'a1b2c3d4'.repeat(8);
+    it('should pass with a valid 64-character hash', async () => {
+      const validHash = 'a'.repeat(64); // 64-character string
       const req = { params: { hash: validHash } } as unknown as Request;
-      // We will test the length validation, as isUUID will fail.
-      // This indicates a potential issue in the validator itself.
-      // Let's assume the length is the primary check.
-      const customValidator = verifyReportValidator.filter(v => v.builder.fields[0] === 'hash');
-      const errors = await runValidation(req, customValidator);
-      // Based on the error message, it seems the length is the key part.
-      // A real UUID would fail the length check.
-      // Let's test what the current code does.
-      const reqWithUUID = { params: { hash: uuidv4() } } as unknown as Request;
-      const errors2 = await runValidation(reqWithUUID, verifyReportValidator);
-      expect(errors2.isEmpty()).toBe(false);
-      expect(errors2.array()[0].msg).toBe('Hash de verificação inválido.');
+      const errors = await runValidation(req, verifyReportValidator);
+      expect(errors.isEmpty()).toBe(true);
     });
 
-    it('should fail with an invalid hash', async () => {
-        const req = { params: { hash: 'invalid-hash' } } as unknown as Request;
+    it('should fail with an invalid hash (wrong length)', async () => {
+        const req = { params: { hash: 'short-hash' } } as unknown as Request;
         const errors = await runValidation(req, verifyReportValidator);
         expect(errors.isEmpty()).toBe(false);
+        expect(errors.array()[0].msg).toBe('Hash de verificação inválido.');
+    });
+
+    it('should fail with an invalid hash (not a string)', async () => {
+        const req = { params: { hash: 12345 } } as unknown as Request;
+        const errors = await runValidation(req, verifyReportValidator);
+        expect(errors.isEmpty()).toBe(false);
+        expect(errors.array()[0].msg).toBe('Hash de verificação inválido.');
     });
   });
 });

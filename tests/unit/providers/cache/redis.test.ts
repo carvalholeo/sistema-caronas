@@ -1,35 +1,43 @@
 
-import { createClient } from 'redis';
-import { connectToRedis, closeRedisConnection } from '../../../../src/providers/cache/redis';
-
-// Mock the 'redis' library
-jest.mock('redis');
-
-const mockedCreateClient = createClient as jest.Mock;
+jest.mock('redis', () => {
+  const mockCreateClient = jest.fn();
+  return {
+    __esModule: true,
+    createClient: mockCreateClient,
+  };
+});
 
 describe('Redis Connection Provider', () => {
+  let connectToRedis: typeof import('../../../../src/providers/cache/redis').connectToRedis;
+  let closeRedisConnection: typeof import('../../../../src/providers/cache/redis').closeRedisConnection;
+
   let mockClient: {
     connect: jest.Mock;
     quit: jest.Mock;
   };
 
   beforeEach(() => {
-    // Reset modules to clear the singleton client instance between tests
-    jest.resetModules();
+    jest.resetModules(); // Clear module cache
+
+    // Re-import the functions after resetting modules
+    ({ connectToRedis, closeRedisConnection } = require('../../../../src/providers/cache/redis'));
 
     mockClient = {
       connect: jest.fn().mockResolvedValue(undefined),
       quit: jest.fn().mockResolvedValue(undefined),
     };
-    mockedCreateClient.mockReturnValue(mockClient);
+    // Access the mockCreateClient from the mocked module
+    const { createClient: actualMockCreateClient } = require('redis');
+    actualMockCreateClient.mockReturnValue(mockClient);
   });
 
   describe('connectToRedis', () => {
     it('should create a new client, connect, and return it on the first call', async () => {
       const client = await connectToRedis();
 
-      expect(mockedCreateClient).toHaveBeenCalledTimes(1);
-      expect(mockedCreateClient).toHaveBeenCalledWith({ url: 'redis://localhost:6379' });
+      const { createClient: actualMockCreateClient } = require('redis');
+      expect(actualMockCreateClient).toHaveBeenCalledTimes(1);
+      expect(actualMockCreateClient).toHaveBeenCalledWith({ url: 'redis://localhost:6379' });
       expect(mockClient.connect).toHaveBeenCalledTimes(1);
       expect(client).toBe(mockClient);
     });
@@ -38,7 +46,8 @@ describe('Redis Connection Provider', () => {
       await connectToRedis(); // First call
       const client = await connectToRedis(); // Second call
 
-      expect(mockedCreateClient).toHaveBeenCalledTimes(1);
+      const { createClient: actualMockCreateClient } = require('redis');
+      expect(actualMockCreateClient).toHaveBeenCalledTimes(1);
       expect(mockClient.connect).toHaveBeenCalledTimes(1);
       expect(client).toBe(mockClient);
     });
@@ -53,6 +62,8 @@ describe('Redis Connection Provider', () => {
     });
 
     it('should do nothing if no connection exists', async () => {
+      // Simulate no connection by ensuring the client is null
+      // This is handled by jest.resetModules() and the singleton pattern in the source
       await closeRedisConnection();
 
       expect(mockClient.quit).not.toHaveBeenCalled();
@@ -63,7 +74,8 @@ describe('Redis Connection Provider', () => {
         await closeRedisConnection();
         await connectToRedis();
 
-        expect(mockedCreateClient).toHaveBeenCalledTimes(2);
+        const { createClient: actualMockCreateClient } = require('redis');
+        expect(actualMockCreateClient).toHaveBeenCalledTimes(2);
         expect(mockClient.connect).toHaveBeenCalledTimes(2);
     });
   });

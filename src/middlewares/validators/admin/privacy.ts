@@ -6,5 +6,5 @@ export const privacyActionValidator = [
 ];
 
 export const verifyReportValidator = [
-    param('hash').isUUID().isLength({ min: 64, max: 64 }).withMessage('Hash de verificação inválido.'),
+    param('hash').isLength({ min: 64, max: 64 }).withMessage('Hash de verificação inválido.'),
 ];

@@ -4,7 +4,7 @@ export interface IIdempotencyRequest extends Document {
   key: Schema.Types.UUID;
   status: 'processing' | 'completed';
   responseStatusCode?: number;
-  responseBody?: any;
+  responseBody?: object;
   expiresAt: Date;
 }
 

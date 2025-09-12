@@ -1,8 +1,9 @@
 
-import mongoose from 'mongoose';
+import { Types } from 'mongoose';
 import { SuppressedNotificationModel } from '../../../src/models/suppressedNotification';
 import { UserModel } from '../../../src/models/user';
 import { ISuppressedNotification, IUser } from '../../../src/types';
+import { SuppressionReason } from '../../../src/types/enums/enums';
 
 describe('SuppressedNotification Model', () => {
   let user: IUser;
@@ -10,13 +11,13 @@ describe('SuppressedNotification Model', () => {
   beforeEach(async () => {
     await SuppressedNotificationModel.deleteMany({});
     await UserModel.deleteMany({});
-    user = await new UserModel({ name: 'Test User', email: 'user@test.com', matricula: 'USER123', password: 'p' }).save();
+    user = await new UserModel({ name: 'Test User', email: 'user@test.com', matricula: 'USER123', password: 'password123' }).save();
   });
 
   function createSuppressionData(overrides = {}): Partial<ISuppressedNotification> {
     return {
-      user: user._id,
-      reason: 'Test suppression reason',
+      user: user._id as Types.ObjectId,
+      reason: SuppressionReason.RATE_LIMIT,
       ...overrides,
     };
   }
@@ -28,7 +29,7 @@ describe('SuppressedNotification Model', () => {
 
       expect(suppression._id).toBeDefined();
       expect(suppression.user).toEqual(user._id);
-      expect(suppression.reason).toBe('Test suppression reason');
+      expect(suppression.reason).toBe(SuppressionReason.RATE_LIMIT);
       expect(suppression.createdAt).toBeInstanceOf(Date);
       expect(suppression.updatedAt).toBeInstanceOf(Date);
     });
