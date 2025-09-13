@@ -1,4 +1,4 @@
-import { INotificationPayload, INotificationSubscription } from "types";
+import { INotificationPayload, INotificationSubscription } from "../../types";
 
 /**
  * Define o contrato que todo provedor de notificação (WebPush, FCM, etc.) deve seguir.

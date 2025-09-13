@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
-import { UserModel } from 'models/user';
-import { verifyToken } from 'utils/security';
+import { UserModel } from '../models/user';
+import { verifyToken } from '../utils/security';
 
 export const authMiddleware = async (req: Request, res: Response, next: NextFunction) => {
   const authHeader = req.headers.authorization;

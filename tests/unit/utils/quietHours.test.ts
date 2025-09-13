@@ -1,4 +1,3 @@
-
 import { shouldNotifyNow } from '../../../src/utils/quietHours';
 
 describe('shouldNotifyNow', () => {

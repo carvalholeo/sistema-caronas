@@ -1,15 +1,15 @@
 import { UserModel } from 'models/user';
 import speakeasy from 'speakeasy';
-import { LoginAttemptModel } from 'models/loginAttempt';
-import authConfig from 'config/auth';
-import { generateToken } from 'utils/security';
-import { INotificationPayload, IUser } from 'types';
-import { PasswordResetStatus, UserRole, UserStatus } from 'types/enums/enums';
+import { LoginAttemptModel } from '../models/loginAttempt';
+import authConfig from '../config/auth';
+import { generateToken } from '../utils/security';
+import { INotificationPayload, IUser } from '../types';
+import { PasswordResetStatus, UserRole, UserStatus } from '../types/enums/enums';
 import crypto from 'crypto';
-import { PasswordResetModel } from 'models/passwordReset';
+import { PasswordResetModel } from '../models/passwordReset';
 import notificationService from './notificationService';
 import { emailService } from './emailService';
-import { EmailTemplate } from 'types/enums/email';
+import { EmailTemplate } from '../types/enums/email';
 
 class AuthService {
     async register(userData: any): Promise<IUser> {

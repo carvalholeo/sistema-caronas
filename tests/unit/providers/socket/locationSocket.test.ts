@@ -1,4 +1,3 @@
-
 import { Server, Socket } from 'socket.io';
 import { setupLocationSockets } from '../../../../src/providers/socket/locationSocket';
 import { RideModel } from '../../../../src/models/ride';

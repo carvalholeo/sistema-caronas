@@ -1,4 +1,3 @@
-
 import { locationService } from '../../../src/services/locationService';
 import { RideModel } from '../../../src/models/ride';
 import { LocationLogModel } from '../../../src/models/locationLog';

@@ -1,4 +1,3 @@
-
 import { EmailProvider } from '../../../../src/providers/notifications/EmailProvider';
 import nodemailer from 'nodemailer';
 import logger from '../../../../src/utils/logger';

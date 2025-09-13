@@ -1,4 +1,3 @@
-
 import { validationResult } from 'express-validator';
 import { vehicleValidator } from '../../../../src/middlewares/validators/vehicle';
 import { Request } from 'express';

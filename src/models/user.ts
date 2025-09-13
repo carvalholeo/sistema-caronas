@@ -1,8 +1,8 @@
 import { Schema, model } from 'mongoose';
 import bcrypt from 'bcrypt';
-import authConfig from 'config/auth';
-import { IAccessibilitySettings, IUser } from 'types';
-import { UserRole, UserStatus } from 'types/enums/enums';
+import authConfig from '../config/auth';
+import { IAccessibilitySettings, IUser } from '../types';
+import { UserRole, UserStatus } from '../types/enums/enums';
 
 // Subdocumento para configurações de acessibilidade
 const AccessibilitySettingsSchema = new Schema<IAccessibilitySettings>({

@@ -1,5 +1,5 @@
 import  slowDown, {SlowDownRequestHandler} from 'express-slow-down';
-import { getRedisClient } from 'providers/cache/redis';
+import { getRedisClient } from '../../providers/cache/redis';
 import { RedisStore } from 'rate-limit-redis';
 import { Request, Response, NextFunction } from 'express';
 

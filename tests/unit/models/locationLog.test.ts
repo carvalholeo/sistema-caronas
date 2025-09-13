@@ -1,4 +1,3 @@
-
 import mongoose from 'mongoose';
 import { LocationLogModel } from '../../../src/models/locationLog';
 import { UserModel } from '../../../src/models/user';

@@ -1,33 +1,38 @@
+// Mock winston before any imports
+const mockCreateLogger = jest.fn();
+const mockAdd = jest.fn();
+const mockFormat = {
+  combine: jest.fn(() => 'combined-format'),
+  timestamp: jest.fn(() => 'timestamp-format'),
+  errors: jest.fn(() => 'errors-format'),
+  json: jest.fn(() => 'json-format'),
+  simple: jest.fn(() => 'simple-format'),
+};
+const mockTransports = {
+  File: jest.fn().mockImplementation((config) => ({ config, type: 'file' })),
+  Console: jest.fn().mockImplementation((config) => ({ config, type: 'console' })),
+};
 
-import winston from 'winston';
-
-// Mock the winston library
+// Mock winston before importing
 jest.mock('winston', () => ({
-  createLogger: jest.fn(() => ({
-    add: jest.fn(),
-  })),
-  format: {
-    combine: jest.fn(),
-    timestamp: jest.fn(),
-    errors: jest.fn(),
-    json: jest.fn(),
-    simple: jest.fn(),
-  },
-  transports: {
-    File: jest.fn(),
-    Console: jest.fn(),
-  },
+  createLogger: mockCreateLogger.mockReturnValue({ add: mockAdd }),
+  format: mockFormat,
+  transports: mockTransports,
 }));
-
-const mockedWinston = winston as jest.Mocked<typeof winston>;
 
 describe('Logger Configuration', () => {
   const originalEnv = process.env;
 
   beforeEach(() => {
-    jest.resetModules(); // Clear module cache
-    process.env = { ...originalEnv }; // Reset env variables
+    // Clear all mocks before each test
     jest.clearAllMocks();
+    mockCreateLogger.mockReturnValue({ add: mockAdd });
+
+    // Reset environment
+    process.env = { ...originalEnv };
+
+    // Clear module cache
+    delete require.cache[require.resolve('../../../src/utils/logger')];
   });
 
   afterAll(() => {
@@ -36,39 +41,62 @@ describe('Logger Configuration', () => {
 
   it('should configure logger with file transports in production', () => {
     process.env.NODE_ENV = 'production';
+
+    // Import logger - this should trigger winston.createLogger
     require('../../../src/utils/logger');
 
-    expect(mockedWinston.createLogger).toHaveBeenCalledTimes(1);
-    const loggerConfig = mockedWinston.createLogger.mock.calls[0][0];
+    // Verify winston.createLogger was called
+    expect(mockCreateLogger).toHaveBeenCalledTimes(1);
 
+    const loggerConfig = mockCreateLogger.mock.calls[0][0];
+    expect(loggerConfig).toBeDefined();
     expect(loggerConfig.level).toBe('info');
     expect(loggerConfig.defaultMeta).toEqual({ service: 'carpool-backend' });
     expect(loggerConfig.transports).toHaveLength(2);
-    expect(mockedWinston.transports.File).toHaveBeenCalledTimes(2);
-    expect(mockedWinston.transports.File).toHaveBeenCalledWith({ filename: 'logs/error.log', level: 'error' });
-    expect(mockedWinston.transports.File).toHaveBeenCalledWith({ filename: 'logs/combined.log' });
 
-    // Ensure console transport is NOT added in production
-    const loggerInstance = mockedWinston.createLogger.mock.results[0].value;
-    expect(loggerInstance.add).not.toHaveBeenCalled();
+    // Verify File transports were created
+    expect(mockTransports.File).toHaveBeenCalledTimes(2);
+    expect(mockTransports.File).toHaveBeenCalledWith({ filename: 'logs/error.log', level: 'error' });
+    expect(mockTransports.File).toHaveBeenCalledWith({ filename: 'logs/combined.log' });
+
+    // In production, logger.add should NOT be called (no console transport)
+    expect(mockAdd).not.toHaveBeenCalled();
   });
 
   it('should add console transport in development', () => {
     process.env.NODE_ENV = 'development';
+
+    // Import logger - this should trigger winston.createLogger and logger.add
     require('../../../src/utils/logger');
 
-    expect(mockedWinston.createLogger).toHaveBeenCalledTimes(1);
-    const loggerInstance = mockedWinston.createLogger.mock.results[0].value;
-    expect(loggerInstance.add).toHaveBeenCalledTimes(1);
-    expect(mockedWinston.transports.Console).toHaveBeenCalledTimes(1);
+    // Verify winston.createLogger was called
+    expect(mockCreateLogger).toHaveBeenCalledTimes(1);
+
+    // In non-production, logger.add should be called to add console transport
+    expect(mockAdd).toHaveBeenCalledTimes(1);
+    expect(mockTransports.Console).toHaveBeenCalledTimes(1);
   });
 
   it('should use correct formatters', () => {
+    process.env.NODE_ENV = 'test';
+
+    // Import logger - this should trigger winston format functions
     require('../../../src/utils/logger');
 
-    expect(mockedWinston.format.combine).toHaveBeenCalledTimes(1);
-    expect(mockedWinston.format.timestamp).toHaveBeenCalledTimes(1);
-    expect(mockedWinston.format.errors).toHaveBeenCalledWith({ stack: true });
-    expect(mockedWinston.format.json).toHaveBeenCalledTimes(1);
+    // Verify format functions were called
+    expect(mockFormat.combine).toHaveBeenCalledTimes(1);
+    expect(mockFormat.timestamp).toHaveBeenCalledTimes(1);
+    expect(mockFormat.errors).toHaveBeenCalledWith({ stack: true });
+    expect(mockFormat.json).toHaveBeenCalledTimes(1);
+  });
+
+  it('should add console transport when NODE_ENV is not production', () => {
+    process.env.NODE_ENV = 'test';
+
+    require('../../../src/utils/logger');
+
+    expect(mockCreateLogger).toHaveBeenCalledTimes(1);
+    expect(mockAdd).toHaveBeenCalledTimes(1);
+    expect(mockTransports.Console).toHaveBeenCalledTimes(1);
   });
 });

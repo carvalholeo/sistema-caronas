@@ -1,4 +1,3 @@
-
 import { ipValidator } from '../../../src/utils/ipValidator';
 
 describe('ipValidator', () => {

@@ -1,4 +1,3 @@
-
 import { validationResult } from 'express-validator';
 import { subscribeValidator, updatePreferencesValidator } from '../../../../src/middlewares/validators/notification';
 import { Request } from 'express';

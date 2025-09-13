@@ -1,4 +1,3 @@
-
 import mongoose from 'mongoose';
 import { LoginAttemptModel } from '../../../src/models/loginAttempt';
 import { UserModel } from '../../../src/models/user';

@@ -1,4 +1,3 @@
-
 import { Request, Response } from 'express';
 import { adminRidesController } from '../../../../src/controllers/admin/ridesController';
 import { adminRidesService } from '../../../../src/services/admin/rideService';

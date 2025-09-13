@@ -1,4 +1,3 @@
-
 import { Request, Response } from 'express';
 import { adminPrivacyController } from '../../../../src/controllers/admin/privacyController';
 import { adminPrivacyService } from '../../../../src/services/admin/privacyService';

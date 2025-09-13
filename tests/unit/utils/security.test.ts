@@ -1,4 +1,3 @@
-
 import { generateToken, verifyToken } from '../../../src/utils/security';
 import jwt from 'jsonwebtoken';
 import authConfig from '../../../src/config/auth';

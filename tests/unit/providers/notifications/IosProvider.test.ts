@@ -1,4 +1,3 @@
-
 import { IosProvider } from '../../../../src/providers/notifications/IosProvider';
 import apn from 'node-apn-flitto';
 import { NotificationSubscriptionModel } from '../../../../src/models/notificationSubscription';

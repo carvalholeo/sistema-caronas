@@ -6,6 +6,17 @@
       "node"
     ],
     "rootDir": ".",
+    "baseUrl": ".",
+    "paths": {
+      "models/*": ["src/models/*"],
+      "routes/*": ["src/routes/*"],
+      "middlewares/*": ["src/middlewares/*"],
+      "providers/*": ["src/providers/*"],
+      "services/*": ["src/services/*"],
+      "types/*": ["src/types/*"],
+      "utils/*": ["src/utils/*"],
+      "config/*": ["src/config/*"]
+    }
   },
   "include": [
     "src/**/*.ts",

@@ -1,4 +1,3 @@
-
 import { validationResult } from 'express-validator';
 import { userUpdateValidator } from '../../../../src/middlewares/validators/users';
 import { Request } from 'express';

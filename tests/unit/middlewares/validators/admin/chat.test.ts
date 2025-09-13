@@ -1,4 +1,3 @@
-
 import { validationResult } from 'express-validator';
 import { readChatValidator, moderateMessageValidator, exportChatValidator } from '../../../../../src/middlewares/validators/admin/chat';
 import { Request } from 'express';

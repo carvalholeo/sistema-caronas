@@ -1,4 +1,3 @@
-
 import { Request, Response } from 'express';
 import { chatController } from '../../../src/controllers/chatController';
 import { chatService } from '../../../src/services/chatService';

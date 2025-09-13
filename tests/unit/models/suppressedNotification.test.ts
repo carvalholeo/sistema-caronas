@@ -1,4 +1,3 @@
-
 import { Types } from 'mongoose';
 import { SuppressedNotificationModel } from '../../../src/models/suppressedNotification';
 import { UserModel } from '../../../src/models/user';

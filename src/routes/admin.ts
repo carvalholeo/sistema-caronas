@@ -14,7 +14,7 @@ import * as privacyValidators from 'middlewares/validators/admin/privacy';
 import * as securityValidators from 'middlewares/validators/admin/security';
 import { dateRangeValidator, singleDateValidator } from 'middlewares/validators/admin/reports';
 import checkUserRoles from 'middlewares/checkUserRoles';
-import { UserRole } from 'types/enums/enums';
+import { UserRole } from '../types/enums/enums';
 import { requestValidator } from 'middlewares/requestValidator';
 
 const adminRouter = Router();

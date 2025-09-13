@@ -1,4 +1,3 @@
-
 import NotificationService from '../../../src/services/notificationService';
 import { NotificationSubscriptionModel } from '../../../src/models/notificationSubscription';
 import { NotificationEventModel } from '../../../src/models/event';

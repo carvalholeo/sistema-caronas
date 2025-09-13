@@ -1,4 +1,3 @@
-
 import { validationResult } from 'express-validator';
 import {
   updateUserStatusValidator,

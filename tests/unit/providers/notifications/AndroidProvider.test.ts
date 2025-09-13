@@ -1,4 +1,3 @@
-
 import { AndroidProvider } from '../../../../src/providers/notifications/AndroidProvider';
 import * as admin from 'firebase-admin';
 import { NotificationSubscriptionModel } from '../../../../src/models/notificationSubscription';

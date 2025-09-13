@@ -1,4 +1,3 @@
-
 import { WebPushProvider } from '../../../../src/providers/notifications/WebPushProvider';
 import webpush from 'web-push';
 import { NotificationSubscriptionModel } from '../../../../src/models/notificationSubscription';

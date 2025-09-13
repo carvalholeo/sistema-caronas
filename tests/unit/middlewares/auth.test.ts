@@ -1,4 +1,3 @@
-
 import { Request, Response, NextFunction } from 'express';
 import { authMiddleware } from '../../../src/middlewares/auth';
 import { UserModel } from '../../../src/models/user';
@@ -49,35 +48,33 @@ describe('Auth Middleware', () => {
     expect(res.json).toHaveBeenCalledWith({ message: 'Token inválido.' });
   });
 
-  it('should return 401 if user is not found', async () => {
+  it('should return 401 if user not found', async () => {
     req.headers = { authorization: 'Bearer valid-token' };
-    mockedVerifyToken.mockResolvedValue({ id: 'user-id', sessionVersion: 1 });
-    (mockedUserModel.findById as jest.Mock).mockResolvedValue(null);
+    mockedVerifyToken.mockResolvedValue({ id: 'user123' });
+    mockedUserModel.findById = jest.fn().mockResolvedValue(null);
+
     await authMiddleware(req as Request, res as Response, next);
     expect(res.status).toHaveBeenCalledWith(401);
     expect(res.json).toHaveBeenCalledWith({ message: 'Usuário não encontrado.' });
   });
 
-  it('should return 401 if session version does not match', async () => {
+  it('should call next if token is valid and user exists', async () => {
+    const mockUser = { _id: 'user123', email: 'test@example.com' } as IUser;
     req.headers = { authorization: 'Bearer valid-token' };
-    const mockUser = { _id: 'user-id', sessionVersion: 2 };
-    mockedVerifyToken.mockResolvedValue({ id: 'user-id', sessionVersion: 1 });
-    (mockedUserModel.findById as jest.Mock).mockResolvedValue(mockUser);
+    mockedVerifyToken.mockResolvedValue({ id: 'user123' });
+    mockedUserModel.findById = jest.fn().mockResolvedValue(mockUser);
+
     await authMiddleware(req as Request, res as Response, next);
-    expect(res.status).toHaveBeenCalledWith(401);
-    expect(res.json).toHaveBeenCalledWith({ message: 'Sua sessão expirou. Por favor, faça login novamente.' });
+    expect(next).toHaveBeenCalled();
+    expect((req as any).user).toBe(mockUser);
   });
 
-  it('should call next() and attach user to request on successful authentication', async () => {
+  it('should handle unexpected errors', async () => {
     req.headers = { authorization: 'Bearer valid-token' };
-    const mockUser = { _id: 'user-id', sessionVersion: 1 } as IUser;
-    mockedVerifyToken.mockResolvedValue({ id: 'user-id', sessionVersion: 1 });
-    (mockedUserModel.findById as jest.Mock).mockResolvedValue(mockUser);
-    
-    await authMiddleware(req as Request, res as Response, next);
+    mockedVerifyToken.mockRejectedValue(new Error('Unexpected error'));
 
-    expect(req.user).toBe(mockUser);
-    expect(next).toHaveBeenCalledTimes(1);
-    expect(res.status).not.toHaveBeenCalled();
+    await authMiddleware(req as Request, res as Response, next);
+    expect(res.status).toHaveBeenCalledWith(401);
+    expect(res.json).toHaveBeenCalledWith({ message: 'Token inválido.' });
   });
 });

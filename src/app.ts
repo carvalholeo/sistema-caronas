@@ -9,26 +9,26 @@ import { config } from 'dotenv';
 
 import logger from './utils/logger';
 
-import authRoutes from 'routes/auth';
-import userRoutes from 'routes/users';
-import rideRoutes from 'routes/rides';
-import vehicleRoutes from 'routes/vehicles';
-import chatRoutes from 'routes/chat';
-import notificationRoutes from 'routes/notifications';
-import adminRoutes from 'routes/admin';
-import publicRoutes from 'routes/public';
-import { errorHandler } from 'middlewares/errorHandler';
-import auditLogger from 'middlewares/auditLogger';
-import { setupLocationSockets } from 'providers/socket/locationSocket';
-import { initializeChatSockets } from 'providers/socket/chatSocket';
-import { closeDatabaseConnection, connectToDatabase } from 'providers/database/mongoose';
-import { idempotencyMiddleware } from 'middlewares/idempotencyMiddleware';
-import { closeRedisConnection, connectToRedis } from 'providers/cache/redis';
-import { globalLimiter } from 'middlewares/limiters/globalLimiter';
-import { speedLimiter } from 'middlewares/limiters/speedLimiter';
-import { loginLimiter } from 'middlewares/limiters/loginLimiter';
-import { helmetCSP } from 'middlewares/security/helmetCSP';
-import { corsValidation } from 'middlewares/security/corsValidation';
+import authRoutes from './routes/auth';
+import userRoutes from './routes/users';
+import rideRoutes from './routes/rides';
+import vehicleRoutes from './routes/vehicles';
+import chatRoutes from './routes/chat';
+import notificationRoutes from './routes/notifications';
+import adminRoutes from './routes/admin';
+import publicRoutes from './routes/public';
+import { errorHandler } from './middlewares/errorHandler';
+import auditLogger from './middlewares/auditLogger';
+import { setupLocationSockets } from './providers/socket/locationSocket';
+import { initializeChatSockets } from './providers/socket/chatSocket';
+import { closeDatabaseConnection, connectToDatabase } from './providers/database/mongoose';
+import { idempotencyMiddleware } from './middlewares/idempotencyMiddleware';
+import { closeRedisConnection, connectToRedis } from './providers/cache/redis';
+import { globalLimiter } from './middlewares/limiters/globalLimiter';
+import { speedLimiter } from './middlewares/limiters/speedLimiter';
+import { loginLimiter } from './middlewares/limiters/loginLimiter';
+import { helmetCSP } from './middlewares/security/helmetCSP';
+import { corsValidation } from './middlewares/security/corsValidation';
 
 config();
 

@@ -1,4 +1,3 @@
-
 import { Request, Response, NextFunction } from 'express';
 import { checkPermission } from '../../../src/middlewares/checkPermissions';
 import { AuditLogModel } from '../../../src/models/auditLog';

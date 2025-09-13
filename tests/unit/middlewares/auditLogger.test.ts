@@ -1,4 +1,3 @@
-
 import { Request, Response, NextFunction } from 'express';
 import auditLogger from '../../../src/middlewares/auditLogger';
 import { AuditLogModel } from '../../../src/models/auditLog';

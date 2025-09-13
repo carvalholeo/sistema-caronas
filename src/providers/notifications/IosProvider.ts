@@ -1,11 +1,11 @@
 import apn from 'node-apn-flitto';
 import { INotificationProvider } from './INotificationProvider';
-import { INotificationPayload, INotificationSubscription } from 'types';
-import { NotificationSubscriptionModel } from 'models/notificationSubscription';
-import logger from 'utils/logger';
+import { INotificationPayload, INotificationSubscription } from '../../types';
+import { NotificationSubscriptionModel } from '../../models/notificationSubscription';
+import logger from '../../utils/logger';
 
 export class IosProvider implements INotificationProvider {
-  private apnProvider: apn.Provider;
+  private apnProvider: apn.Provider | null = null;
 
   constructor() {
     // As credenciais DEVEM vir de variáveis de ambiente.
@@ -18,12 +18,19 @@ export class IosProvider implements INotificationProvider {
       production: process.env.NODE_ENV === 'production',
     };
 
-    this.apnProvider = new apn.Provider(options);
+    if (process.env.NODE_ENV === 'production') {
+      this.apnProvider = new apn.Provider(options);
+    }
   }
 
   public async send(subscription: INotificationSubscription, payload: INotificationPayload): Promise<void> {
     if (!subscription.destination) {
       logger.warn(`Tentativa de envio via APNS sem deviceToken para o utilizador ${subscription.user}`);
+      return;
+    }
+
+    if (!this.apnProvider) {
+      logger.warn('APNS Provider não inicializado. A notificação iOS não será enviada.');
       return;
     }
 

@@ -1,4 +1,3 @@
-
 import { validationResult } from 'express-validator';
 import { blockDetailsValidator, forceLogoutValidator } from '../../../../../src/middlewares/validators/admin/security';
 import { Request } from 'express';

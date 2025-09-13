@@ -1,4 +1,3 @@
-
 import { Request, Response } from 'express';
 import { errorHandler } from '../../../src/middlewares/errorHandler';
 import logger from '../../../src/utils/logger';

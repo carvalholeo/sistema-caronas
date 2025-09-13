@@ -1,4 +1,3 @@
-
 import { adminUsersService } from '../../../../src/services/admin/userService';
 import { UserModel } from '../../../../src/models/user';
 import { AuditLogModel } from '../../../../src/models/auditLog';

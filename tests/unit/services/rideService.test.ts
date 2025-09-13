@@ -1,4 +1,3 @@
-
 import { rideService } from '../../../src/services/rideService';
 import { RideModel } from '../../../src/models/ride';
 import { VehicleModel } from '../../../src/models/vehicle';

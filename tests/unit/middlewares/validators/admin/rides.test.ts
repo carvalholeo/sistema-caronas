@@ -1,4 +1,3 @@
-
 import { validationResult } from 'express-validator';
 import { adminEditRideValidator, adminCancelRideValidator, adminForcePublishValidator } from '../../../../../src/middlewares/validators/admin/rides';
 import { Request } from 'express';

@@ -1,4 +1,3 @@
-
 import { Request, Response } from 'express';
 import { adminUsersController } from '../../../../src/controllers/admin/usersController';
 import { adminUsersService } from '../../../../src/services/admin/userService';

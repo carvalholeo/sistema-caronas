@@ -1,4 +1,3 @@
-
 import cors from 'cors';
 
 // Mock the cors library

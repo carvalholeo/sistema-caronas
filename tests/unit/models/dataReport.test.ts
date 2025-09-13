@@ -1,4 +1,3 @@
-
 import mongoose from 'mongoose';
 import { DataReportModel } from '../../../src/models/dataReport';
 import { UserModel } from '../../../src/models/user';

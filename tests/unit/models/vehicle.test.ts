@@ -1,4 +1,3 @@
-
 import mongoose, { Types } from 'mongoose';
 import { VehicleModel } from '../../../src/models/vehicle';
 import { UserModel } from '../../../src/models/user';

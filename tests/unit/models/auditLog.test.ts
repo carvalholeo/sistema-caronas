@@ -1,4 +1,3 @@
-
 import mongoose, { Types } from 'mongoose';
 import { AuditLogModel } from '../../../src/models/auditLog';
 import { UserModel } from '../../../src/models/user';

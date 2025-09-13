@@ -1,4 +1,3 @@
-
 import { validationResult } from 'express-validator';
 import { dateRangeValidator, singleDateValidator } from '../../../../../src/middlewares/validators/admin/reports';
 import { Request } from 'express';

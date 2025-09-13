@@ -1,4 +1,3 @@
-
 import mongoose from 'mongoose';
 import { NotificationSubscriptionModel } from '../../../src/models/notificationSubscription';
 import { UserModel } from '../../../src/models/user';

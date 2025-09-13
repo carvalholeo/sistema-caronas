@@ -1,4 +1,3 @@
-
 import { validationResult } from 'express-validator';
 import { registerValidator, loginValidator, twoFactorValidator, requestResetValidator, completeResetValidator } from '../../../../src/middlewares/validators/auth';
 import { Request } from 'express';

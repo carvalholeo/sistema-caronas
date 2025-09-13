@@ -1,4 +1,3 @@
-
 jest.mock('redis', () => {
   const mockCreateClient = jest.fn();
   return {

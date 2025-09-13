@@ -1,8 +1,8 @@
 import webpush from 'web-push';
 import { INotificationProvider } from './INotificationProvider';
-import { INotificationPayload, INotificationSubscription } from 'types';
-import { NotificationSubscriptionModel } from 'models/notificationSubscription';
-import logger from 'utils/logger';
+import { INotificationPayload, INotificationSubscription } from '../../types';
+import { NotificationSubscriptionModel } from '../../models/notificationSubscription';
+import logger from '../../utils/logger';
 
 export class WebPushProvider implements INotificationProvider {
   constructor() {

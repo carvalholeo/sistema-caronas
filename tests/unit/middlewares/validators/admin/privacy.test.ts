@@ -1,4 +1,3 @@
-
 import { validationResult } from 'express-validator';
 import { privacyActionValidator, verifyReportValidator } from '../../../../../src/middlewares/validators/admin/privacy';
 import { Request } from 'express';

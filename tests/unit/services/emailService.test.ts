@@ -1,19 +1,19 @@
-import { EmailService, emailService } from '../services/emailService';
-import { EmailTemplate } from '../types/enums/email';
-import { TemplateDataMap } from '../types/types/email';
+import { EmailService, emailService } from '../../../src/services/emailService';
+import { EmailTemplate } from '../../../src/types/enums/email';
+import { TemplateDataMap } from '../../../src/types/types/email';
 import fs from 'fs/promises';
 import path from 'path';
 import handlebars from 'handlebars';
 import juice from 'juice';
-import logger from '../utils/logger';
+import logger from '../../../src/utils/logger';
 
 // Mocking de TODAS as dependências externas
 jest.mock('fs/promises');
 jest.mock('path');
 jest.mock('handlebars');
 jest.mock('juice');
-jest.mock('../utils/logger');
-jest.mock('../types/enums/email');
+jest.mock('../../../src/utils/logger');
+jest.mock('../../../src/types/enums/email');
 
 // Tipos mockados
 const mockedFs = fs as jest.Mocked<typeof fs>;

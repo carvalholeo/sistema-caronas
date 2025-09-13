@@ -1,8 +1,8 @@
 import * as admin from 'firebase-admin';
 import { INotificationProvider } from './INotificationProvider';
-import { INotificationPayload, INotificationSubscription } from 'types';
-import { NotificationSubscriptionModel } from 'models/notificationSubscription';
-import logger from 'utils/logger';
+import { INotificationPayload, INotificationSubscription } from '../../types';
+import { NotificationSubscriptionModel } from '../../models/notificationSubscription';
+import logger from '../../utils/logger';
 
 export class AndroidProvider implements INotificationProvider {
   constructor() {

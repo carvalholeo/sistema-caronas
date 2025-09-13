@@ -8,7 +8,7 @@ import {
 import { authMiddleware } from 'middlewares/auth';
 import { userUpdateValidator } from 'middlewares/validators/users';
 import { requestValidator } from 'middlewares/requestValidator';
-import { upload } from 'config/uploadAndMulter';
+import { upload } from '../config/uploadAndMulter';
 
 const router = Router();
 

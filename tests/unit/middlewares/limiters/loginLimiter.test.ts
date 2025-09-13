@@ -1,4 +1,3 @@
-
 import rateLimit from 'express-rate-limit';
 import { RedisStore } from 'rate-limit-redis';
 import { getRedisClient } from '../../../../src/providers/cache/redis';

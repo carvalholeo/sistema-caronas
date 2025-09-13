@@ -1,4 +1,3 @@
-
 import mongoose from 'mongoose';
 import { RideModel } from '../../../src/models/ride';
 import { UserModel } from '../../../src/models/user';

@@ -59,12 +59,18 @@ process.env.MONGODB_URI = global.__MONGO_URI__;
 
 beforeAll(async () => {
   await setupTestDatabase();
-});
+}, 30000);
 
-afterAll(async () => {
-  await teardownTestDatabase();
+beforeEach(() => {
+  jest.clearAllMocks();
 });
 
 afterEach(async () => {
   await clearDatabase();
+  jest.resetModules();
+});
+
+
+afterAll(async () => {
+  await teardownTestDatabase();
 });

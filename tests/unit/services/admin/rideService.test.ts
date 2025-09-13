@@ -1,4 +1,3 @@
-
 import { adminRidesService } from '../../../../src/services/admin/rideService';
 import { RideModel } from '../../../../src/models/ride';
 import { AuditLogModel } from '../../../../src/models/auditLog';

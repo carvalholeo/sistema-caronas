@@ -1,10 +1,10 @@
 import { IUser } from 'types';
-import { UserModel } from 'models/user';
+import { UserModel } from '../models/user';
 
-import { IStorageProvider } from 'providers/storage/IStorageProvider';
-import { LocalStorageProvider } from 'providers/storage/LocalStorageProvider';
-import { isCloudUploadDestination } from 'config/uploadAndMulter';
-import { S3StorageProvider } from 'providers/storage/S3StorageProvider';
+import { IStorageProvider } from '../providers/storage/IStorageProvider';
+import { LocalStorageProvider } from '../providers/storage/LocalStorageProvider';
+import { isCloudUploadDestination } from '../config/uploadAndMulter';
+import { S3StorageProvider } from '../providers/storage/S3StorageProvider';
 
 export class UserService {
     private storageProvider: IStorageProvider;

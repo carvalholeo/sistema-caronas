@@ -1,7 +1,7 @@
 import nodemailer from 'nodemailer';
 import { INotificationProvider } from './INotificationProvider';
-import { INotificationPayload, INotificationSubscription } from 'types';
-import logger from 'utils/logger';
+import { INotificationPayload, INotificationSubscription } from '../../types';
+import logger from '../../utils/logger';
 
 export class EmailProvider implements INotificationProvider {
   private transporter: nodemailer.Transporter;
