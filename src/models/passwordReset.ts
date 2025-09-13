@@ -1,4 +1,4 @@
-import { Schema, model } from 'mongoose';
+import { Schema, model, Model } from 'mongoose';
 import { IPasswordReset } from 'types';
 import { PasswordResetStatus } from 'types/enums/enums';
 
@@ -7,71 +7,63 @@ const PasswordResetSchema = new Schema<IPasswordReset>({
   status: { type: String, enum: Object.values(PasswordResetStatus), default: PasswordResetStatus.INITIATED },
   initiatedAt: { type: Date, default: Date.now },
   completedAt: { type: Date },
-  expiresAt: { type: Date, required: true, expires: 0}
+  expiresAt: { type: Date, required: true, expires: 0 }
 }, { timestamps: false });
 
 PasswordResetSchema.pre<IPasswordReset>('save', function (next) {
-  // Setar completedAt somente ao entrar em COMPLETED
-  if (this.isModified('status') && this.status === PasswordResetStatus.COMPLETED) {
-    if (!this.completedAt) {
-      this.completedAt = new Date();
+  // For newly COMPLETED requests, set completedAt
+  if (this.isModified('status') && this.status === PasswordResetStatus.COMPLETED && !this.completedAt) {
+    this.completedAt = new Date();
+  }
+  return next();
+});
+
+PasswordResetSchema.pre<IPasswordReset>('save', async function (next) {
+  // Ensure consistent initiatedAt value
+  if (!this.initiatedAt) {
+    this.initiatedAt = new Date();
+  }
+
+  // Validate completedAt rules first
+  if (this.completedAt) {
+    if (this.status !== PasswordResetStatus.COMPLETED) {
+      return next(new Error(`completedAt present but status is ${this.status.toUpperCase()}`));
     }
     if (this.completedAt < this.initiatedAt) {
       return next(new Error('completedAt cannot be earlier than initiatedAt'));
     }
   }
 
-  return next();
-});
-
-PasswordResetSchema.pre<IPasswordReset>('validate', function (next) {
-  // initiatedAt deve existir e ser imutável após criação
-  if (!this.initiatedAt) {
-    this.initiatedAt = new Date();
+  // Status validations
+  if (this.isNew && this.status !== PasswordResetStatus.INITIATED) {
+    return next(new Error(`Invalid initial status: ${this.status}. Must start as INITIATED`));
   }
 
-  // Se status modificou, validar transição
-  if (this.isModified('status')) {
-    const prevStatus: PasswordResetStatus | undefined = this.get('status', null, { getters: false, virtuals: false, defaults: false, alias: false, setters: false, previous: true });
-
-    // Para doc novo, aceitar apenas INITIATED
-    if (this.isNew) {
-      if (this.status !== PasswordResetStatus.INITIATED) {
-        return next(new Error(`Invalid initial status: ${this.status}. Must start as INITIATED`));
-      }
-      return next();
+  // Only validate transitions for existing documents with status changes
+  if (!this.isNew && this.isModified('status')) {
+    // Always fetch previous status from DB for existing docs
+    let fromStatus: PasswordResetStatus | undefined;
+    try {
+      const prev = await (this.constructor as Model<IPasswordReset>).findById(this._id);
+      fromStatus = prev ? prev.status : undefined;
+    } catch {
+      return next(new Error('Previous status not found'));
+    }
+    if (!fromStatus) {
+      return next(new Error('Previous status not found'));
     }
 
-    if (prevStatus && prevStatus !== this.status) {
-      const allowed = allowedTransitions[prevStatus] || [];
-      if (!allowed.includes(this.status)) {
-        return next(new Error(`Invalid transition: ${prevStatus} -> ${this.status}`));
-      }
+    // Always block any status change from a terminal state or not allowed
+    const allowed = allowedTransitions[fromStatus] || [];
+    if (!allowed.includes(this.status)) {
+      return next(new Error(`Invalid transition: ${fromStatus} -> ${this.status}`));
     }
   }
 
-  // Ninguém pode alterar qualquer coisa se terminal (exceto leitura). Se terminal e está tentando modificar status, bloquear.
-  const terminalStatuses = new Set<PasswordResetStatus>([
-    PasswordResetStatus.COMPLETED,
-    PasswordResetStatus.CANCELLED,
-    PasswordResetStatus.EXPIRED,
-  ]);
-  const prevStatus: PasswordResetStatus | undefined = this.get('status', null, { previous: true });
-  if (prevStatus && terminalStatuses.has(prevStatus) && this.isModified('status')) {
-    return next(new Error(`Document is terminal (${prevStatus}); status cannot change`));
+  // For newly COMPLETED requests, set completedAt
+  if (this.isModified('status') && this.status === PasswordResetStatus.COMPLETED && !this.completedAt) {
+    this.completedAt = new Date();
   }
-
-  // completedAt regras de consistência
-  if (this.status !== PasswordResetStatus.COMPLETED && this.completedAt) {
-    return next(new Error(`completedAt present but status is ${this.status}; only allowed when COMPLETED`));
-  }
-  if (this.status === PasswordResetStatus.COMPLETED) {
-    // completedAt será garantido no pre('save'), mas aqui validamos coerência temporal se já existir
-    if (this.completedAt && this.completedAt < this.initiatedAt) {
-      return next(new Error('completedAt cannot be earlier than initiatedAt'));
-    }
-  }
-
   return next();
 });
 

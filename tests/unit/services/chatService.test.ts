@@ -1,190 +1,508 @@
 import { chatService } from '../../../src/services/chatService';
 import { ChatMessageModel } from '../../../src/models/chat';
-import mongoose from 'mongoose';
-import { RideModel } from '../../../src/models/ride';
-import { BlockModel } from '../../../src/models/block';
-import { Server } from 'socket.io';
+import { Types } from 'mongoose';
+import { IChatMessage } from '../../../src/types';
 
-// Mock dependencies
+// Mocking de TODAS as dependências externas
 jest.mock('../../../src/models/chat');
 
+// Tipos mockados
+const MockedChatMessageModel = ChatMessageModel as jest.MockedClass<typeof ChatMessageModel>;
+
 describe('ChatService', () => {
-  let rideId: mongoose.Types.ObjectId;
-  let userId: mongoose.Types.ObjectId;
+  let chatServiceInstance: typeof chatService;
+
+  // Mock ObjectIds consistentes para testes
+  const mockRideId = new Types.ObjectId('507f1f77bcf86cd799439011');
+  const mockSenderId = new Types.ObjectId('507f1f77bcf86cd799439012');
+  const mockOtherUserId = new Types.ObjectId('507f1f77bcf86cd799439013');
+
+  // Mock de mensagens de chat
+  const mockMessages = [
+    {
+      _id: new Types.ObjectId('507f1f77bcf86cd799439014'),
+      ride: mockRideId,
+      sender: mockSenderId,
+      content: 'Primeira mensagem',
+      createdAt: new Date('2023-01-01T10:00:00.000Z')
+    },
+    {
+      _id: new Types.ObjectId('507f1f77bcf86cd799439015'),
+      ride: mockRideId,
+      sender: mockOtherUserId,
+      content: 'Segunda mensagem',
+      createdAt: new Date('2023-01-01T10:05:00.000Z')
+    },
+    {
+      _id: new Types.ObjectId('507f1f77bcf86cd799439016'),
+      ride: mockRideId,
+      sender: mockSenderId,
+      content: 'Terceira mensagem',
+      createdAt: new Date('2023-01-01T10:10:00.000Z')
+    }
+  ] as unknown as IChatMessage[];
 
   beforeEach(() => {
+    // Limpar todos os mocks antes de cada teste para garantir isolamento
     jest.clearAllMocks();
-    rideId = new mongoose.Types.ObjectId();
-    userId = new mongoose.Types.ObjectId();
+
+    // Criar nova instância para cada teste
+    chatServiceInstance = chatService;
+
+    // Mock da query chain do Mongoose
+    const mockQuery = {
+      sort: jest.fn().mockReturnThis(),
+    };
+    MockedChatMessageModel.find = jest.fn().mockReturnValue(mockQuery);
+    mockQuery.sort.mockResolvedValue(mockMessages);
   });
 
   describe('getChatHistory', () => {
-    it('should return chat messages for a given rideId and userId', async () => {
-      const mockMessages = [
-        { _id: 'msg1', content: 'Hello', sender: userId, createdAt: new Date() },
-        { _id: 'msg2', content: 'Hi', sender: new mongoose.Types.ObjectId(), createdAt: new Date() },
-      ];
-      mockedChatMessageModel.find.mockReturnValue({ sort: jest.fn().mockResolvedValue(mockMessages) } as any);
-
-      const result = await chatService.getChatHistory(rideId, userId);
-
-      expect(mockedChatMessageModel.find).toHaveBeenCalledWith({
+    it('should return chat messages for given ride and sender', async () => {
+      // Arrange
+      const expectedQuery = {
         $or: [
-          { ride: rideId },
-          { sender: userId },
-        ],
-      });
+          { ride: mockRideId },
+          { sender: mockSenderId }
+        ]
+      };
+
+      // Act
+      const result = await chatServiceInstance.getChatHistory(mockRideId, mockSenderId);
+
+      // Assert
+      expect(MockedChatMessageModel.find).toHaveBeenCalledWith(expectedQuery);
+      expect(MockedChatMessageModel.find).toHaveBeenCalledTimes(1);
       expect(result).toEqual(mockMessages);
+    });
+
+    it('should sort messages by createdAt in ascending order', async () => {
+      // Arrange
+      const mockQuery = {
+        sort: jest.fn().mockResolvedValue(mockMessages)
+      };
+      MockedChatMessageModel.find = jest.fn().mockReturnValue(mockQuery);
+
+      // Act
+      await chatServiceInstance.getChatHistory(mockRideId, mockSenderId);
+
+      // Assert
+      expect(mockQuery.sort).toHaveBeenCalledWith({ createdAt: 1 });
+      expect(mockQuery.sort).toHaveBeenCalledTimes(1);
+    });
+
+    it('should return empty array when no messages found', async () => {
+      // Arrange
+      const mockQuery = {
+        sort: jest.fn().mockResolvedValue([])
+      };
+      MockedChatMessageModel.find = jest.fn().mockReturnValue(mockQuery);
+
+      // Act
+      const result = await chatServiceInstance.getChatHistory(mockRideId, mockSenderId);
+
+      // Assert
+      expect(MockedChatMessageModel.find).toHaveBeenCalledWith({
+        $or: [
+          { ride: mockRideId },
+          { sender: mockSenderId }
+        ]
+      });
+      expect(result).toEqual([]);
+    });
+
+    it('should handle database query failure', async () => {
+      // Arrange
+      const mockQuery = {
+        sort: jest.fn().mockRejectedValue(new Error('Database connection failed'))
+      };
+      MockedChatMessageModel.find = jest.fn().mockReturnValue(mockQuery);
+
+      // Act & Assert
+      await expect(chatServiceInstance.getChatHistory(mockRideId, mockSenderId))
+        .rejects
+        .toThrow('Database connection failed');
+
+      expect(MockedChatMessageModel.find).toHaveBeenCalledTimes(1);
+    });
+
+    it('should handle null ObjectId parameters', async () => {
+      // Act
+      await chatServiceInstance.getChatHistory(null as any, null as any);
+
+      // Assert
+      expect(MockedChatMessageModel.find).toHaveBeenCalledWith({
+        $or: [
+          { ride: null },
+          { sender: null }
+        ]
+      });
+    });
+
+    it('should handle different ObjectId combinations', async () => {
+      // Arrange
+      const differentRideId = new Types.ObjectId('507f1f77bcf86cd799439099');
+      const differentSenderId = new Types.ObjectId('507f1f77bcf86cd799439088');
+
+      // Act
+      await chatServiceInstance.getChatHistory(differentRideId, differentSenderId);
+
+      // Assert
+      expect(MockedChatMessageModel.find).toHaveBeenCalledWith({
+        $or: [
+          { ride: differentRideId },
+          { sender: differentSenderId }
+        ]
+      });
+    });
+
+    it('should handle find method failure', async () => {
+      // Arrange
+      MockedChatMessageModel.find = jest.fn().mockImplementation(() => {
+        throw new Error('Find method failed');
+      });
+
+      // Act & Assert
+      await expect(chatServiceInstance.getChatHistory(mockRideId, mockSenderId))
+        .rejects
+        .toThrow('Find method failed');
     });
   });
 
   describe('exportChatHistoryAsTxt', () => {
-    it('should return "Nenhuma mensagem nesta conversa." if no messages are found', async () => {
-      jest.spyOn(chatService, 'getChatHistory').mockResolvedValue([]);
-
-      const result = await chatService.exportChatHistoryAsTxt(rideId, userId);
-
-      expect(result).toBe('Nenhuma mensagem nesta conversa.');
+    beforeEach(() => {
+      // Mock Date para testes determinísticos
+      jest.useFakeTimers();
+      jest.setSystemTime(new Date('2023-06-15T14:30:00.000Z'));
     });
 
-    it('should return correctly formatted text content', async () => {
-      const otherUserId = new mongoose.Types.ObjectId();
-      const mockMessages = [
-        { _id: 'msg1', content: 'Hello', sender: userId, createdAt: new Date('2023-01-01T10:00:00Z') },
-        { _id: 'msg2', content: 'Hi', sender: otherUserId, createdAt: new Date('2023-01-01T10:01:00Z') },
-      ];
-      jest.spyOn(chatService, 'getChatHistory').mockResolvedValue(mockMessages as any);
-
-      const result = await chatService.exportChatHistoryAsTxt(rideId, userId);
-
-      const expectedHeader = `Histórico de Chat - Carona ${rideId}\nExportado em: ${new Date().toISOString().split('T')[0]}`; // Date part only for simplicity
-      const expectedBody = [
-        `[${new Date('2023-01-01T10:00:00Z').toLocaleString()}] Você: Hello`,
-        `[${new Date('2023-01-01T10:01:00Z').toLocaleString()}] Outro: Hi`,
-      ].join('\n');
-
-      expect(result).toContain(`Histórico de Chat - Carona ${rideId}`);
-      expect(result).toContain(`[${new Date('2023-01-01T10:00:00Z').toLocaleString()}] Você: Hello`);
-      expect(result).toContain(`[${new Date('2023-01-01T10:01:00Z').toLocaleString()}] Outro: Hi`);
-    });
-  });
-});
-
-
-// Mock dependencies
-jest.mock('../../../src/models/chat');
-jest.mock('../../../src/models/ride');
-jest.mock('../../../src/models/block');
-
-const mockedChatMessageModel = ChatMessageModel as jest.Mocked<typeof ChatMessageModel>;
-const mockedRideModel = RideModel as jest.Mocked<typeof RideModel>;
-const mockedBlockModel = BlockModel as jest.Mocked<typeof BlockModel>;
-
-describe('ChatService', () => {
-  let mockIo: Server;
-  let senderId: mongoose.Types.ObjectId;
-  let rideId: mongoose.Types.ObjectId;
-
-  beforeEach(() => {
-    jest.clearAllMocks();
-    senderId = new mongoose.Types.ObjectId();
-    rideId = new mongoose.Types.ObjectId();
-
-    mockIo = {
-      to: jest.fn().mockReturnThis(),
-      emit: jest.fn(),
-    } as unknown as Server;
-
-    chatService.setIo(mockIo); // Assuming a setter for io
-
-    // Mock ChatMessageModel.create
-    mockedChatMessageModel.create.mockImplementation((data: any) => {
-      return { ...data, _id: new mongoose.Types.ObjectId(), save: jest.fn().mockResolvedValue(true) };
-    });
-  });
-
-  describe('sendMessage', () => {
-    const messageContent = 'Hello, world!';
-
-    it('should throw an error if ride is not found', async () => {
-      mockedRideModel.findById.mockResolvedValue(null);
-      await expect(chatService.sendMessage(rideId, senderId, messageContent)).rejects.toThrow('Carona não encontrada.');
+    afterEach(() => {
+      // Restaurar timers reais
+      jest.useRealTimers();
     });
 
-    it('should throw an error if sender is blocked by driver or vice-versa', async () => {
-      const mockRide = { _id: rideId, driver: new mongoose.Types.ObjectId() };
-      mockedRideModel.findById.mockResolvedValue(mockRide);
-      mockedBlockModel.findOne.mockResolvedValue({}); // Simulate a block exists
-
-      await expect(chatService.sendMessage(rideId, senderId, messageContent)).rejects.toThrow('Você está bloqueado por este usuário ou o bloqueou.');
-    });
-
-    it('should successfully send a message and emit to room', async () => {
-      const mockRide = { _id: rideId, driver: new mongoose.Types.ObjectId() };
-      mockedRideModel.findById.mockResolvedValue(mockRide);
-      mockedBlockModel.findOne.mockResolvedValue(null);
-
-      const result = await chatService.sendMessage(rideId, senderId, messageContent);
-
-      expect(mockedChatMessageModel.create).toHaveBeenCalledWith({
-        ride: rideId,
-        sender: senderId,
-        content: messageContent,
-      });
-      expect(mockIo.to).toHaveBeenCalledWith(rideId.toString());
-      expect(mockIo.emit).toHaveBeenCalledWith('newMessage', expect.objectContaining({
-        ride: rideId,
-        sender: senderId,
-        content: messageContent,
-      }));
-      expect(result.content).toBe(messageContent);
-    });
-  });
-
-  describe('getMessages', () => {
-    it('should return messages for a given rideId', async () => {
-      const mockMessages = [
-        { _id: 'msg1', content: 'Hi' },
-        { _id: 'msg2', content: 'Hello' },
-      ];
-      mockedChatMessageModel.find.mockReturnValue({ populate: jest.fn().mockResolvedValue(mockMessages) } as any);
-
-      const result = await chatService.getMessages(rideId);
-
-      expect(mockedChatMessageModel.find).toHaveBeenCalledWith({ ride: rideId });
-      expect(result).toEqual(mockMessages);
-    });
-  });
-
-  describe('getChatParticipants', () => {
-    it('should return driver and approved passengers', async () => {
-      const driverId = new mongoose.Types.ObjectId();
-      const passenger1Id = new mongoose.Types.ObjectId();
-      const passenger2Id = new mongoose.Types.ObjectId();
-
-      const mockRide = {
-        _id: rideId,
-        driver: { _id: driverId, name: 'Driver' },
-        passengers: [
-          { user: { _id: passenger1Id, name: 'Passenger1' }, status: 'approved' },
-          { user: { _id: passenger2Id, name: 'Passenger2' }, status: 'pending' },
-        ],
+    it('should export chat history as formatted text string', async () => {
+      // Arrange
+      const mockQuery = {
+        sort: jest.fn().mockResolvedValue(mockMessages)
       };
-      mockedRideModel.findById.mockResolvedValue(mockRide);
+      MockedChatMessageModel.find = jest.fn().mockReturnValue(mockQuery);
 
-      const result = await chatService.getChatParticipants(rideId);
+      const expectedHeader = `Histórico de Chat - Carona ${mockRideId}\nExportado em: 2023-06-15T14:30:00.000Z\n\n`;
+      const fmt = (d: Date) => new Date(d).toLocaleString('pt-BR', { timeZone: 'UTC' });
+      const expectedBody = [
+        `[${fmt(new Date('2023-01-01T10:00:00.000Z'))}] Você: Primeira mensagem`,
+        `[${fmt(new Date('2023-01-01T10:05:00.000Z'))}] Outro: Segunda mensagem`,
+        `[${fmt(new Date('2023-01-01T10:10:00.000Z'))}] Você: Terceira mensagem`
+      ].join('\n');
+      const expectedResult = expectedHeader + expectedBody;
 
-      expect(mockedRideModel.findById).toHaveBeenCalledWith(rideId);
-      expect(result).toEqual(expect.arrayContaining([
-        expect.objectContaining({ _id: driverId }),
-        expect.objectContaining({ _id: passenger1Id }),
-      ]));
-      expect(result).toHaveLength(2);
+      // Act
+      const result = await chatServiceInstance.exportChatHistoryAsTxt(mockRideId, mockSenderId);
+
+      // Assert
+      expect(MockedChatMessageModel.find).toHaveBeenCalledWith({
+        $or: [
+          { ride: mockRideId },
+          { sender: mockSenderId }
+        ]
+      });
+      expect(result).toBe(expectedResult);
     });
 
-    it('should throw an error if ride is not found', async () => {
-      mockedRideModel.findById.mockResolvedValue(null);
-      await expect(chatService.getChatParticipants(rideId)).rejects.toThrow('Carona não encontrada.');
+    it('should return default message when no messages found', async () => {
+      // Arrange
+      const mockQuery = {
+        sort: jest.fn().mockResolvedValue([])
+      };
+      MockedChatMessageModel.find = jest.fn().mockReturnValue(mockQuery);
+
+      // Act
+      const result = await chatServiceInstance.exportChatHistoryAsTxt(mockRideId, mockSenderId);
+
+      // Assert
+      expect(result).toBe("Nenhuma mensagem nesta conversa.");
+    });
+
+    it('should correctly identify sender as "Você" when sender matches requesting user', async () => {
+      // Arrange
+      const messagesFromSender = [
+        {
+          _id: new Types.ObjectId('507f1f77bcf86cd799439017'),
+          ride: mockRideId,
+          sender: mockSenderId,
+          content: 'Mensagem do próprio usuário',
+          createdAt: new Date('2023-01-01T10:00:00.000Z')
+        }
+      ] as unknown as IChatMessage[];
+
+      const mockQuery = {
+        sort: jest.fn().mockResolvedValue(messagesFromSender)
+      };
+      MockedChatMessageModel.find = jest.fn().mockReturnValue(mockQuery);
+
+      // Act
+      const result = await chatServiceInstance.exportChatHistoryAsTxt(mockRideId, mockSenderId);
+
+      // Assert
+      expect(result).toContain('[01/01/2023, 10:00:00] Você: Mensagem do próprio usuário');
+    });
+
+    it('should correctly identify sender as "Outro" when sender differs from requesting user', async () => {
+      // Arrange
+      const messagesFromOther = [
+        {
+          _id: new Types.ObjectId('507f1f77bcf86cd799439018'),
+          ride: mockRideId,
+          sender: mockOtherUserId,
+          content: 'Mensagem de outro usuário',
+          createdAt: new Date('2023-01-01T10:00:00.000Z')
+        }
+      ] as unknown as IChatMessage[];
+
+      const mockQuery = {
+        sort: jest.fn().mockResolvedValue(messagesFromOther)
+      };
+      MockedChatMessageModel.find = jest.fn().mockReturnValue(mockQuery);
+
+      // Act
+      const result = await chatServiceInstance.exportChatHistoryAsTxt(mockRideId, mockSenderId);
+
+      // Assert
+      expect(result).toContain('[01/01/2023, 10:00:00] Outro: Mensagem de outro usuário');
+    });
+
+    it('should handle messages with special characters in content', async () => {
+      // Arrange
+      const specialMessages = [
+        {
+          _id: new Types.ObjectId('507f1f77bcf86cd799439019'),
+          ride: mockRideId,
+          sender: mockSenderId,
+          content: 'Mensagem com símbolos: !@#$%^&*()_+-=[]{}|;:,.<>?',
+          createdAt: new Date('2023-01-01T10:00:00.000Z')
+        }
+      ] as unknown as IChatMessage[];
+
+      const mockQuery = {
+        sort: jest.fn().mockResolvedValue(specialMessages)
+      };
+      MockedChatMessageModel.find = jest.fn().mockReturnValue(mockQuery);
+
+      // Act
+      const result = await chatServiceInstance.exportChatHistoryAsTxt(mockRideId, mockSenderId);
+
+      // Assert
+      expect(result).toContain('Mensagem com símbolos: !@#$%^&*()_+-=[]{}|;:,.<>?');
+    });
+
+    it('should handle messages with empty content', async () => {
+      // Arrange
+      const emptyMessages = [
+        {
+          _id: new Types.ObjectId('507f1f77bcf86cd79943901a'),
+          ride: mockRideId,
+          sender: mockSenderId,
+          content: '',
+          createdAt: new Date('2023-01-01T10:00:00.000Z')
+        }
+      ] as unknown as IChatMessage[];
+
+      const mockQuery = {
+        sort: jest.fn().mockResolvedValue(emptyMessages)
+      };
+      MockedChatMessageModel.find = jest.fn().mockReturnValue(mockQuery);
+
+      // Act
+      const result = await chatServiceInstance.exportChatHistoryAsTxt(mockRideId, mockSenderId);
+
+      // Assert
+      expect(result).toContain('[01/01/2023, 10:00:00] Você: ');
+    });
+
+    it('should handle messages with null content', async () => {
+      // Arrange
+      const nullMessages = [
+        {
+          _id: new Types.ObjectId('507f1f77bcf86cd79943901b'),
+          ride: mockRideId,
+          sender: mockSenderId,
+          content: null as unknown as string | null,
+          createdAt: new Date('2023-01-01T10:00:00.000Z')
+        }
+      ] as unknown as IChatMessage[];
+
+      const mockQuery = {
+        sort: jest.fn().mockResolvedValue(nullMessages)
+      };
+      MockedChatMessageModel.find = jest.fn().mockReturnValue(mockQuery);
+
+      // Act
+      const result = await chatServiceInstance.exportChatHistoryAsTxt(mockRideId, mockSenderId);
+
+      // Assert
+      expect(result).toContain('[01/01/2023, 10:00:00] Você: null');
+    });
+
+    it('should format multiple messages correctly', async () => {
+      // Arrange
+      const multipleMessages = [
+        {
+          _id: new Types.ObjectId('507f1f77bcf86cd79943901c'),
+          ride: mockRideId,
+          sender: mockSenderId,
+          content: 'Primeira',
+          createdAt: new Date('2023-01-01T10:00:00.000Z')
+        },
+        {
+          _id: new Types.ObjectId('507f1f77bcf86cd79943901d'),
+          ride: mockRideId,
+          sender: mockOtherUserId,
+          content: 'Segunda',
+          createdAt: new Date('2023-01-01T10:05:00.000Z')
+        }
+      ] as unknown as IChatMessage[];
+
+      const mockQuery = {
+        sort: jest.fn().mockResolvedValue(multipleMessages)
+      };
+      MockedChatMessageModel.find = jest.fn().mockReturnValue(mockQuery);
+
+      // Act
+      const result = await chatServiceInstance.exportChatHistoryAsTxt(mockRideId, mockSenderId);
+
+      // Assert
+      expect(result).toContain('[01/01/2023, 10:00:00] Você: Primeira');
+      expect(result).toContain('[01/01/2023, 10:05:00] Outro: Segunda');
+      expect(result.split('\n')).toHaveLength(5); // Header (3 lines) + 2 messages
+    });
+
+    it('should handle getChatHistory failure', async () => {
+      // Arrange
+      const mockQuery = {
+        sort: jest.fn().mockRejectedValue(new Error('Chat history failed'))
+      };
+      MockedChatMessageModel.find = jest.fn().mockReturnValue(mockQuery);
+
+      // Act & Assert
+      await expect(chatServiceInstance.exportChatHistoryAsTxt(mockRideId, mockSenderId))
+        .rejects
+        .toThrow('Chat history failed');
+    });
+
+    it('should use current ISO string for export timestamp', async () => {
+      // Arrange
+      const mockQuery = {
+        sort: jest.fn().mockResolvedValue(mockMessages)
+      };
+      MockedChatMessageModel.find = jest.fn().mockReturnValue(mockQuery);
+
+      // Act
+      const result = await chatServiceInstance.exportChatHistoryAsTxt(mockRideId, mockSenderId);
+
+      // Assert
+      expect(result).toContain('Exportado em: 2023-06-15T14:30:00.000Z');
+    });
+
+    it('should handle different date locales consistently', async () => {
+      // Arrange
+      const dateInDifferentTimezone = [
+        {
+          _id: new Types.ObjectId('507f1f77bcf86cd79943901e'),
+          ride: mockRideId,
+          sender: mockSenderId,
+          content: 'Teste timezone',
+          createdAt: new Date('2023-12-25T23:59:59.999Z')
+        }
+      ] as unknown as IChatMessage[];
+
+      const mockQuery = {
+        sort: jest.fn().mockResolvedValue(dateInDifferentTimezone)
+      };
+      MockedChatMessageModel.find = jest.fn().mockReturnValue(mockQuery);
+
+      // Act
+      const result = await chatServiceInstance.exportChatHistoryAsTxt(mockRideId, mockSenderId);
+
+      // Assert
+      expect(result).toMatch(/\[.*\] Você: Teste timezone/);
+    });
+
+    it('should handle invalid date objects gracefully', async () => {
+      // Arrange
+      const invalidDateMessage = [
+        {
+          _id: new Types.ObjectId('507f1f77bcf86cd79943901f'),
+          ride: mockRideId,
+          sender: mockSenderId,
+          content: 'Teste data inválida',
+          createdAt: new Date('invalid-date') // NaN date
+        }
+      ] as unknown as IChatMessage[];
+
+      const mockQuery = {
+        sort: jest.fn().mockResolvedValue(invalidDateMessage)
+      };
+      MockedChatMessageModel.find = jest.fn().mockReturnValue(mockQuery);
+
+      // Act
+      const result = await chatServiceInstance.exportChatHistoryAsTxt(mockRideId, mockSenderId);
+
+      // Assert
+      expect(result).toContain('Você: Teste data inválida');
+    });
+  });
+
+  describe('Edge Cases and Error Handling', () => {
+    it('should handle undefined parameters in getChatHistory', async () => {
+      // Act
+      await chatServiceInstance.getChatHistory(undefined as unknown as Types.ObjectId, undefined as unknown as Types.ObjectId);
+
+      // Assert
+      expect(MockedChatMessageModel.find).toHaveBeenCalledWith({
+        $or: [
+          { ride: undefined },
+          { sender: undefined }
+        ]
+      });
+    });
+
+    it('should handle undefined parameters in exportChatHistoryAsTxt', async () => {
+      // Arrange
+      const mockQuery = {
+        sort: jest.fn().mockResolvedValue([])
+      };
+      MockedChatMessageModel.find = jest.fn().mockReturnValue(mockQuery);
+
+      // Act
+      const result = await chatServiceInstance.exportChatHistoryAsTxt(undefined as unknown as Types.ObjectId, undefined as unknown as Types.ObjectId);
+
+      // Assert
+      expect(result).toBe("Nenhuma mensagem nesta conversa.");
+    });
+
+    it('should handle ChatMessageModel.find returning null', async () => {
+      // Arrange
+      MockedChatMessageModel.find = jest.fn().mockReturnValue(null as unknown as ReturnType<typeof MockedChatMessageModel.find>);
+
+      // Act & Assert
+      await expect(chatServiceInstance.getChatHistory(mockRideId, mockSenderId))
+        .rejects
+        .toThrow();
+    });
+
+    it('should handle sort method returning null', async () => {
+      // Arrange
+      const mockQuery = {
+        sort: jest.fn().mockResolvedValue(null)
+      };
+      MockedChatMessageModel.find = jest.fn().mockReturnValue(mockQuery);
+
+      // Act
+      const result = await chatServiceInstance.getChatHistory(mockRideId, mockSenderId);
+
+      // Assert
+      expect(result).toBeNull();
     });
   });
 });

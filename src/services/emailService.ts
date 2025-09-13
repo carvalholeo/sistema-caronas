@@ -6,7 +6,7 @@ import { EmailTemplate } from 'types/enums/email';
 import { TemplateDataMap } from 'types/types/email';
 import logger from 'utils/logger';
 
-class EmailService {
+export class EmailService {
   private templates: Map<EmailTemplate, handlebars.TemplateDelegate> = new Map();
   private layout!: handlebars.TemplateDelegate;
 

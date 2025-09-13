@@ -25,6 +25,9 @@ export class UserService {
    * @returns O usuário atualizado com a nova URL da foto.
    */
     public async updateProfilePicture(userId: string, file: Express.Multer.File) {
+        if (!file || file === null) {
+            throw new Error('Invalid file');
+        }
         const user = await UserModel.findById(userId);
         if (!user) {
             throw new Error('Usuário não encontrado.');

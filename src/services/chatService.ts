@@ -19,7 +19,7 @@ class ChatService {
 
     const header = `Histórico de Chat - Carona ${rideId}\nExportado em: ${new Date().toISOString()}\n\n`;
     const body = messages.map(msg =>
-      `[${new Date(msg.createdAt).toLocaleString()}] ${msg.sender.toString() === requestingUserId.toString() ? 'Você' : 'Outro'}: ${msg.content}`
+      `[${new Date(msg.createdAt).toLocaleString('pt-BR', { timeZone: 'UTC' })}] ${msg.sender.toString() === requestingUserId.toString() ? 'Você' : 'Outro'}: ${msg.content}`
     ).join('\n');
 
     return header + body;

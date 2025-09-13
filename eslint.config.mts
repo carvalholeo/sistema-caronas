@@ -13,5 +13,5 @@ export default defineConfig([
       globals: globals.node
     },
     ignores: ["**/node_modules/**", "**/tests/**/*.{js,mjs,cjs,ts,mts,cts}"]
-  },
+  }
 ]);
