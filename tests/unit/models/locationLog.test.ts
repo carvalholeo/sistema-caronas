@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 import { LocationLogModel } from '../../../src/models/locationLog';
 import { UserModel } from '../../../src/models/user';
 import { RideModel } from '../../../src/models/ride';
+import { VehicleModel } from '../../../src/models/vehicle';
 import { ILocationLog, IUser, IRide } from '../../../src/types';
 import { LocationLogAction } from '../../../src/types/enums/enums';
 
@@ -13,13 +14,15 @@ describe('LocationLog Model', () => {
     await LocationLogModel.deleteMany({});
     await RideModel.deleteMany({});
     await UserModel.deleteMany({});
-    user = await new UserModel({ name: 'Test User', email: 'user@test.com', matricula: 'USER123', password: 'p' }).save();
+    user = await new UserModel({ name: 'Test User', email: 'user@test.com', matricula: 'USER123', password: 'pt4767869798' }).save();
     // A ride needs a driver and vehicle, but for this test, we can create a minimal ride document
     // In a real scenario, you'd create valid related documents.
-    const driver = await new UserModel({ name: 'Driver', email: 'driver@test.com', matricula: 'DRIVER123', password: 'p' }).save();
+    const driver = await new UserModel({ name: 'Driver', email: 'driver@test.com', matricula: 'DRIVER123', password: 'p678686977' }).save();
+    const vehicle = await new VehicleModel({ owner: driver, make: 'TestMake', carModel: 'TestModel', year: 2020, licensePlate: 'ABC1234', capacity: 4, color: 'blue'}).save();
+
     ride = await new RideModel({
-        driver: driver._id,
-        vehicle: new mongoose.Types.ObjectId(),
+        driver: driver,
+        vehicle: vehicle,
         origin: { location: 'A', point: { type: 'Point', coordinates: [0,0] } },
         destination: { location: 'B', point: { type: 'Point', coordinates: [1,1] } },
         departureTime: new Date(Date.now() + 5 * 60 * 60 * 1000),
@@ -30,8 +33,8 @@ describe('LocationLog Model', () => {
 
   function createLogData(overrides = {}): Partial<ILocationLog> {
     return {
-      ride: ride._id,
-      user: user._id,
+      ride: ride,
+      user: user,
       action: LocationLogAction.SharingStarted,
       ...overrides,
     };
@@ -43,8 +46,8 @@ describe('LocationLog Model', () => {
       const log = await new LocationLogModel(logData).save();
 
       expect(log._id).toBeDefined();
-      expect(log.ride).toEqual(ride._id);
-      expect(log.user).toEqual(user._id);
+      expect(log.ride).toEqual(ride);
+      expect(log.user).toEqual(user);
       expect(log.action).toBe(LocationLogAction.SharingStarted);
       expect(log.timestamp).toBeInstanceOf(Date);
     });

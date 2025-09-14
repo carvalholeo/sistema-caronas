@@ -21,7 +21,7 @@ describe('IdempotencyRequest Model', () => {
     expect(savedRequest._id).toBeDefined();
     expect(savedRequest.key).toEqual(key);
     expect(savedRequest.status).toBe('processing');
-    expect(savedRequest.createdAt).toBeInstanceOf(Date);
+    expect(savedRequest.expiresAt).toBeInstanceOf(Date);
   });
 
   it('should create a new idempotency request in completed state', async () => {
@@ -60,7 +60,8 @@ describe('IdempotencyRequest Model', () => {
       expiresAt: new Date(),
     });
 
-    await expect(requestInvalidStatus.save()).rejects.toThrow('Validation failed: status: `invalid-status` is not a valid enum value for path `status`.');
+    await expect(requestInvalidStatus.save()).rejects.toThrow("IdempotencyRequest validation failed: status: `invalid-status` is not a valid enum value for path `status`.");
+    await expect(requestInvalidStatus.save()).rejects.toBeInstanceOf(mongoose.Error.ValidationError);
 
     const requestNoStatus = new IdempotencyRequestModel({
         key,

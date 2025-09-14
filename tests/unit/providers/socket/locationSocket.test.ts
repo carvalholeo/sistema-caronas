@@ -7,10 +7,10 @@ import { RideStatus } from '../../../../src/types/enums/enums';
 import mongoose from 'mongoose';
 
 // Mock dependencies
-jest.mock('../../../src/models/ride');
-jest.mock('../../../src/models/locationLog');
-jest.mock('../../../src/models/block');
-jest.mock('../../../src/services/locationService');
+jest.mock('../../../../src/models/ride');
+jest.mock('../../../../src/models/locationLog');
+jest.mock('../../../../src/models/block');
+jest.mock('../../../../src/services/locationService');
 
 const mockedRideModel = RideModel as jest.Mocked<typeof RideModel>;
 const mockedBlockModel = BlockModel as jest.Mocked<typeof BlockModel>;

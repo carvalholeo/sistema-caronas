@@ -89,12 +89,16 @@ export const SearchEventModel = EventModel.discriminator<ISearchEvent>(
   SearchEventSchema
 );
 
-function validationFields(data: object) {
+function validationFields(data: string | object): boolean {
   // Ensure data doesn't contain sensitive information
   if (typeof data === 'object' && data !== null) {
     const sensitiveFields = ['password', 'token', 'secret', 'key'];
     const dataString = JSON.stringify(data).toLowerCase();
     return !sensitiveFields.some(field => dataString.includes(field));
+  }
+  if (typeof data === 'string') {
+    const sensitiveFields = ['password', 'token', 'secret', 'key'];
+    return !sensitiveFields.some(field => data.toLowerCase().includes(field));
   }
   return true;
 }

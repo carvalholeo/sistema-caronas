@@ -80,32 +80,35 @@ UserSchema.methods.comparePassword = async function(password: string): Promise<b
   return await bcrypt.compare(password, this.password);
 };
 
-UserSchema.pre<IUser>('validate', function (next) {
+UserSchema.pre<IUser>('validate', async function (next) {
   if (!this.isModified('status')) {
     return next();
   }
 
-  // valor anterior do status (Mongoose 8: use opção previous)
-  const prevStatus: UserStatus | undefined = this.get('status', null, { previous: true });
+  const isStatusModified = this.isModified('status');
+  if (!this.isNew && isStatusModified) {
+    const getPreviousStatus = await UserModel.findById(this._id).select('status').lean();
+    const previousStatus: UserStatus | undefined = getPreviousStatus ? getPreviousStatus.status : undefined;
+
+    const isPreviousStatusDefinedAndModified = previousStatus && previousStatus !== this.status;
+    const isPreviousStatusAnonymizedAndModified = previousStatus === UserStatus.Anonymized && isStatusModified;
+
+    if (isPreviousStatusDefinedAndModified) {
+      const allowedStatuses = allowedTransitions[previousStatus] || [];
+      if (!allowedStatuses.includes(this.status) && !isPreviousStatusAnonymizedAndModified) {
+        return next(new Error(`Invalid status transition from ${previousStatus} to ${this.status}`));
+      }
+
+      if (isPreviousStatusAnonymizedAndModified) {
+        return next(new Error('User is anonymized (terminal); status cannot change'));
+      }
+    }
+  }
+
 
   // documento novo: apenas Pending é permitido por padrão
-  if (this.isNew) {
-    if (this.status !== UserStatus.Pending) {
-      return next(new Error(`Invalid initial status: ${this.status}. Must start as "pending"`));
-    }
-    return next();
-  }
-
-  if (prevStatus && prevStatus !== this.status) {
-    const allowed = allowedTransitions[prevStatus] || [];
-    if (!allowed.includes(this.status)) {
-      return next(new Error(`Invalid transition: ${prevStatus} -> ${this.status}`));
-    }
-  }
-
-  // Estados terminais: anonymized é terminal
-  if (prevStatus === UserStatus.Anonymized && this.isModified('status')) {
-    return next(new Error('User is anonymized (terminal); status cannot change'));
+  if (this.isNew && this.status !== UserStatus.Pending) {
+    return next(new Error(`Invalid initial status: ${this.status}. Must start as "pending"`));
   }
 
   return next();

@@ -6,10 +6,13 @@ import { ILoginAttempt, IUser } from '../../../src/types';
 describe('LoginAttempt Model', () => {
   let user: IUser;
 
+  beforeAll(async () => {
+    user = await new UserModel({ name: 'Test User', email: 'user@test.com', matricula: 'USER123', password: 'p12345678' }).save();
+  });
+
   beforeEach(async () => {
     await LoginAttemptModel.deleteMany({});
     await UserModel.deleteMany({});
-    user = await new UserModel({ name: 'Test User', email: 'user@test.com', matricula: 'USER123', password: 'p' }).save();
   });
 
   function createAttemptData(overrides = {}): Partial<ILoginAttempt> {
@@ -18,7 +21,7 @@ describe('LoginAttempt Model', () => {
       ipAddress: '192.168.1.1',
       device: 'Test Device',
       wasSuccessful: true,
-      user: user._id,
+      user: user,
       ...overrides,
     };
   }
@@ -29,7 +32,7 @@ describe('LoginAttempt Model', () => {
       const attempt = await new LoginAttemptModel(attemptData).save();
 
       expect(attempt._id).toBeDefined();
-      expect(attempt.user).toEqual(user._id);
+      expect(attempt.user).toEqual(user);
       expect(attempt.wasSuccessful).toBe(true);
       expect(attempt.timestamp).toBeInstanceOf(Date);
     });

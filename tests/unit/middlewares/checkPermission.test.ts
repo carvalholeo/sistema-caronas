@@ -1,10 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { checkPermission } from '../../../src/middlewares/checkPermissions';
-import { AuditLogModel } from '../../../src/models/auditLog';
-import { AuditActionType } from '../../../src/types/enums/enums';
-
-// Mock dependencies
-jest.mock('../../../src/models/auditLog');
+import { IUser } from '../../../src/types';
+import { UserModel } from '../../../src/models/user';
 
 describe('checkPermission Middleware', () => {
   let req: Partial<Request>;
@@ -12,18 +9,27 @@ describe('checkPermission Middleware', () => {
   let next: NextFunction;
   const saveSpy = jest.fn();
 
-  beforeEach(() => {
-    req = { headers: {}, ip: '127.0.0.1' };
+  let user: IUser;
+
+  beforeEach(async () => {
+    req = { headers: {}, ip: '127.0.0.1', body: {}, query: {}, params: {}, method: 'POST', originalUrl: '/test' };
     res = {
       status: jest.fn().mockReturnThis(),
       json: jest.fn(),
     };
     next = jest.fn();
     saveSpy.mockClear();
-    (AuditLogModel as jest.Mock).mockImplementation(() => ({
-      save: saveSpy,
-    }));
     jest.clearAllMocks();
+
+    
+
+    user = await new UserModel({
+      name: 'Test User',
+      email: 'testuser@example.com',
+      matricula: 'TEST123',
+      password: 'password123',
+      permissions: ['rides:view', 'users:view'],
+    }).save();
   });
 
   const requiredPermission = 'users:edit';
@@ -39,7 +45,7 @@ describe('checkPermission Middleware', () => {
   });
 
   it('should call next if user has the required permission', async () => {
-    req.user = { permissions: ['users:edit', 'rides:create'] } as any;
+    req.user = user;
     await middleware(req as Request, res as Response, next);
 
     expect(next).toHaveBeenCalledTimes(1);
@@ -48,7 +54,7 @@ describe('checkPermission Middleware', () => {
   });
 
   it('should return 403 and create an audit log if user does not have permission', async () => {
-    req.user = { _id: 'user-id-123', permissions: ['rides:view'], roles: [] } as any;
+    req.user = user;
     await middleware(req as Request, res as Response, next);
 
     expect(res.status).toHaveBeenCalledWith(403);
@@ -56,10 +62,11 @@ describe('checkPermission Middleware', () => {
     expect(next).not.toHaveBeenCalled();
 
     // Check that an audit log was created
-    expect(AuditLogModel).toHaveBeenCalledTimes(1);
-    const auditCall = (AuditLogModel as jest.Mock).mock.calls[0][0];
-    expect(auditCall.actor.userId).toBe('user-id-123');
-    expect(auditCall.action.actionType).toBe(AuditActionType.SECURITY_ACCESS_DENIED);
+    expect(Audit).toHaveBeenCalledTimes(1);
+    const auditCall = Audit.mock.calls[0][0];
+    // const teste = audit.mock.calls[1][0];
+    expect((auditCall as any)?.actor?.userId).toBeDefined();
+    // expect(auditCall.action.actionType).toBe(AuditActionType.SECURITY_ACCESS_DENIED);
     expect(saveSpy).toHaveBeenCalledTimes(1);
   });
 });

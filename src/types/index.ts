@@ -33,9 +33,8 @@ export interface IAccessibilitySettings extends Document {
 export interface IDataReport extends Document {
   user: IUser;
   adminUser: IUser;
-  hash: Types.UUID;
+  hash: string;
   includedDataPoints: string[];
-  createdAt: Date;
 }
 
 export interface IBlock extends Document {
@@ -48,7 +47,7 @@ export interface IBlock extends Document {
 
 export interface IAuditLog extends Document {
   actor: {
-    userId: Types.ObjectId | IUser;
+    userId: IUser;
     isAdmin: boolean;
     ip: string;
     userAgent?: string;
@@ -75,11 +74,11 @@ export interface IAuditLog extends Document {
   createdAt: Date;
 }
 
-export interface IRide extends Document {
+export interface IRide extends Document<IRide> {
   driver: IUser;
   vehicle: IVehicle;
-  origin: { type: string; coordinates: [number, number] };
-  destination: { type: string; coordinates: [number, number] };
+  origin: { location: string; point: ILocation };
+  destination: { location: string; point: ILocation };
   intermediateStops: { location: string; point: object }[];
   departureTime: Date;
   availableSeats: number;
@@ -127,7 +126,7 @@ export interface INotificationEvent extends IEventBase {
   isCritical: boolean;
 }
 
-export interface IVehicle extends Document {
+export interface IVehicle extends Document<IVehicle> {
   owner: Types.ObjectId | IUser;
   plate: string;
   make: string;
@@ -141,7 +140,7 @@ export interface IVehicle extends Document {
   updatedAt: Date;
 }
 
-export interface RidePassenger extends Document {
+export interface IRidePassenger extends Document<IRidePassenger> {
   user: IUser;
   status: PassengerStatus;
   requestedAt: Date;
@@ -256,13 +255,13 @@ export interface ILoginAttempt extends Document {
   timestamp: Date;
 }
 
-export interface Location extends Document {
+export interface ILocation extends Document {
   type: 'Point';
   coordinates: [number, number]; // [longitude, latitude]
   address?: string;
 }
 
-export interface ILocationLog extends Document {
+export interface ILocationLog extends Document<ILocationLog> {
   ride: IRide;
   user: IUser;
   action: LocationLogAction;

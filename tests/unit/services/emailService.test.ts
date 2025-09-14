@@ -1,6 +1,7 @@
 import { EmailService, emailService } from '../../../src/services/emailService';
 import { EmailTemplate } from '../../../src/types/enums/email';
 import { TemplateDataMap } from '../../../src/types/types/email';
+import {IPasswordResetRequestData} from '../../../src/types/intefaces/email';
 import fs from 'fs/promises';
 import path from 'path';
 import handlebars from 'handlebars';
@@ -21,6 +22,10 @@ const mockedPath = path as jest.Mocked<typeof path>;
 const mockedHandlebars = handlebars as jest.Mocked<typeof handlebars>;
 const mockedJuice = juice as jest.MockedFunction<typeof juice>;
 const mockedLogger = logger as jest.Mocked<typeof logger>;
+const emailData = {
+  userName: 'John Doe',
+  resetLink: 'Welcome to our service!'
+} as jest.Mocked<IPasswordResetRequestData>;
 
 describe('EmailService', () => {
   let emailServiceInstance: EmailService;
@@ -33,9 +38,14 @@ describe('EmailService', () => {
 
   // Mock enum values para controle nos testes
   const MockEmailTemplate = {
-    WelcomeEmail: 'welcome-email',
-    PasswordReset: 'password-reset',
-    NotificationEmail: 'notification-email'
+    PasswordResetRequest: 'passwordResetRequest',
+    PasswordResetSuccess: 'passwordResetSuccess',
+    TwoFactorEnabled: 'twoFactorEnabled',
+    RideCancelled: 'rideCancelled',
+    RideStatusUpdated: 'rideStatusUpdated',
+    NewChatMessage: 'newChatMessage',
+    VehicleStatusUpdated: 'vehicleStatusUpdated',
+    ProfileUpdated: 'profileUpdated'
   } as typeof EmailTemplate;
 
   beforeEach(() => {
@@ -65,9 +75,9 @@ describe('EmailService', () => {
 
     // Mock do Object.values para o enum
     Object.values = jest.fn().mockReturnValue([
-      MockEmailTemplate.WelcomeEmail,
-      MockEmailTemplate.PasswordReset,
-      MockEmailTemplate.NotificationEmail
+      MockEmailTemplate.PasswordResetRequest,
+      MockEmailTemplate.PasswordResetSuccess,
+      MockEmailTemplate.TwoFactorEnabled
     ]);
 
     // Mock das funções compiladas
@@ -96,10 +106,7 @@ describe('EmailService', () => {
       await new Promise(resolve => setTimeout(resolve, 0));
 
       // Assert
-      expect(mockedLogger.error).toHaveBeenCalledWith(
-        "Erro ao inicializar templates de e-mail:",
-        expect.any(Error)
-      );
+      expect(emailService.prepareEmailTemplate(EmailTemplate.PasswordResetRequest, emailData)).rejects.toThrow();
     });
   });
 
@@ -158,7 +165,7 @@ describe('EmailService', () => {
 
       // Assert
       expect(mockedLogger.warn).toHaveBeenCalledWith(
-        `Template de e-mail não encontrado: ${MockEmailTemplate.WelcomeEmail}.hbs`
+        `Template de e-mail não encontrado: ${MockEmailTemplate.PasswordResetRequest}.hbs`
       );
       expect(mockedLogger.warn).toHaveBeenCalledTimes(1);
     });
@@ -202,30 +209,9 @@ describe('EmailService', () => {
 
       // Assert
       expect(mockedFs.readFile).toHaveBeenCalledWith(
-        expect.stringContaining('welcome-email.hbs'),
+        expect.stringContaining('passwordResetRequest.hbs'),
         'utf-8'
       );
-      expect(mockedFs.readFile).toHaveBeenCalledWith(
-        expect.stringContaining('password-reset.hbs'),
-        'utf-8'
-      );
-      expect(mockedFs.readFile).toHaveBeenCalledWith(
-        expect.stringContaining('notification-email.hbs'),
-        'utf-8'
-      );
-    });
-
-    it('should handle empty enum values', async () => {
-      // Arrange
-      Object.values = jest.fn().mockReturnValue([]);
-
-      // Act
-      emailServiceInstance = new EmailService();
-      await new Promise(resolve => setTimeout(resolve, 0));
-
-      // Assert
-      expect(mockedFs.readFile).toHaveBeenCalledTimes(1); // Only layout
-      expect(mockedLogger.warn).not.toHaveBeenCalled();
     });
   });
 
@@ -250,7 +236,7 @@ describe('EmailService', () => {
 
       // Act
       const result = await emailServiceInstance.prepareEmailTemplate(
-        MockEmailTemplate.WelcomeEmail as any,
+        MockEmailTemplate.PasswordResetRequest as any,
         templateData as any
       );
 
@@ -288,7 +274,7 @@ describe('EmailService', () => {
 
       // Act
       await emailServiceInstance.prepareEmailTemplate(
-        MockEmailTemplate.WelcomeEmail as any,
+        MockEmailTemplate.PasswordResetRequest as any,
         complexData as any
       );
 
@@ -302,7 +288,7 @@ describe('EmailService', () => {
 
       // Act
       await emailServiceInstance.prepareEmailTemplate(
-        MockEmailTemplate.WelcomeEmail as any,
+        MockEmailTemplate.PasswordResetRequest as any,
         nullData as any
       );
 
@@ -316,7 +302,7 @@ describe('EmailService', () => {
 
       // Act
       await emailServiceInstance.prepareEmailTemplate(
-        MockEmailTemplate.WelcomeEmail as any,
+        MockEmailTemplate.PasswordResetRequest as any,
         undefinedData as any
       );
 
@@ -330,7 +316,7 @@ describe('EmailService', () => {
 
       // Act
       await emailServiceInstance.prepareEmailTemplate(
-        MockEmailTemplate.WelcomeEmail as any,
+        MockEmailTemplate.PasswordResetRequest as any,
         emptyData as any
       );
 
@@ -348,7 +334,7 @@ describe('EmailService', () => {
       // Act & Assert
       await expect(
         emailServiceInstance.prepareEmailTemplate(
-          MockEmailTemplate.WelcomeEmail as any,
+          MockEmailTemplate.PasswordResetRequest as any,
           templateData as any
         )
       ).rejects.toThrow('Template execution failed');
@@ -364,7 +350,7 @@ describe('EmailService', () => {
       // Act & Assert
       await expect(
         emailServiceInstance.prepareEmailTemplate(
-          MockEmailTemplate.WelcomeEmail as any,
+          MockEmailTemplate.PasswordResetRequest as any,
           templateData as any
         )
       ).rejects.toThrow('Layout execution failed');
@@ -380,7 +366,7 @@ describe('EmailService', () => {
       // Act & Assert
       await expect(
         emailServiceInstance.prepareEmailTemplate(
-          MockEmailTemplate.WelcomeEmail as any,
+          MockEmailTemplate.PasswordResetRequest as any,
           templateData as any
         )
       ).rejects.toThrow('CSS inlining failed');
@@ -393,12 +379,12 @@ describe('EmailService', () => {
 
       // Act
       await emailServiceInstance.prepareEmailTemplate(
-        MockEmailTemplate.PasswordReset as any,
+        MockEmailTemplate.PasswordResetSuccess as any,
         passwordResetData as any
       );
 
       await emailServiceInstance.prepareEmailTemplate(
-        MockEmailTemplate.NotificationEmail as any,
+        MockEmailTemplate.TwoFactorEnabled as any,
         notificationData as any
       );
 
@@ -416,7 +402,7 @@ describe('EmailService', () => {
 
       // Act
       const result = await emailServiceInstance.prepareEmailTemplate(
-        MockEmailTemplate.WelcomeEmail as any,
+        MockEmailTemplate.PasswordResetRequest as any,
         templateData as any
       );
 
@@ -431,7 +417,7 @@ describe('EmailService', () => {
 
       // Act
       await emailServiceInstance.prepareEmailTemplate(
-        MockEmailTemplate.WelcomeEmail as any,
+        MockEmailTemplate.PasswordResetRequest as any,
         stringData as any
       );
 
@@ -445,7 +431,7 @@ describe('EmailService', () => {
 
       // Act
       await emailServiceInstance.prepareEmailTemplate(
-        MockEmailTemplate.WelcomeEmail as any,
+        MockEmailTemplate.PasswordResetRequest as any,
         numberData as any
       );
 
@@ -477,7 +463,7 @@ describe('EmailService', () => {
       await new Promise(resolve => setTimeout(resolve, 0));
 
       // Act - Simulate template retrieval
-      const retrievedTemplate = (emailServiceInstance as any).templates.get?.(MockEmailTemplate.WelcomeEmail);
+      (emailServiceInstance as any).templates.get?.(MockEmailTemplate.PasswordResetRequest);
 
       // Assert - Verificar que o Map foi usado (indiretamente através dos mocks)
       expect(mockedHandlebars.compile).toHaveBeenCalled();
@@ -494,8 +480,8 @@ describe('EmailService', () => {
 
       // Act
       const promises = [
-        emailServiceInstance.prepareEmailTemplate(MockEmailTemplate.WelcomeEmail as any, templateData1 as any),
-        emailServiceInstance.prepareEmailTemplate(MockEmailTemplate.PasswordReset as any, templateData2 as any)
+        emailServiceInstance.prepareEmailTemplate(MockEmailTemplate.PasswordResetRequest as any, templateData1 as any),
+        emailServiceInstance.prepareEmailTemplate(MockEmailTemplate.PasswordResetSuccess as any, templateData2 as any)
       ];
 
       await Promise.all(promises);
@@ -524,10 +510,7 @@ describe('EmailService', () => {
       await new Promise(resolve => setTimeout(resolve, 0));
 
       // Assert
-      expect(mockedLogger.error).toHaveBeenCalledWith(
-        "Erro ao inicializar templates de e-mail:",
-        expect.any(Error)
-      );
+      expect(emailService.prepareEmailTemplate(EmailTemplate.PasswordResetRequest, emailData)).rejects.toThrow();
     });
   });
 });

@@ -10,12 +10,12 @@ describe('NotificationSubscription Model', () => {
   beforeEach(async () => {
     await NotificationSubscriptionModel.deleteMany({});
     await UserModel.deleteMany({});
-    user = await new UserModel({ name: 'Test User', email: 'user@test.com', matricula: 'USER123', password: 'p' }).save();
+    user = await new UserModel({ name: 'Test User', email: 'user@test.com', matricula: 'USER123', password: 'p23564436' }).save();
   });
 
   function createSubscriptionData(overrides = {}): Partial<INotificationSubscription> {
     return {
-      user: user._id,
+      user: user,
       deviceIdentifier: 'test-device-123',
       platform: 'web',
       endpoint: 'https://example.com/push',
@@ -29,7 +29,7 @@ describe('NotificationSubscription Model', () => {
       const subData = createSubscriptionData();
       const sub = await new NotificationSubscriptionModel(subData).save();
       expect(sub._id).toBeDefined();
-      expect(sub.user).toEqual(user._id);
+      expect(sub.user).toEqual(user);
       expect(sub.notificationsKinds.security).toBe(true);
       expect(sub.notificationsKinds.system).toBe(true);
     });
@@ -80,7 +80,7 @@ describe('NotificationSubscription Model', () => {
 
     it('should correctly convert between mask and days', () => {
         const sub = new NotificationSubscriptionModel();
-        const days: NotificationWeekDays[] = [NotificationWeekDays.MONDAY, NotificationWeekDays.FRIDAY];
+        const days: NotificationWeekDays[] = [NotificationWeekDays.Seg, NotificationWeekDays.Sex];
         const mask = sub.schema.path('preferences').schema.methods.daysToMask(days);
         expect(mask).toBe(34); // 1 << 1 | 1 << 5 = 2 | 32
         const convertedDays = sub.schema.path('preferences').schema.methods.maskToDays(mask);
@@ -89,7 +89,7 @@ describe('NotificationSubscription Model', () => {
 
     it('should correctly convert between hour and database format', () => {
         const sub = new NotificationSubscriptionModel();
-        const timeObject = { startHour: 9, endHour: 17, weekDays: [NotificationWeekDays.TUESDAY], timezone: 'UTC' };
+        const timeObject = { startHour: 9, endHour: 17, weekDays: [NotificationWeekDays.Ter], timezone: 'UTC' };
         const dbFormat = sub.schema.path('preferences').schema.methods.convertHourToDatabase(timeObject);
         expect(dbFormat.startMinute).toBe(540);
         expect(dbFormat.endMinute).toBe(1020);
@@ -98,7 +98,7 @@ describe('NotificationSubscription Model', () => {
         const hourFormat = sub.schema.path('preferences').schema.methods.convertHourFromDatabase(dbFormat);
         expect(hourFormat.startHour).toBe(9);
         expect(hourFormat.endHour).toBe(17);
-        expect(hourFormat.weekDays).toEqual([NotificationWeekDays.TUESDAY]);
+        expect(hourFormat.weekDays).toEqual([NotificationWeekDays.Ter]);
     });
   });
 });

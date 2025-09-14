@@ -1,8 +1,9 @@
 import { Schema, model } from 'mongoose';
-import { IRide, Location, RidePassenger } from 'types';
+import { IRide, IUser, ILocation, IRidePassenger } from 'types';
 import { PassengerStatus, RideStatus, VehicleStatus } from 'types/enums/enums';
+import { VehicleModel } from './vehicle';
 
-const PointSchema = new Schema<Location>({
+const PointSchema = new Schema<ILocation>({
   type: { type: String, enum: ['Point'], required: true },
   coordinates: {
     type: [Number],
@@ -19,10 +20,10 @@ const PointSchema = new Schema<Location>({
   address: { type: String },
 }, { _id: false });
 
-const PassengerSchema = new Schema<RidePassenger>({
+const PassengerSchema = new Schema<IRidePassenger>({
   user: { type: Schema.Types.ObjectId, ref: 'User', required: true },
   status: { type: String, enum: Object.values(PassengerStatus), default: PassengerStatus.Pending },
-  requestedAt: { type: Date, default: Date.now },
+  requestedAt: { type: Date, default: Date.now, immutable: true },
   managedAt: { type: Date },
 });
 
@@ -64,39 +65,49 @@ RideSchema.methods.canBeCancelled = function (): boolean {
 };
 
 //Ride Passenger
-PassengerSchema.pre<RidePassenger>('validate', function (next) {
-  // requestedAt imutável após criação
-  if (!this.isNew && this.isModified('requestedAt')) {
-    return next(new Error('requestedAt cannot be modified after creation'));
-  }
-
-  if (this.isModified('status')) {
-    const prev: PassengerStatus | undefined = this.get('status', null, { previous: true });
-
-    if (this.isNew) {
-      if (this.status !== PassengerStatus.Pending) {
-        return next(new Error(`Invalid initial status: ${this.status}. Must start as "pending"`));
-      }
-      return next();
+PassengerSchema.pre<IRidePassenger>('validate', async function (next) {
+  if (!this.isNew) {
+    // requestedAt imutável após criação
+    if (this.isModified('requestedAt')) {
+      return next(new Error('requestedAt cannot be modified after creation'));
     }
 
-    if (prev && prev !== this.status) {
-      const allowed = allowedTransitionsPassengers[prev] || [];
-      if (!allowed.includes(this.status)) {
-        return next(new Error(`Invalid status transition: ${prev} -> ${this.status}`));
+    if (this.isModified('status')) {
+      const getPreviousStatus = await PassengerModel.findById(this._id).select('status').lean();
+      const prev: PassengerStatus | undefined = getPreviousStatus?.status;
+      const isPreviousStatusDefinedAndModified = prev && prev !== this.status;
+
+      if (isPreviousStatusDefinedAndModified) {
+        const allowed = allowedTransitionsPassengers[prev] || [];
+        if (!allowed.includes(this.status)) {
+          return next(new Error(`Invalid status transition: ${prev} -> ${this.status}`));
+        }
+      }
+    }
+
+    // coerência temporal: se já houver managedAt, deve ser >= requestedAt
+    if (this.isModified('managedAt')) {
+      if (this.managedAt && this.managedAt < this.requestedAt) {
+        return next(new Error('managedAt cannot be earlier than requestedAt'));
       }
     }
   }
 
-  // coerência temporal: se já houver managedAt, deve ser >= requestedAt
-  if (this.managedAt && this.requestedAt && this.managedAt < this.requestedAt) {
-    return next(new Error('managedAt cannot be earlier than requestedAt'));
+  if (this.isNew && this.status !== PassengerStatus.Pending) {
+    return next(new Error(`Invalid initial status: ${this.status}. Must start as "pending"`));
   }
 
   return next();
 });
 
-PassengerSchema.pre<RidePassenger>('save', function (next) {
+PassengerSchema.pre<IRidePassenger>('save', function (next) {
+  if (!this.isNew) {
+    // requestedAt imutável após criação
+    if (this.isModified('requestedAt')) {
+      return next(new Error('requestedAt cannot be modified after creation'));
+    }
+  }
+
   if (this.isModified('status')) {
     switch (this.status as PassengerStatus) {
       case PassengerStatus.Approved:
@@ -123,36 +134,6 @@ RideSchema.pre<IRide>('validate', function (next) {
   if (!this.isNew && this.isModified('departureTime')) {
     if (this.departureTime.getTime() < Date.now() + 2 * 60 * 60 * 1000) {
       return next(new Error('Updated departure time must be at least 2 hours in the future'));
-    }
-  }
-
-  // Edição bloqueada com passageiros pendentes/aceitos
-  const hasBlockingPassengers =
-    Array.isArray(this.passengers) &&
-    this.passengers.some((p) => p.status === PassengerStatus.Pending || p.status === PassengerStatus.Approved);
-
-  // Edição bloqueada até 1h antes (qualquer alteração estrutural)
-  const isWithinOneHour = this.departureTime.getTime() - Date.now() <= 60 * 60 * 1000;
-
-  // Quais paths não podem ser editados nessas condições?
-  // Bloquear se QUALQUER modificação ocorrer quando deveria estar bloqueado
-  if (!this.isNew && (hasBlockingPassengers || isWithinOneHour)) {
-    // Se apenas status está mudando para Cancelled, pode-se permitir dependendo da política; aqui, bloqueamos edições gerais.
-    // Verifique se há qualquer modificação
-    const modifiedPaths = this.modifiedPaths();
-    // Permitir apenas status -> Cancelled dentro da janela e com bloqueio de passageiros
-    const onlyCancel =
-      modifiedPaths.length === 1 &&
-      modifiedPaths.includes('status') &&
-      this.get('status') === RideStatus.Cancelled;
-
-    if (!onlyCancel) {
-      if (hasBlockingPassengers) {
-        return next(new Error('Ride cannot be edited while there are pending or approved passengers'));
-      }
-      if (isWithinOneHour) {
-        return next(new Error('Ride cannot be edited within 1 hour before departureTime'));
-      }
     }
   }
 
@@ -189,6 +170,38 @@ RideSchema.pre<IRide>('validate', function (next) {
       return next(
         new Error(`Cannot reduce availableSeats below current approved passengers (${approvedCount})`)
       );
+    }
+  }
+
+  // Edição bloqueada com passageiros pendentes/aceitos
+  const hasBlockingPassengers =
+    Array.isArray(this.passengers) &&
+    this.passengers.some((p) => p.status === PassengerStatus.Pending || p.status === PassengerStatus.Approved);
+
+  // Edição bloqueada até 1h antes (qualquer alteração estrutural)
+  const isWithinOneHour = this.departureTime.getTime() - Date.now() <= 60 * 60 * 1000;
+
+  const isPasssengerChanging = this.isModified('passengers');
+
+  // Quais paths não podem ser editados nessas condições?
+  // Bloquear se QUALQUER modificação ocorrer quando deveria estar bloqueado
+  if (!this.isNew && (hasBlockingPassengers || isWithinOneHour) && !isPasssengerChanging) {
+    // Se apenas status está mudando para Cancelled, pode-se permitir dependendo da política; aqui, bloqueamos edições gerais.
+    // Verifique se há qualquer modificação
+    const modifiedPaths = this.modifiedPaths();
+    // Permitir apenas status -> Cancelled dentro da janela e com bloqueio de passageiros
+    const onlyCancel =
+      modifiedPaths.length === 1 &&
+      modifiedPaths.includes('status') &&
+      this.get('status') === RideStatus.Cancelled;
+
+    if (!onlyCancel) {
+      if (hasBlockingPassengers) {
+        return next(new Error('Ride cannot be edited while there are pending or approved passengers'));
+      }
+      if (isWithinOneHour) {
+        return next(new Error('Ride cannot be edited within 1 hour before departureTime'));
+      }
     }
   }
 
@@ -231,11 +244,22 @@ RideSchema.pre<IRide>('save', async function (next) {
   // Considera o dia do departureTime
   if (this.driver && this.departureTime) {
     const { start, end } = dayBounds(this.departureTime);
-    const criteria = {
-      _id: {},
+    interface ICriteria {
+      _id?: {
+        $ne: unknown;
+      };
+      driver: IUser;
+      departureTime: {
+        $gte: Date;
+        $lte: Date;
+      };
+    }
+
+    const criteria: ICriteria = {
       driver: this.driver,
-      departureTime: { $gte: start, $lte: end },
+      departureTime: { $gte: start, $lte: end }
     };
+
     if (!this.isNew) {
       criteria._id = { $ne: this._id };
     }
@@ -245,9 +269,8 @@ RideSchema.pre<IRide>('save', async function (next) {
     }
   }
 
-  if (this.isNew || this.isModified('vehicle')) {
-    const Vehicle = model('Vehicle');
-    const vehicle = await Vehicle.findById(this.vehicle).select({ status: 1, owner: 1 });
+  if (!this.isNew && this.isModified('vehicle')) {
+    const vehicle = await VehicleModel.findById(this.vehicle).select({ status: 1, owner: 1 });
 
     if (!vehicle) {
       return next(new Error('Vehicle not found'));
@@ -257,44 +280,51 @@ RideSchema.pre<IRide>('save', async function (next) {
       return next(new Error('Vehicle must be active and approved to create rides'));
     }
 
-    if (vehicle.owner?.toString?.() !== this.driver.toString()) {
+    if (vehicle.owner !== this.driver) {
       return next(new Error('Driver must own the vehicle'));
     }
   }
 
   if (this.isModified('status')) {
     const prev: RideStatus | undefined = this.get('status', null, { previous: true });
-    if (prev === RideStatus.Scheduled && this.status !== RideStatus.Scheduled) {
-      if (Array.isArray(this.passengers)) {
+    if (prev === RideStatus.Scheduled && Array.isArray(this.passengers)) {
+
+
+      if (this.status === RideStatus.Cancelled) {
         for (const p of this.passengers) {
-          if ([PassengerStatus.Pending, PassengerStatus.Approved].includes(p.status)) {
+          if ([PassengerStatus.Pending].includes(p.status)) {
             p.status = PassengerStatus.Cancelled;
           }
         }
       }
-    }
-  }
 
-  if (this.isModified('status')) {
-    if (this.status === RideStatus.Cancelled) {
-      if (!this.canceledAt) this.canceledAt = new Date();
-      if (!this.cancelReason) {
-        return next(new Error('Cancel reason is required when cancelling a ride'));
+      if (this.status === RideStatus.InProgress) {
+        for (const p of this.passengers) {
+          if (p.status === PassengerStatus.Pending) {
+            p.status = PassengerStatus.Rejected;
+          }
+        }
+      }
+
+      if (this.isModified('status')) {
+        if (this.status === RideStatus.Cancelled) {
+          if (!this.canceledAt) this.canceledAt = new Date();
+          if (!this.cancelReason) {
+            return next(new Error('Cancel reason is required when cancelling a ride'));
+          }
+        }
+        this.canceledAt = undefined;
       }
     }
-    this.canceledAt = undefined;
+    // Garantir que readaptações de passageiros aprovados comecem com Scheduled/InProgress
+    // e InProgress só se houver driver definido (already required)
   }
-
-  // Garantir que readaptações de passageiros aprovados comecem com Scheduled/InProgress
-  // e InProgress só se houver driver definido (already required)
-
   return next();
 });
 
-
 const allowedTransitionsPassengers: Record<PassengerStatus, PassengerStatus[]> = {
   [PassengerStatus.Pending]: [PassengerStatus.Approved, PassengerStatus.Rejected, PassengerStatus.Cancelled],
-  [PassengerStatus.Approved]: [],
+  [PassengerStatus.Approved]: [PassengerStatus.Cancelled],
   [PassengerStatus.Rejected]: [],
   [PassengerStatus.Cancelled]: [],
 };
@@ -313,3 +343,5 @@ function dayBounds(date: Date) {
 }
 
 export const RideModel = model<IRide>('Ride', RideSchema);
+export const PassengerModel = model<IRidePassenger>('RidePassenger', PassengerSchema);
+export const PointModel = model<ILocation>('Point', PointSchema);

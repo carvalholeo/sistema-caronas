@@ -1,12 +1,12 @@
 import { Schema, model } from 'mongoose';
 import { IVehicle } from 'types';
 import { RideStatus, VehicleStatus } from 'types/enums/enums';
+import { RideModel } from './ride';
 
 const VehicleSchema = new Schema<IVehicle>({
   owner: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
   plate: {
     type: String,
-    required: true,
     uppercase: true,
     trim: true,
     match: [
@@ -55,27 +55,38 @@ const VehicleSchema = new Schema<IVehicle>({
 }, { timestamps: true });
 
 VehicleSchema.index(
-  { plate: 1 },
+  { plate: 1, status: 1 },
   { unique: true, partialFilterExpression: { status: VehicleStatus.Active } }
 );
 
-async function hasActiveRides(vehicleId: Schema.Types.ObjectId): Promise<boolean> {
-  const Ride = model('Ride');
-  const count = await Ride.countDocuments({
-    vehicle: vehicleId,
+async function hasActiveRides(vehicleId: IVehicle): Promise<boolean> {
+  const existingActiveRide = await RideModel.findOne({
+    vehicle: vehicleId._id,
     status: { $in: [RideStatus.InProgress, RideStatus.Scheduled] },
-  }).lean();
-  return count > 0;
+  }).select({ _id: 1 });
+  return existingActiveRide !== null;
 }
 
 VehicleSchema.pre<IVehicle>('validate', async function (next) {
   if (!this.isNew && this.isModified('owner') && this.status === VehicleStatus.Active) {
     return next(new Error('Owner cannot be changed while vehicle is active'));
   }
-  if (!this.plate) return next();
-  const plateChanged = this.isNew || this.isModified('plate') || this.isModified('status');
 
-  if (plateChanged) {
+  const changingCritical =
+    this.isModified('status') ||
+    this.isModified('plate') ||
+    this.isModified('capacity');
+    const activeRides = await hasActiveRides(this);
+
+  if (changingCritical && activeRides) {
+    return next(new Error('Vehicle cannot be deactivated or have plate/capacity edited while there are scheduled or in-progress rides'));
+  }
+
+  if (!this.plate) return next();
+
+  const plateStatusChanged = !this.isNew && (this.isModified('plate') || this.isModified('status'));
+
+  if (plateStatusChanged || this.isNew) {
     const existingActive = await VehicleModel.findOne({
       _id: { $ne: this._id },
       plate: this.plate,
@@ -87,42 +98,9 @@ VehicleSchema.pre<IVehicle>('validate', async function (next) {
     if (existingActive) {
       // Se já há ativo com a mesma placa → este deve ficar Pending
       this.status = VehicleStatus.Pending;
-    } else {
-      // Se não há ativo com a mesma placa → pode ficar Active (se não foi explicitamente setado para outro)
-      if (!this.status || [VehicleStatus.Pending, VehicleStatus.Inactive, VehicleStatus.Rejected].includes(this.status)) {
-        this.status = VehicleStatus.Active;
-      }
     }
   }
   return next();
-});
-
-VehicleSchema.pre<IVehicle>('save', async function (next) {
-  if (!this.isNew && !this.isModified('plate')) {
-    return next();
-  }
-
-  const changingCritical =
-    this.isModified('status') ||
-    this.isModified('plate') ||
-    this.isModified('capacity');
-
-  if (changingCritical) {
-    const activeRides = await hasActiveRides(this._id as Schema.Types.ObjectId);
-    if (activeRides) {
-      // permitir apenas alterações não críticas quando há rides ativas
-      // bloquear: desativar (status para Inactive/Rejected/Pending), trocar plate, alterar capacity
-      const statusChange = this.isModified('status') && this.status !== VehicleStatus.Active;
-      const plateChange = this.isModified('plate');
-      const capacityChange = this.isModified('capacity');
-
-      if (statusChange || plateChange || capacityChange) {
-        return next(new Error('Vehicle cannot be deactivated or have plate/capacity edited while there are scheduled or in-progress rides'));
-      }
-    }
-  }
-
-  next();
 });
 
 export const VehicleModel = model<IVehicle>('Vehicle', VehicleSchema);

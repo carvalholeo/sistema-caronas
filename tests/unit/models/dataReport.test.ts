@@ -11,14 +11,14 @@ describe('DataReport Model', () => {
   beforeEach(async () => {
     await DataReportModel.deleteMany({});
     await UserModel.deleteMany({});
-    user = await new UserModel({ name: 'Test User', email: 'user@test.com', matricula: 'USER123', password: 'p' }).save();
-    adminUser = await new UserModel({ name: 'Admin User', email: 'admin@test.com', matricula: 'ADMIN123', password: 'p', roles: ['admin'] }).save();
+    user = await new UserModel({ name: 'Test User', email: 'user@test.com', matricula: 'USER123', password: 'p3536457463' }).save();
+    adminUser = await new UserModel({ name: 'Admin User', email: 'admin@test.com', matricula: 'ADMIN123', password: 'phfhfhrhsgs', roles: ['admin'] }).save();
   });
 
   function createReportData(overrides = {}): Partial<IDataReport> {
     return {
-      user: user._id,
-      adminUser: adminUser._id,
+      user: user,
+      adminUser: adminUser,
       hash: uuidv4(),
       includedDataPoints: ['profile', 'rides'],
       ...overrides,
@@ -31,11 +31,9 @@ describe('DataReport Model', () => {
       const report = await new DataReportModel(reportData).save();
 
       expect(report._id).toBeDefined();
-      expect(report.user).toEqual(user._id);
-      expect(report.adminUser).toEqual(adminUser._id);
+      expect(report.user).toEqual(user);
+      expect(report.adminUser).toEqual(adminUser);
       expect(report.includedDataPoints).toEqual(['profile', 'rides']);
-      expect(report.createdAt).toBeInstanceOf(Date);
-      expect(report.updatedAt).toBeUndefined();
     });
 
     it('should fail if required fields are missing', async () => {

@@ -5,7 +5,7 @@ import { getRedisClient } from '../../../../src/providers/cache/redis';
 // Mock the express-rate-limit library
 jest.mock('express-rate-limit');
 jest.mock('rate-limit-redis');
-jest.mock('../../../src/providers/cache/redis');
+jest.mock('../../../../src/providers/cache/redis');
 
 const mockedRateLimit = rateLimit as jest.Mock;
 const mockedRedisStore = RedisStore as jest.MockedClass<typeof RedisStore>;

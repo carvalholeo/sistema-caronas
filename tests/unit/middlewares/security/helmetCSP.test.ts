@@ -3,7 +3,7 @@ import helmet from 'helmet';
 // Mock the helmet library
 jest.mock('helmet');
 
-const mockedHelmet = helmet as jest.Mock;
+const mockedHelmet = helmet as unknown as jest.Mock;
 
 describe('Helmet CSP Middleware', () => {
 

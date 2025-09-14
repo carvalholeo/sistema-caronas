@@ -1,6 +1,7 @@
 import { UserModel } from '../../../src/models/user';
 import { UserStatus } from '../../../src/types/enums/enums';
 import { IUser } from '../../../src/types';
+import { Types } from 'mongoose';
 
 describe('User Model', () => {
   beforeEach(async () => {
@@ -9,12 +10,14 @@ describe('User Model', () => {
 
   function createTestUser(overrides?: Partial<IUser>) {
     const userData: IUser = {
+      _id: new Types.ObjectId(),
       name: 'Test User',
       email: `test.${Date.now()}@example.com`,
       matricula: `TEST${Date.now()}`,
       password: 'password123',
       ...overrides,
     } as IUser;
+
     return new UserModel(userData);
   }
 
@@ -25,17 +28,17 @@ describe('User Model', () => {
       await user.save();
 
       const userInDb = await UserModel.findById(user._id).select('+password');
-      
+
       expect(userInDb?.password).not.toBe('password123');
       expect(await userInDb?.comparePassword('password123')).toBe(true);
       expect(userInDb?.sessionVersion).toBe(initialVersion + 1);
     });
 
     it('should correctly compare a bad password', async () => {
-        const user = createTestUser();
-        await user.save();
-        const userInDb = await UserModel.findById(user._id).select('+password');
-        expect(await userInDb?.comparePassword('wrongpassword')).toBe(false);
+      const user = createTestUser();
+      await user.save();
+      const userInDb = await UserModel.findById(user._id).select('+password');
+      expect(await userInDb?.comparePassword('wrongpassword')).toBe(false);
     });
 
     it('should not allow duplicate emails', async () => {
@@ -46,13 +49,13 @@ describe('User Model', () => {
     });
 
     it('should fail for invalid email format', async () => {
-        const user = createTestUser({ email: 'invalid-email' });
-        await expect(user.save()).rejects.toThrow('Please enter a valid email address');
+      const user = createTestUser({ email: 'invalid-email' });
+      await expect(user.save()).rejects.toThrow('Please enter a valid email address');
     });
 
     it('should fail for invalid matricula format', async () => {
-        const user = createTestUser({ matricula: '123ABC' }); // Must start with a letter
-        await expect(user.save()).rejects.toThrow('Work ID must start with a letter');
+      const user = createTestUser({ matricula: '123ABC' }); // Must start with a letter
+      await expect(user.save()).rejects.toThrow('Work ID must start with a letter');
     });
   });
 
@@ -79,6 +82,7 @@ describe('User Model', () => {
       await expect(user.save()).rejects.toThrow(/Invalid initial status/i);
     });
 
+
     for (const fromStatus of Object.values(UserStatus)) {
       const allowed = allowedTransitions[fromStatus] || [];
       for (const toStatus of allowed) {
@@ -93,26 +97,37 @@ describe('User Model', () => {
 
       const disallowed = Object.values(UserStatus).filter(s => !allowed.includes(s) && s !== fromStatus);
       for (const toStatus of disallowed) {
-        it(`should block transition from ${fromStatus} to ${toStatus}`, async () => {
-          const user = await createTestUser().save();
-          user.status = fromStatus;
-          await user.save();
-          user.status = toStatus;
-          await expect(user.save()).rejects.toThrow(/Invalid initial/i);
-        });
+        if (fromStatus !== UserStatus.Anonymized) {
+          it(`should block transition from ${fromStatus} to ${toStatus}`, async () => {
+            const user = await createTestUser().save();
+            user.status = fromStatus;
+            await user.save();
+            user.status = toStatus;
+            await expect(user.save()).rejects.toThrow(`Invalid status transition from ${fromStatus} to ${toStatus}`);
+          });
+        } else {
+          it(`should block transition from ${fromStatus} to ${toStatus}`, async () => {
+            const user = await createTestUser().save();
+            user.status = fromStatus;
+            await user.save();
+            user.status = toStatus;
+            await expect(user.save()).rejects.toThrow('User is anonymized (terminal); status cannot change');
+          });
+        }
       }
     }
 
     it('should block any status change after "Anonymized" (terminal state)', async () => {
       const user = await createTestUser().save();
-      await user.save();
+      expect(user.status).toBe(UserStatus.Pending);
+
       user.status = UserStatus.Anonymized;
       await user.save();
+      expect(user.status).toBe(UserStatus.Anonymized);
 
       user.status = UserStatus.Pending;
-      await user.save();
 
-      await expect(user.save()).rejects.toThrow(/cannot/i);
+      await expect(user.save()).rejects.toThrow('User is anonymized (terminal); status cannot change');
     });
 
     it('should allow non-status writes without triggering state machine', async () => {

@@ -1,6 +1,6 @@
 import { Schema, model, Document } from 'mongoose';
 
-export interface IIdempotencyRequest extends Document {
+export interface IIdempotencyRequest extends Document<IIdempotencyRequest> {
   key: Schema.Types.UUID;
   status: 'processing' | 'completed';
   responseStatusCode?: number;

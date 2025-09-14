@@ -1,5 +1,5 @@
 import { Schema, Types, model } from 'mongoose';
-import { IChatMessage, IRide, RidePassenger } from 'types';
+import { IChatMessage, IRide, IRidePassenger } from 'types';
 import { MessageStatus } from 'types/enums/enums';
 
 const ChatMessageSchema = new Schema<IChatMessage>({
@@ -50,7 +50,7 @@ ChatMessageSchema.pre<IChatMessage>('validate', async function (next) {
 
     const senderStr = this.sender.toString();
     const isDriver = ride.driver?.toString?.() === senderStr;
-    const isPassenger = Array.isArray(ride.passengers) && ride.passengers.some((p: Partial<RidePassenger>) => {
+    const isPassenger = Array.isArray(ride.passengers) && ride.passengers.some((p: Partial<IRidePassenger>) => {
       const id = (p && (p._id || p)) as Types.ObjectId;
       return id.toString() === senderStr;
     });

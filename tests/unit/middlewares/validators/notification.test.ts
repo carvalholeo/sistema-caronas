@@ -26,13 +26,13 @@ describe('Notification Validators', () => {
     it('should fail if deviceIdentifier is missing', async () => {
       const req = { body: { platform: 'web', endpoint: 'https://example.com' } } as Request;
       const errors = await runValidation(req, subscribeValidator);
-      expect(errors.array()[0].msg).toBe('O identificador do dispositivo é obrigatório.');
+      expect(errors.array()).toContainEqual(expect.objectContaining({ msg: 'O identificador do dispositivo é obrigatório.' }));
     });
 
     it('should fail with an invalid platform', async () => {
         const req = { body: { deviceIdentifier: 'abc', platform: 'windows' } } as Request;
         const errors = await runValidation(req, subscribeValidator);
-        expect(errors.array()[0].msg).toBe('A plataforma especificada é inválida.');
+        expect(errors.array()).toContainEqual(expect.objectContaining({ msg: 'A plataforma especificada é inválida.' }));
     });
   });
 
@@ -62,7 +62,7 @@ describe('Notification Validators', () => {
     it('should fail if deviceIdentifier is missing from params', async () => {
         const req = { params: {}, body: {} } as unknown as Request;
         const errors = await runValidation(req, updatePreferencesValidator);
-        expect(errors.array()[0].msg).toBe('O identificador do dispositivo é obrigatório na URL.');
+        expect(errors.array()).toContainEqual(expect.objectContaining({ msg: 'O identificador do dispositivo é obrigatório na URL.' }));
     });
 
     it('should fail with invalid startHour in quietHours', async () => {

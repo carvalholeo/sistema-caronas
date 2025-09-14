@@ -5,7 +5,7 @@ import path from 'path';
 
 // Mock dependencies
 jest.mock('fs/promises');
-jest.mock('../../../src/utils/logger');
+jest.mock('../../../../src/utils/logger');
 
 const mockedFs = fs as jest.Mocked<typeof fs>;
 const mockedLogger = logger as jest.Mocked<typeof logger>;

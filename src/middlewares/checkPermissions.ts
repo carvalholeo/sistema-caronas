@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { AuditLogModel } from 'models/auditLog';
+import { Types } from 'mongoose';
 import { AuditActionType, AuditLogCategory, AuditLogSeverityLevels, UserRole } from 'types/enums/enums';
 
 export function checkPermission(requiredPermission: string) {
@@ -27,7 +28,7 @@ export function checkPermission(requiredPermission: string) {
       },
       target: {
         resourceType: 'Request',
-        resourceId: ''
+        resourceId: new Types.ObjectId(),
       },
       metadata: {
         severity: AuditLogSeverityLevels.CRITICAL,

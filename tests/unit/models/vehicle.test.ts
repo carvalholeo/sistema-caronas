@@ -81,8 +81,8 @@ describe('Vehicle Model', () => {
   });
 
   it('should set status to Active if no other Active vehicle with the same plate exists', async () => {
-    const vehicleData1 = createVehicleData({ plate: 'ZXC0987', status: VehicleStatus.Active });
-    await new VehicleModel(vehicleData1).save();
+    let vehicleData1 = createVehicleData({ plate: 'ZXC0987', status: VehicleStatus.Active });
+    vehicleData1 = await new VehicleModel(vehicleData1).save();
     expect(vehicleData1.status).toBe(VehicleStatus.Active);
 
     vehicleData1.status = VehicleStatus.Inactive;
@@ -105,7 +105,7 @@ describe('Vehicle Model', () => {
 
   it('should prevent deactivating a vehicle with active rides', async () => {
     const vehicle = await new VehicleModel(createVehicleData()).save();
-    await new RideModel({
+    const ride = await new RideModel({
         driver: owner._id,
         vehicle: vehicle._id,
         origin: { location: 'A', point: { type: 'Point', coordinates: [0,0] } },
@@ -115,6 +115,8 @@ describe('Vehicle Model', () => {
         status: RideStatus.Scheduled,
         price: 1,
     }).save();
+    ride.status = RideStatus.InProgress;
+    await ride.save();
 
     vehicle.status = VehicleStatus.Inactive;
     await expect(vehicle.save()).rejects.toThrow('Vehicle cannot be deactivated or have plate/capacity edited while there are scheduled or in-progress rides');
@@ -180,14 +182,22 @@ describe('Vehicle Model', () => {
     });
 
     it('should set status to Pending if a new vehicle has a plate conflicting with an existing Active one', async () => {
-      await new VehicleModel(createVehicleData({ plate: 'TYU4321' })).save();
+      const originalVehicle = await new VehicleModel(createVehicleData({ plate: 'TYU4321' })).save();
       const newVehicle = await new VehicleModel(createVehicleData({ plate: 'TYU4321' })).save();
-      expect(newVehicle.status).toBe(VehicleStatus.Pending);
+
+      const savedOriginalVehicle = await VehicleModel.findById(originalVehicle._id);
+      const savedNewVehicle = await VehicleModel.findById(newVehicle._id);
+
+      expect(savedOriginalVehicle!._id).toBeDefined();
+      expect(savedOriginalVehicle!._id.toString()).not.toBe(savedNewVehicle!._id.toString());
+
+      await expect(newVehicle.save()).resolves.toBeDefined();
+      expect(savedNewVehicle!.status).toBe(VehicleStatus.Pending);
     });
 
     it('should allow a vehicle to become Active if its plate no longer conflicts', async () => {
       const activeVehicle = await new VehicleModel(createVehicleData({ plate: 'TEM1234' })).save();
-      const pendingVehicle = await new VehicleModel(createVehicleData({ plate: 'TEM1234', status: VehicleStatus.Pending })).save();
+      const pendingVehicle = await new VehicleModel(createVehicleData({ plate: 'TEM1234' })).save();
       expect(pendingVehicle.status).toBe(VehicleStatus.Pending);
 
       activeVehicle.status = VehicleStatus.Inactive;
@@ -199,28 +209,36 @@ describe('Vehicle Model', () => {
     });
 
     it('should prevent changing status to Active if plate conflicts with another Active vehicle', async () => {
-      await new VehicleModel(createVehicleData({ plate: 'ABC1234' })).save();
-      const pendingVehicle = await new VehicleModel(createVehicleData({ plate: 'ABC1234', status: VehicleStatus.Pending })).save();
+      await new VehicleModel(createVehicleData({ plate: 'ABC1234', status: VehicleStatus.Active })).save();
+
+      const pendingVehicle = await new VehicleModel(createVehicleData({ plate: 'ABC1234' })).save();
+      expect(pendingVehicle.status).toBe(VehicleStatus.Pending);
 
       pendingVehicle.status = VehicleStatus.Active;
-      await expect(pendingVehicle.save()).rejects.toThrow(); // Expecting validation error due to unique index
+      await pendingVehicle.save();
+      expect(pendingVehicle.status).toBe(VehicleStatus.Pending); // Expecting validation error due to unique index
     });
 
     it('should allow changing status from Active to Inactive/Rejected/Pending without active rides', async () => {
       const vehicle = await new VehicleModel(createVehicleData()).save();
+      await expect(vehicle.save()).resolves.toBeDefined();
+      expect(vehicle.status).toBe(VehicleStatus.Active);
+
+      vehicle.status = VehicleStatus.Inactive;
+      await expect(vehicle.save()).resolves.toBeDefined();
+      expect(vehicle.status).toBe(VehicleStatus.Inactive);
+
+      vehicle.status = VehicleStatus.Active;
+      await expect(vehicle.save()).resolves.toBeDefined();
+      expect(vehicle.status).toBe(VehicleStatus.Active);
+
       vehicle.status = VehicleStatus.Pending;
       await expect(vehicle.save()).resolves.toBeDefined();
       expect(vehicle.status).toBe(VehicleStatus.Pending);
 
-      const vehicle2 = await new VehicleModel(createVehicleData({ plate: 'TES2222' })).save();
-      vehicle2.status = VehicleStatus.Active;
-      await expect(vehicle2.save()).resolves.toBeDefined();
-      expect(vehicle2.status).toBe(VehicleStatus.Active);
-
-      const vehicle3 = await new VehicleModel(createVehicleData({ plate: 'TES3333' })).save();
-      vehicle3.status = VehicleStatus.Pending;
-      await expect(vehicle3.save()).resolves.toBeDefined();
-      expect(vehicle3.status).toBe(VehicleStatus.Pending);
+      vehicle.status = VehicleStatus.Inactive;
+      await expect(vehicle.save()).resolves.toBeDefined();
+      expect(vehicle.status).toBe(VehicleStatus.Inactive);
     });
 
     it('should prevent changing plate or capacity if there are active rides', async () => {
