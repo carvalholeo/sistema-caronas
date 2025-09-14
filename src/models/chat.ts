@@ -51,7 +51,7 @@ ChatMessageSchema.pre<IChatMessage>('validate', async function (next) {
     const senderStr = this.sender.toString();
     const isDriver = ride.driver?.toString?.() === senderStr;
     const isPassenger = Array.isArray(ride.passengers) && ride.passengers.some((p: Partial<IRidePassenger>) => {
-      const id = (p && (p._id || p)) as Types.ObjectId;
+      const id = (p && (p._id || p));
       return id.toString() === senderStr;
     });
 

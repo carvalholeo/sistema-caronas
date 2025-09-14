@@ -15,7 +15,7 @@ describe('AuditLog Model', () => {
   function createAuditLogData(overrides = {}): Partial<IAuditLog> {
     return {
       actor: {
-        userId: actorUser._id as Types.ObjectId,
+        userId: actorUser,
         isAdmin: true,
         ip: '127.0.0.1',
       },

@@ -72,7 +72,7 @@ describe('IdempotencyRequest Model', () => {
   });
 
   it('should enforce unique key constraint', async () => {
-    const key = uuidv4();
+    const key = uuidv4().toLowerCase().toString();
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
     const request1 = new IdempotencyRequestModel({ key, status: 'processing', expiresAt });
