@@ -97,6 +97,7 @@ export interface IRide extends Document<IRide> {
   updatedAt: Date;
   canceledAt?: Date;
   cancelReason?: string;
+  canBeCancelled(): boolean;
 }
 
 export interface IRideViewEvent extends IEventBase {
@@ -127,7 +128,7 @@ export interface INotificationEvent extends IEventBase {
 }
 
 export interface IVehicle extends Document<IVehicle> {
-  owner: Types.ObjectId | IUser;
+  owner: IUser;
   plate: string;
   make: string;
   carModel: string;
