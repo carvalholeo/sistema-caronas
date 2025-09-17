@@ -51,7 +51,7 @@ describe('AuditLog Model', () => {
     });
 
     it('should fail with an invalid IP address', async () => {
-      const logData = createAuditLogData({ actor: { userId: actorUser._id, isAdmin: true, ip: 'invalid-ip' } });
+      const logData = createAuditLogData({ actor: { userId: actorUser, isAdmin: true, ip: 'invalid-ip' } });
       await expect(new AuditLogModel(logData).save()).rejects.toThrow('Invalid IP address format');
     });
 

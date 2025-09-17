@@ -1,17 +1,23 @@
-import cors from 'cors';
-
-// Mock the cors library
 jest.mock('cors');
 
-const mockedCors = cors as unknown as jest.Mock;
-
-describe('CORS Validation Middleware', () => {
+describe('CORS Middleware validation - 1', () => {
   const originalEnv = process.env;
+  let cors: NodeJS.Require;
+  let mockCors: jest.Mock;
+
+  beforeAll(() => {
+    cors = require('cors');
+    mockCors = cors as unknown as jest.Mock;
+  });
 
   beforeEach(() => {
-    jest.resetModules();
+    jest.resetAllMocks();
+    mockCors.mockClear();
     process.env = { ...originalEnv };
-    mockedCors.mockClear();
+  });
+
+  afterEach(() => {
+    jest.resetModules();
   });
 
   afterAll(() => {
@@ -19,24 +25,28 @@ describe('CORS Validation Middleware', () => {
   });
 
   it('should use default origin when FRONTEND_URL is not set', () => {
-    delete process.env.FRONTEND_URL;
+    require('../../../../src/middlewares/security/corsValidation').corsValidation();
 
-    require('../../../../src/middlewares/security/corsValidation');
-
-    expect(mockedCors).toHaveBeenCalledWith({
+    expect(mockCors).toHaveBeenCalledTimes(1);
+    expect(mockCors).toHaveBeenCalledWith({
       origin: "http://localhost:3000",
       credentials: true,
       methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-      allowedHeaders: ['Content-Type', 'Authorization', 'x-two-factor-token']
+      allowedHeaders: ['Content-Type', 'Authorization', 'two-factor-token']
     });
   });
 
   it('should use FRONTEND_URL for origin when it is set', () => {
-    const frontendUrl = 'https://my-app.com';
-    process.env.FRONTEND_URL = frontendUrl;
+    process.env.FRONTEND_URL = 'https://my-app.com';
 
-    require('../../../../src/middlewares/security/corsValidation');
+    require('../../../../src/middlewares/security/corsValidation').corsValidation();
 
-    expect(mockedCors).toHaveBeenCalled();
+    expect(mockCors).toHaveBeenCalledTimes(1);
+    expect(mockCors).toHaveBeenCalledWith({
+      origin: 'https://my-app.com',
+      credentials: true,
+      methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+      allowedHeaders: ['Content-Type', 'Authorization', 'two-factor-token']
+    });
   });
 });

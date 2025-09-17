@@ -6,7 +6,7 @@ import { AuditLogModel } from 'models/auditLog';
 import { AuditActionType, AuditLogCategory, AuditLogSeverityLevels, RideStatus } from 'types/enums/enums';
 
 class AdminRidesService {
-  public async getRideDetails(rideId: Types.ObjectId, adminId: Types.ObjectId): Promise<IRide | null> {
+  public async getRideDetails(rideId: IRide, adminId: IUser): Promise<IRide | null> {
     const ride = await RideModel.findById(rideId).populate('driver passengers.user', 'name email matricula');
     if (ride) {
       const auditEntry = new AuditLogModel({
@@ -21,7 +21,7 @@ class AdminRidesService {
         },
         target: {
           resourceType: RideModel.baseModelName,
-          resourceId: ride._id
+          resourceId: ride
         },
         metadata: {
           severity: AuditLogSeverityLevels.INFO
@@ -32,7 +32,7 @@ class AdminRidesService {
     return ride;
   }
 
-  public async cancelRide(rideId: Types.ObjectId, adminId: Types.ObjectId, reason: string): Promise<IRide | null> {
+  public async cancelRide(rideId: IRide, adminId: IUser, reason: string): Promise<IRide | null> {
     const ride = await RideModel.findById(rideId);
     if (!ride) throw new Error("Carona não encontrada.");
 
@@ -51,7 +51,7 @@ class AdminRidesService {
         },
         target: {
           resourceType: RideModel.baseModelName,
-          resourceId: ride._id
+          resourceId: ride
         },
         metadata: {
           severity: AuditLogSeverityLevels.WARN
@@ -64,7 +64,7 @@ class AdminRidesService {
     return ride;
   }
 
-  public async forcePublishRide(rideId: Types.ObjectId, adminId: Types.ObjectId, reason: string): Promise<IRide | null> {
+  public async forcePublishRide(rideId: IRide, adminId: IUser, reason: string): Promise<IRide | null> {
     // Esta lógica dependeria de um status "retido por moderação" que não existe atualmente.
     // Vamos simular a alteração de um status hipotético 'PendingModeration' para 'Scheduled'.
     const ride = await RideModel.findOne({
@@ -88,7 +88,7 @@ class AdminRidesService {
         },
         target: {
           resourceType: RideModel.baseModelName,
-          resourceId: ride._id
+          resourceId: ride
         },
         metadata: {
           severity: AuditLogSeverityLevels.WARN
@@ -123,7 +123,7 @@ class AdminRidesService {
    * @param reason - A justificativa para a alteração.
    * @param updateData - Os dados a serem atualizados.
    */
-  public async updateRide(rideId: Types.ObjectId, adminUser: IUser, reason: string, updateData: any) {
+  public async updateRide(rideId: IRide, adminUser: IUser, reason: string, updateData: any) {
     const ride = await RideModel.findById(rideId);
     if (!ride) {
       throw new Error('Carona não encontrada.');
@@ -138,7 +138,7 @@ class AdminRidesService {
 
     const auditEntry = new AuditLogModel({
         actor: {
-          userId: adminUser._id,
+          userId: adminUser,
           isAdmin: true,
           ip: '::1',
         },
@@ -149,7 +149,7 @@ class AdminRidesService {
         },
         target: {
           resourceType: RideModel.baseModelName,
-          resourceId: ride._id,
+          resourceId: ride,
           beforeState: { ...ride.toObject() },
           afterState: updateData,
         },

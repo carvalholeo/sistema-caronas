@@ -53,25 +53,25 @@ describe('AdminPrivacyService', () => {
 
     it('should throw an error for invalid 2FA code', async () => {
       mockedAuthService.verifyTwoFactorCode.mockReturnValue(false);
-      await expect(adminPrivacyService.generateDataReport(targetUser._id, adminUser, twoFactorCode)).rejects.toThrow('Código 2FA inválido.');
+      await expect(adminPrivacyService.generateDataReport(targetUser, adminUser, twoFactorCode)).rejects.toThrow('Código 2FA inválido.');
     });
 
     it('should throw an error if target user is not found', async () => {
       mockedAuthService.verifyTwoFactorCode.mockReturnValue(true);
       mockedUserModel.findById.mockResolvedValue(null);
-      await expect(adminPrivacyService.generateDataReport(targetUser._id, adminUser, twoFactorCode)).rejects.toThrow('Usuário não encontrado.');
+      await expect(adminPrivacyService.generateDataReport(targetUser, adminUser, twoFactorCode)).rejects.toThrow('Usuário não encontrado.');
     });
 
     it('should generate a data report and log audit entry', async () => {
       mockedAuthService.verifyTwoFactorCode.mockReturnValue(true);
       mockedUserModel.findById.mockResolvedValue(targetUser);
 
-      const result = await adminPrivacyService.generateDataReport(targetUser._id, adminUser, twoFactorCode);
+      const result = await adminPrivacyService.generateDataReport(targetUser, adminUser, twoFactorCode);
 
       expect(mockedDataReportModel).toHaveBeenCalledTimes(1);
       expect(mockedDataReportModel).toHaveBeenCalledWith(expect.objectContaining({
-        user: targetUser._id,
-        adminUser: adminUser._id,
+        user: targetUser,
+        adminUser: adminUser,
         hash: 'mockedhash',
         includedDataPoints: ['profile'],
       }));
@@ -86,20 +86,20 @@ describe('AdminPrivacyService', () => {
 
     it('should throw an error for invalid 2FA code', async () => {
       mockedAuthService.verifyTwoFactorCode.mockReturnValue(false);
-      await expect(adminPrivacyService.processUserRemoval(targetUser._id, adminUser, twoFactorCode)).rejects.toThrow('Código 2FA inválido.');
+      await expect(adminPrivacyService.processUserRemoval(targetUser, adminUser, twoFactorCode)).rejects.toThrow('Código 2FA inválido.');
     });
 
     it('should throw an error if target user is not found', async () => {
       mockedAuthService.verifyTwoFactorCode.mockReturnValue(true);
       mockedUserModel.findById.mockResolvedValue(null);
-      await expect(adminPrivacyService.processUserRemoval(targetUser._id, adminUser, twoFactorCode)).rejects.toThrow('Usuário não encontrado.');
+      await expect(adminPrivacyService.processUserRemoval(targetUser, adminUser, twoFactorCode)).rejects.toThrow('Usuário não encontrado.');
     });
 
     it('should anonymize user data and log audit entry', async () => {
       mockedAuthService.verifyTwoFactorCode.mockReturnValue(true);
       mockedUserModel.findById.mockResolvedValue(targetUser);
 
-      const result = await adminPrivacyService.processUserRemoval(targetUser._id, adminUser, twoFactorCode);
+      const result = await adminPrivacyService.processUserRemoval(targetUser, adminUser, twoFactorCode);
 
       expect(targetUser.name).toBe('Usuário Anonimizado');
       expect(targetUser.email).toContain('@anon.com');
@@ -117,10 +117,10 @@ describe('AdminPrivacyService', () => {
       const mockLogs = [{ _id: 'log1' }, { _id: 'log2' }];
       mockedAuditLogModel.find.mockResolvedValue(mockLogs as any);
 
-      const result = await adminPrivacyService.viewPrivacyLogs(targetUser._id, adminUser);
+      const result = await adminPrivacyService.viewPrivacyLogs(targetUser, adminUser);
 
       expect(mockedAuditLogModel).toHaveBeenCalledTimes(2); // One for the new log, one for find
-      expect(mockedAuditLogModel.find).toHaveBeenCalledWith({ 'target.id': targetUser._id, action: { $regex: /^privacidade:/ } });
+      expect(mockedAuditLogModel.find).toHaveBeenCalledWith({ 'target.id': targetUser, action: { $regex: /^privacidade:/ } });
       expect(result).toEqual(mockLogs);
     });
   });
@@ -131,17 +131,17 @@ describe('AdminPrivacyService', () => {
 
     it('should throw an error if target user is not found', async () => {
       mockedUserModel.findById.mockResolvedValue(null);
-      await expect(adminPrivacyService.sendFormalNotification(targetUser._id, adminUser, subject, body)).rejects.toThrow('Usuário alvo não encontrado.');
+      await expect(adminPrivacyService.sendFormalNotification(targetUser, adminUser, subject, body)).rejects.toThrow('Usuário alvo não encontrado.');
     });
 
     it('should send a formal notification and log audit entry', async () => {
       mockedUserModel.findById.mockResolvedValue(targetUser);
 
-      const result = await adminPrivacyService.sendFormalNotification(targetUser._id, adminUser, subject, body);
+      const result = await adminPrivacyService.sendFormalNotification(targetUser, adminUser, subject, body);
 
       expect(mockedNotificationEventModel).toHaveBeenCalledTimes(1);
       expect(mockedNotificationEventModel).toHaveBeenCalledWith(expect.objectContaining({
-        user: targetUser._id,
+        user: targetUser,
         payload: JSON.stringify({ title: subject, body }),
       }));
       expect(mockedAuditLogModel).toHaveBeenCalledTimes(1);

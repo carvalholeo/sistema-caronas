@@ -20,7 +20,7 @@ interface IReport {
 }
 
 class AdminPrivacyService {
-  public async generateDataReport(targetUserId: Types.ObjectId, adminUser: IUser, twoFactorCode: string): Promise<IReport> {
+  public async generateDataReport(targetUserId: IUser, adminUser: IUser, twoFactorCode: string): Promise<IReport> {
     if (!authService.verifyTwoFactorCode(adminUser.twoFactorSecret, twoFactorCode)) throw new Error("Código 2FA inválido.");
 
     const targetUser = await UserModel.findById(targetUserId);
@@ -35,14 +35,14 @@ class AdminPrivacyService {
 
     await new DataReportModel({
       user: targetUserId,
-      adminUser: adminUser._id,
+      adminUser: adminUser,
       hash,
       includedDataPoints: Object.keys(reportData)
     }).save();
 
     const auditEntry = new AuditLogModel({
       actor: {
-        userId: adminUser._id,
+        userId: adminUser,
         isAdmin: true,
         ip: '::1',
       },
@@ -63,7 +63,7 @@ class AdminPrivacyService {
     return { reportData, hash };
   }
 
-  public async processUserRemoval(targetUserId: Types.ObjectId, adminUser: IUser, twoFactorCode: string): Promise<{ message: string }> {
+  public async processUserRemoval(targetUserId: IUser, adminUser: IUser, twoFactorCode: string): Promise<{ message: string }> {
     if (!authService.verifyTwoFactorCode(adminUser.twoFactorSecret, twoFactorCode)) throw new Error("Código 2FA inválido.");
     const targetUser = await UserModel.findById(targetUserId);
     if (!targetUser) throw new Error("Usuário não encontrado.");
@@ -78,7 +78,7 @@ class AdminPrivacyService {
 
     const auditEntry = new AuditLogModel({
       actor: {
-        userId: adminUser._id,
+        userId: adminUser,
         isAdmin: true,
         ip: '::1',
       },
@@ -99,10 +99,10 @@ class AdminPrivacyService {
     return { message: "Usuário anonimizado com sucesso." };
   }
 
-  public async viewPrivacyLogs(targetUserId: Types.ObjectId, adminUser: IUser): Promise<IAuditLog[]> {
+  public async viewPrivacyLogs(targetUserId: IUser, adminUser: IUser): Promise<IAuditLog[]> {
     const auditEntry = new AuditLogModel({
       actor: {
-        userId: adminUser._id,
+        userId: adminUser,
         isAdmin: true,
         ip: '::1',
       },
@@ -129,7 +129,7 @@ class AdminPrivacyService {
    * @param subject - O assunto da notificação.
    * @param body - O corpo da mensagem da notificação.
    */
-  public async sendFormalNotification(targetUserId: Types.ObjectId, adminUser: IUser, subject: string, body: string) {
+  public async sendFormalNotification(targetUserId: IUser, adminUser: IUser, subject: string, body: string) {
     const targetUser = await UserModel.findById(targetUserId);
     if (!targetUser) {
       throw new Error('Usuário alvo não encontrado.');
@@ -137,7 +137,7 @@ class AdminPrivacyService {
 
     const notification = new NotificationEventModel({
       scope: NotificationScope.Privacy,
-      user: targetUser._id,
+      user: targetUser,
       category: 'system',
       statusHistory: [{
         status: 'sent',
@@ -152,7 +152,7 @@ class AdminPrivacyService {
 
     const auditEntry = new AuditLogModel({
       actor: {
-        userId: adminUser._id,
+        userId: adminUser,
         isAdmin: true,
         ip: '::1',
       },

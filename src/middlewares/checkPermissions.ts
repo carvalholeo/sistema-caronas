@@ -17,7 +17,7 @@ export function checkPermission(requiredPermission: string) {
 
     const auditEntry = new AuditLogModel({
       actor: {
-        userId: req.user?._id || null,
+        userId: req.user || null,
         isAdmin: req.user?.roles.includes(UserRole.Admin) || false,
         ip: req.ip,
         userAgent: req.headers['user-agent'] || 'Unknown'

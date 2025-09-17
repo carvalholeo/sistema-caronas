@@ -3,7 +3,6 @@ import { BlockModel } from 'models/block';
 import { UserModel } from 'models/user';
 import { AuditLogModel } from 'models/auditLog';
 import { authService } from 'services/authService';
-import { Types } from 'mongoose';
 import { IBlock, IUser } from 'types';
 import { AuditActionType, AuditLogCategory, AuditLogSeverityLevels } from 'types/enums/enums';
 
@@ -12,14 +11,14 @@ class AdminSecurityService {
     return BlockModel.find({ status: 'active' }).populate('blockerUser blockedUser', 'name email');
   }
 
-  public async getBlockDetails(blockId: Types.ObjectId, adminUser: IUser, twoFactorCode: string): Promise<IBlock | null> {
+  public async getBlockDetails(blockId: IBlock, adminUser: IUser, twoFactorCode: string): Promise<IBlock | null> {
     if (!authService.verifyTwoFactorCode(adminUser.twoFactorSecret, twoFactorCode)) throw new Error("Código 2FA inválido.");
 
     const block = await BlockModel.findById(blockId);
     if (block) {
       const auditEntry = new AuditLogModel({
         actor: {
-          userId: adminUser._id,
+          userId: adminUser,
           isAdmin: true,
           ip: '::1',
         },
@@ -40,7 +39,7 @@ class AdminSecurityService {
     return block;
   }
 
-  public async forceGlobalLogout(targetUserId: Types.ObjectId, adminUser: IUser, twoFactorCode: string): Promise<{ message: string }> {
+  public async forceGlobalLogout(targetUserId: IUser, adminUser: IUser, twoFactorCode: string): Promise<{ message: string }> {
     if (!authService.verifyTwoFactorCode(adminUser.twoFactorSecret, twoFactorCode)) throw new Error("Código 2FA inválido.");
 
     const targetUser = await UserModel.findById(targetUserId);
@@ -52,7 +51,7 @@ class AdminSecurityService {
 
     const auditEntry = new AuditLogModel({
         actor: {
-          userId: adminUser._id,
+          userId: adminUser,
           isAdmin: true,
           ip: '::1',
         },

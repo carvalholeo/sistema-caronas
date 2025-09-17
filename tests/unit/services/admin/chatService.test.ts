@@ -78,7 +78,7 @@ describe('AdminChatService', () => {
       expect(mockMessage.isModerated).toBe(true);
       expect(mockMessage.content).toBe('[Mensagem removida pela moderação]');
       expect(mockMessage.moderationDetails).toBeDefined();
-      expect(mockMessage.moderationDetails.reason).toBe(reason);
+      expect(mockMessage!.moderationDetails!.reason).toBe(reason);
       expect(mockMessage.save).toHaveBeenCalledTimes(1);
 
       expect(mockedAuditLogModel).toHaveBeenCalledTimes(1);

@@ -8,7 +8,7 @@ const auditLogger = async (req: Request, res: Response, next: NextFunction) => {
 
     const auditEntry = new AuditLogModel({
         actor: {
-            userId: user?._id || null,
+            userId: user || null,
             isAdmin: user?.roles.includes(UserRole.Admin) || false,
             ip: req.ip,
             userAgent: req.headers['user-agent'] || 'Unknown'

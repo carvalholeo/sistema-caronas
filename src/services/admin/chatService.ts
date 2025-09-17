@@ -49,7 +49,7 @@ class AdminChatService {
     message.isModerated = true;
     message.moderationDetails = {
       originalContent: message.content,
-      moderatedBy: adminId as unknown as IUser,
+      moderatedBy: adminId,
       moderatedAt: new Date(),
       reason: reason,
     };
