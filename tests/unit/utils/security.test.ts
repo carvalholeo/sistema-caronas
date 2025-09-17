@@ -2,6 +2,7 @@ import { generateToken, verifyToken } from '../../../src/utils/security';
 import jwt from 'jsonwebtoken';
 import authConfig from '../../../src/config/auth';
 import { IUser } from '../../../src/types';
+import { UserRole } from '../../../src/types/enums/enums';
 
 // Mock dependencies
 jest.mock('jsonwebtoken');
@@ -13,11 +14,11 @@ jest.mock('../../../src/config/auth', () => ({
 const mockedJwt = jwt as jest.Mocked<typeof jwt>;
 
 describe('Security Utils', () => {
-  const mockUser: IUser = {
+  const mockUser = {
     _id: 'user123',
     email: 'test@example.com',
-    roles: ['user'],
-  } as IUser;
+    roles: [UserRole.Caroneiro],
+  } as unknown as IUser;
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -27,7 +28,7 @@ describe('Security Utils', () => {
     it('should generate a JWT token with correct payload and options', () => {
       const expiresIn = '1h';
       const otherOptions = { audience: 'web' };
-      mockedJwt.sign.mockReturnValue('mock-jwt-token');
+      mockedJwt.sign.mockImplementation(() => 'mock-jwt-token');
 
       const token = generateToken(mockUser, expiresIn, otherOptions);
 

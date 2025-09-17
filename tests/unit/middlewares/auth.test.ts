@@ -69,6 +69,17 @@ describe('Auth Middleware', () => {
     expect((req as any).user).toBe(mockUser);
   });
 
+  it('should return 401 if session is expired', async () => {
+    const mockUser = { _id: 'user123', email: 'test@example.com', sessionVersion: 2 } as IUser;
+    req.headers = { authorization: 'Bearer valid-token' };
+    mockedVerifyToken.mockResolvedValue({ id: 'user123', sessionVersion: 1 });
+    mockedUserModel.findById = jest.fn().mockResolvedValue(mockUser);
+
+    await authMiddleware(req as Request, res as Response, next);
+    expect(res.status).toHaveBeenCalledWith(401);
+    expect(res.json).toHaveBeenCalledWith({ message: 'Sua sessão expirou. Por favor, faça login novamente.' });
+  });
+
   it('should handle unexpected errors', async () => {
     req.headers = { authorization: 'Bearer valid-token' };
     mockedVerifyToken.mockRejectedValue(new Error('Unexpected error'));
