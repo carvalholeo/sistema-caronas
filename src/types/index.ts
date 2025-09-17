@@ -84,12 +84,7 @@ export interface IRide extends Document<IRide> {
   availableSeats: number;
   price: number;
   status: RideStatus;
-  passengers: {
-    user: IUser;
-    status: PassengerStatus;
-    requestedAt: Date;
-    managedAt?: Date;
-  }[];
+  passengers: Types.DocumentArray<IRidePassenger>;
   isRecurrent: boolean;
   recurrenceId?: string;
   distanceKm?: number;
@@ -144,8 +139,8 @@ export interface IVehicle extends Document<IVehicle> {
 export interface IRidePassenger extends Document<IRidePassenger> {
   user: IUser;
   status: PassengerStatus;
-  requestedAt: Date;
-  managedAt?: Date;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export interface IChatMessage extends Document {
