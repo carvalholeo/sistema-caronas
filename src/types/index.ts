@@ -90,7 +90,6 @@ export interface IRide extends Document<IRide> {
   distanceKm?: number;
   createdAt: Date;
   updatedAt: Date;
-  canceledAt?: Date;
   cancelReason?: string;
   canBeCancelled(): boolean;
 }

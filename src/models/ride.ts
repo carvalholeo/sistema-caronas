@@ -46,7 +46,6 @@ const RideSchema = new Schema<IRide>({
   isRecurrent: { type: Boolean, default: false },
   recurrenceId: { type: String, index: true },
   distanceKm: { type: Number },
-  canceledAt: { type: Date },
   cancelReason: { type: String }
 }, { timestamps: true });
 
@@ -63,17 +62,29 @@ RideSchema.methods.canBeCancelled = function (): boolean {
 };
 
 //Ride Passenger
-PassengerSchema.pre<IRidePassenger>('validate', function (next) {
+PassengerSchema.pre<IRidePassenger>('validate', async function (next) {
+  const ride = this.$parent() as IRide;
+
   if (this.isNew) {
     if (this.status !== PassengerStatus.Pending) {
       return next(new Error('Invalid initial status. New passengers must start with status "pending"'));
     }
-  }
+  } else if (this.isModified('status')) {
+    // Para validar a transição, precisamos buscar o estado anterior do documento no banco
 
-  if (this.isModified('status')) {
-    const terminalStatuses = [PassengerStatus.Approved, PassengerStatus.Rejected, PassengerStatus.Cancelled];
-    if (terminalStatuses.includes(this.status as PassengerStatus)) {
-      this.updatedAt = new Date();
+    const originalRide = await RideModel.findById(ride._id).lean();
+    if (originalRide) {
+      const originalPassenger = originalRide.passengers.find(p => p.user.equals(this.user));
+
+      if (originalPassenger) {
+        const prevStatus = originalPassenger.status as PassengerStatus;
+        const nextStatus = this.status as PassengerStatus;
+        const allowed = allowedTransitionsPassengers[prevStatus] || [];
+
+        if (!allowed.includes(nextStatus)) {
+          return next(new Error(`Invalid passenger status transition: ${prevStatus} -> ${nextStatus}`));
+        }
+      }
     }
   }
   next();
@@ -97,76 +108,54 @@ PassengerSchema.pre<IRidePassenger>('save', function (next) {
   return next();
 });
 
+
 RideSchema.pre<IRide>('validate', async function (next) {
-  // --- VALIDAÇÕES GERAIS ---
-  // Mínimo de 2h de antecedência em updates
-  if (!this.isNew && this.isModified('departureTime')) {
-    if (this.departureTime.getTime() < Date.now() + 2 * 60 * 60 * 1000) {
-      return next(new Error('Updated departure time must be at least 2 hours in the future'));
-    }
-  }
-
-  // --- VALIDAÇÃO DE TRANSIÇÃO DE STATUS DA CARONA ---
-  if (this.isModified('status')) {
-    const prev = await RideModel.findById(this._id).lean();
-
-    if (this.isNew) {
-      if (this.status !== RideStatus.Scheduled) {
-        return next(new Error(`Invalid initial status: ${this.status}. Must start as "scheduled"`));
-      }
-    } else if (prev && prev.status !== this.status) {
-      const status = prev.status as RideStatus;
-      const allowed = allowedTransitionsRide[status] || [];
-
-      if (allowed.length === 0 || !allowed.includes(this.status)) {
-        return next(new Error(`Invalid status transition: ${status} -> ${this.status}`));
-      }
-    }
-  }
-
-  // --- VALIDAÇÃO DE TRANSIÇÃO DE STATUS DE PASSAGEIROS ---
-  if (!this.isNew && this.isModified('passengers')) {
-    const originalDoc = await RideModel.findById(this._id).lean();
-    if (originalDoc) {
-      this.passengers.forEach(currentPassenger => {
-        const originalPassenger = originalDoc.passengers.find(p => p.user.equals(currentPassenger.user));
-        if (originalPassenger && originalPassenger.status !== currentPassenger.status) {
-          const prevStatus = originalPassenger.status as PassengerStatus;
-          const nextStatus = currentPassenger.status as PassengerStatus;
-          const allowed = allowedTransitionsPassengers[prevStatus] || [];
-          if (!allowed.includes(nextStatus)) {
-            return next(new Error(`Invalid passenger status transition: ${prevStatus} -> ${nextStatus}`));
-          }
-        }
-      });
-    }
-  }
-
-  // --- REGRAS DE ASSENTOS ---
+  // --- SEÇÃO 1: VALIDAÇÕES UNIVERSAIS E INCONDICIONAIS ---
   const approvedCount = this.passengers.filter(p => p.status === PassengerStatus.Approved).length;
   if (approvedCount > this.availableSeats) {
     return next(new Error(`Approved passengers (${approvedCount}) exceed available seats (${this.availableSeats})`));
   }
+  // Regra 1: Transição de Status da Carona (DEVE SER A PRIMEIRA)
+  if (this.isModified('status')) {
+    if (this.isNew) {
+      if (this.status !== RideStatus.Scheduled) {
+        return next(new Error(`Invalid initial status: ${this.status}. Must start as "scheduled"`));
+      }
+    } else {
+      const originalDoc = await RideModel.findById(this._id).select('status').lean();
+      if (originalDoc && originalDoc.status !== this.status) {
+        const prevStatus = originalDoc.status as RideStatus;
+        const allowed = allowedTransitionsRide[prevStatus] || [];
+        if (!allowed.includes(this.status as RideStatus)) {
+          return next(new Error(`Invalid status transition: ${prevStatus} -> ${this.status}`));
+        }
+      } else {
+        return next();
+      }
+    }
+  }
 
-  // --- LÓGICA DE BLOQUEIO DE EDIÇÃO (CORRIGIDA) ---
-  const modifiedPaths = this.modifiedPaths();
-  // Permite apenas a modificação do array de passageiros ou do status para cancelado
-
-
-  const isOnlyPassengerOrCancelChange = modifiedPaths.every(path =>
-    path.startsWith('passengers') || path === 'status' || path === 'updatedAt'
-  );
-
-  if (!this.isNew && !isOnlyPassengerOrCancelChange) {
+  // --- VALIDAÇÃO DE EDIÇÕES PROIBIDAS (QUANDO HÁ PASSAGEIROS OU PERTO DA PARTIDA) ---
+  if (!this.isNew) {
     const hasBlockingPassengers = this.passengers.some(p => [PassengerStatus.Pending, PassengerStatus.Approved].includes(p.status));
     const isWithinOneHour = this.departureTime.getTime() - Date.now() <= 60 * 60 * 1000;
 
-    if (hasBlockingPassengers) {
-      return next(new Error('Ride cannot be edited while there are pending or approved passengers'));
+    if (hasBlockingPassengers || isWithinOneHour) {
+      const forbiddenPaths = ['origin', 'destination', 'departureTime', 'availableSeats', 'price', 'isRecurrent'];
+      const modifiedPaths = this.modifiedPaths();
+      
+      const hasForbiddenChanges = modifiedPaths.some(path => forbiddenPaths.includes(path));
+
+      if (hasForbiddenChanges) {
+        const reason = hasBlockingPassengers ? 'while there are pending or approved passengers' : 'within 1 hour before departureTime';
+        return next(new Error(`Ride cannot be edited ${reason}`));
+      }
     }
-    if (isWithinOneHour) {
-      return next(new Error('Ride cannot be edited within 1 hour before departureTime'));
-    }
+  }
+
+  // --- OUTRAS VALIDAÇÕES DE CONSISTÊNCIA ---
+  if (this.status === RideStatus.Cancelled && !this.cancelReason) {
+    return next(new Error('Cancel reason is required when cancelling a ride'));
   }
 
   return next();
@@ -245,42 +234,29 @@ RideSchema.pre<IRide>('save', async function (next) {
   }
 
   if (this.isModified('status')) {
-    const prev: RideStatus | undefined = this.get('status', null, { previous: true });
-    if (prev === RideStatus.Scheduled && Array.isArray(this.passengers)) {
-      if (this.status === RideStatus.Cancelled) {
-        for (const p of this.passengers) {
-          if ([PassengerStatus.Pending].includes(p.status)) {
-            p.id(p._id).set('status', PassengerStatus.Cancelled);
-          }
-        }
-        this.markModified('passengers');
-      }
+    const originalDoc = await RideModel.findById(this._id).lean(); // Busca o estado anterior
 
+    // Apenas aplica a regra se a transição for de 'Scheduled'
+    if (originalDoc && originalDoc.status === RideStatus.Scheduled) {
+      // Se a carona está começando, rejeita os passageiros pendentes
       if (this.status === RideStatus.InProgress) {
-        for (const p of this.passengers) {
+        let modified = false;
+        this.passengers.forEach(p => {
           if (p.status === PassengerStatus.Pending) {
-            p.id(p._id).set('status', PassengerStatus.Rejected);
+            p.status = PassengerStatus.Rejected;
+            modified = true;
           }
-        }
-        this.markModified('passengers');
-      }
-
-      if (this.status === RideStatus.Cancelled) {
-        if (!this.cancelReason) {
-          return next(new Error('Cancel reason is required when cancelling a ride'));
-        }
-        if (!this.canceledAt) {
-          this.canceledAt = new Date();
-        }
-      } else {
-        // Se o status está mudando para qualquer outra coisa, limpa os dados de cancelamento.
-        this.canceledAt = undefined;
-        this.cancelReason = undefined;
+        });
+        if (modified) this.markModified('passengers');
       }
     }
-    // Garantir que readaptações de passageiros aprovados comecem com Scheduled/InProgress
-    // e InProgress só se houver driver definido (already required)
   }
+
+  // Lógica para definir/limpar campos de cancelamento
+  if (this.status !== RideStatus.Cancelled) {
+    this.cancelReason = undefined;
+  }
+
   return next();
 });
 

@@ -4,7 +4,6 @@ import { UserModel } from '../../../src/models/user';
 import { VehicleModel } from '../../../src/models/vehicle';
 import { RideStatus, VehicleStatus, PassengerStatus } from '../../../src/types/enums/enums';
 import { ILocation, IRide, IRidePassenger, IUser, IVehicle } from '../../../src/types';
-import { request } from 'http';
 
 describe('Ride Model', () => {
   let driver: IUser;
@@ -48,10 +47,6 @@ describe('Ride Model', () => {
       capacity: 4,
       status: VehicleStatus.Active,
     }).save();
-  });
-
-  afterEach(() => {
-    jest.useRealTimers();
   });
 
   function createRideData(overrides = {}): Partial<IRide> {
@@ -112,7 +107,7 @@ describe('Ride Model', () => {
       await myVechicle!.save();
 
 
-      const rideData = createRideData({vehicle: myVechicle});
+      const rideData = createRideData({ vehicle: myVechicle });
       const ride = new RideModel(rideData);
       await expect(ride.save()).rejects.toThrow('Vehicle must be active and approved to create rides');
     });
@@ -185,39 +180,15 @@ describe('Ride Model', () => {
       expect(ride.status).toBe(RideStatus.Cancelled);
     });
 
-    it('should set canceledAt and require cancelReason when status is Cancelled', async () => {
+    it('should require cancelReason when status is Cancelled', async () => {
       const ride = await new RideModel(createRideData()).save();
       ride.status = RideStatus.Cancelled;
       await expect(ride.save()).rejects.toThrow('Cancel reason is required when cancelling a ride');
 
       ride.cancelReason = 'Driver cancelled';
       await expect(ride.save()).resolves.toBeDefined();
-      expect(ride.canceledAt).toBeInstanceOf(Date);
     });
 
-    it('should clear canceledAt if status changes from Cancelled (if possible)', async () => {
-      // Test scenario: ride is cancelled then status changes back
-      const ride = await new RideModel(createRideData()).save();
-      ride.status = RideStatus.Cancelled;
-      ride.cancelReason = 'Driver cancelled';
-      await ride.save();
-      expect(ride.canceledAt).toBeInstanceOf(Date);
-
-      // Simulate changing status back (will work since we manually clear canceledAt logic)
-      const ride2 = await new RideModel(createRideData()).save();
-      ride2.canceledAt = new Date(); // Set it manually
-      ride2.status = RideStatus.Scheduled; // No status change, but triggers save hook
-      await ride2.save();
-      expect(ride2.canceledAt).toBeUndefined();
-    });
-
-    it('should not allow canceledAt to be earlier than createdAt', async () => {
-      const ride = await new RideModel(createRideData()).save();
-      ride.status = RideStatus.Cancelled;
-      ride.cancelReason = 'test';
-      ride.canceledAt = new Date(ride.createdAt.getTime() - 1000);
-      await expect(ride.save()).rejects.toThrow('canceledAt cannot be earlier than createdAt');
-    });
   });
 
   describe('RideStatus Transitions', () => {
@@ -237,20 +208,40 @@ describe('Ride Model', () => {
     for (const fromStatus of Object.values(RideStatus)) {
       const allowed = allowedTransitionsRide[fromStatus] || [];
       for (const toStatus of allowed) {
-        it(`should allow transition from ${fromStatus} to ${toStatus}`, async () => {
-          const ride = await new RideModel(createRideData()).save();
-          ride.status = fromStatus;
-          await ride.save();
+        if (toStatus === RideStatus.Cancelled) {
+          it(`should allow transition from ${fromStatus} to ${toStatus}`, async () => {
+            const ride = await new RideModel(createRideData()).save();
+            ride.status = fromStatus;
+            await ride.save();
 
-          ride.status = toStatus;
-          await expect(ride.save()).resolves.toBeDefined();
-        });
+            ride.status = toStatus;
+            ride.cancelReason = 'Test reason for cancellation';
+            await expect(ride.save()).resolves.toBeDefined();
+          });
+        } else {
+          it(`should allow transition from ${fromStatus} to ${toStatus}`, async () => {
+            const ride = await new RideModel(createRideData()).save();
+            ride.status = fromStatus;
+            await ride.save();
+
+            ride.status = toStatus;
+            await expect(ride.save()).resolves.toBeDefined();
+          });
+        }
       }
 
       const disallowed = Object.values(RideStatus).filter(s => !allowed.includes(s) && s !== fromStatus);
       for (const toStatus of disallowed) {
         it(`should block transition from ${fromStatus} to ${toStatus}`, async () => {
-          const ride = await new RideModel(createRideData()).save();
+          const ride = new RideModel(createRideData());
+          await ride.save();
+          if (fromStatus !== RideStatus.Scheduled) {
+             await RideModel.findByIdAndUpdate(
+              ride._id,
+              { status: fromStatus },
+              { new: true, runValidators: false } // Importante: runValidators: false
+            );
+          }
           ride.status = fromStatus;
 
           await ride.save();

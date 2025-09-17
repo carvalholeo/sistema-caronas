@@ -99,7 +99,7 @@ describe('Vehicle Model', () => {
     const vehicle = await new VehicleModel(createVehicleData()).save();
     const newOwner = await new UserModel({ name: 'New Owner', email: 'newowner@example.com', matricula: 'NEWOWN123', password: 'password' }).save();
 
-    vehicle.owner = newOwner._id as Types.ObjectId;
+    vehicle.owner = newOwner;
     await expect(vehicle.save()).rejects.toThrow('Owner cannot be changed while vehicle is active');
   });
 
