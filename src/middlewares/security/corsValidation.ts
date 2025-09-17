@@ -6,7 +6,7 @@ interface CorsResponse {
   setHeader(key: string, value: string): any;
   end(): any;
 }
-export function corsValidation(req: CorsRequest, res: CorsResponse, next: NextFunction) {
+export function corsValidation() {
   const options: cors.CorsOptions = {
     origin: process.env.FRONTEND_URL || "http://localhost:3000",
     credentials: true,
@@ -14,6 +14,6 @@ export function corsValidation(req: CorsRequest, res: CorsResponse, next: NextFu
     allowedHeaders: ['Content-Type', 'Authorization', 'two-factor-token']
   };
 
-  return cors(options)(req, res, next);
+  return cors(options);
 }
 
