@@ -5,7 +5,7 @@ import { requestValidator } from '../../../src/middlewares/requestValidator';
 // Mock express-validator
 jest.mock('express-validator');
 
-const mockedValidationResult = validationResult as jest.Mock;
+const mockedValidationResult = validationResult as unknown as jest.Mock;
 
 describe('Request Validator Middleware', () => {
   let req: Partial<Request>;

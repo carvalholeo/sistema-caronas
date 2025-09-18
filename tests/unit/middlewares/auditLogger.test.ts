@@ -68,7 +68,7 @@ describe('Audit Logger Middleware', () => {
     expect(AuditLogModel).toHaveBeenCalledTimes(1);
     const auditCall = (AuditLogModel as unknown as jest.Mock).mock.calls[0][0];
 
-    expect(auditCall.actor.userId).toBe('admin-user-id');
+    expect(auditCall.actor.userId._id).toBe('admin-user-id');
     expect(auditCall.actor.isAdmin).toBe(true);
     expect(auditCall.actor.ip).toBe('127.0.0.1');
     expect(auditCall.metadata.extra.body).toEqual({ data: 'test-body' });
@@ -102,7 +102,7 @@ describe('Audit Logger Middleware', () => {
     await auditLogger(req as Request, res as Response, next);
 
     const auditCall = (AuditLogModel as unknown as jest.Mock).mock.calls[0][0];
-    expect(auditCall.actor.userId).toBe('normal-user-id');
+    expect(auditCall.actor.userId._id).toBe('normal-user-id');
     expect(auditCall.actor.isAdmin).toBe(false);
     expect(next).toHaveBeenCalledTimes(1);
   });

@@ -5,6 +5,11 @@ import logger from '../../../src/utils/logger';
 // Mock dependencies
 jest.mock('../../../src/utils/logger');
 
+interface CustomError extends Error {
+  statusCode?: number;
+  isOperational?: boolean;
+}
+
 const mockedLogger = logger as jest.Mocked<typeof logger>;
 
 describe('Error Handler Middleware', () => {
@@ -32,11 +37,11 @@ describe('Error Handler Middleware', () => {
       isOperational: true,
       message: 'Resource not found',
       stack: 'Error stack trace'
-    };
+    } as CustomError;
 
     errorHandler(err, req as Request, res as Response);
 
-    expect(mockedLogger.error).toHaveBeenCalledWith(expect.stringContaining(err.stack));
+    expect(mockedLogger.error).toHaveBeenCalledWith(expect.stringContaining((err.stack as string)));
     expect(res.status).toHaveBeenCalledWith(404);
     expect(res.json).toHaveBeenCalledWith({ success: false, message: 'Resource not found' });
   });
