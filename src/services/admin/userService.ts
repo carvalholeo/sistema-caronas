@@ -71,6 +71,7 @@ class AdminUsersService {
     if (status === UserStatus.Suspended || status === UserStatus.Banned) {
       targetUser.sessionVersion = (targetUser.sessionVersion || 0) + 1;
     }
+    targetUser.status = status;
 
     await targetUser.save();
     return targetUser;

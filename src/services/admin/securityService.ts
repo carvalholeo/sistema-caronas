@@ -4,11 +4,11 @@ import { UserModel } from 'models/user';
 import { AuditLogModel } from 'models/auditLog';
 import { authService } from 'services/authService';
 import { IBlock, IUser } from 'types';
-import { AuditActionType, AuditLogCategory, AuditLogSeverityLevels } from 'types/enums/enums';
+import { AuditActionType, AuditLogCategory, AuditLogSeverityLevels, BlockStatus } from 'types/enums/enums';
 
 class AdminSecurityService {
   public async listAllBlocks(): Promise<IBlock[]> {
-    return BlockModel.find({ status: 'active' }).populate('blockerUser blockedUser', 'name email');
+    return BlockModel.find({ status: BlockStatus.APPLIED }).populate('blockerUser blockedUser', 'name email');
   }
 
   public async getBlockDetails(blockId: IBlock, adminUser: IUser, twoFactorCode: string): Promise<IBlock | null> {

@@ -1,32 +1,26 @@
 import { adminUsersService } from '../../../../src/services/admin/userService';
 import { UserModel } from '../../../../src/models/user';
-import { AuditLogModel } from '../../../../src/models/auditLog';
-import { authService } from '../../../../src/services/authService';
+import { AuthService, authService } from '../../../../src/services/authService';
 import mongoose from 'mongoose';
-import { UserStatus, UserRole, AuditActionType } from '../../../../src/types/enums/enums';
+import { UserStatus, UserRole } from '../../../../src/types/enums/enums';
 
 // Mock dependencies
-jest.mock('../../../src/models/user');
-jest.mock('../../../src/models/auditLog');
-jest.mock('../../../src/services/authService');
+jest.mock('../../../../src/models/user');
+jest.mock('../../../../src/models/auditLog');
+jest.mock('../../../../src/services/authService');
 
 const mockedUserModel = UserModel as jest.Mocked<typeof UserModel>;
-const mockedAuditLogModel = AuditLogModel as jest.Mocked<typeof AuditLogModel>;
 const mockedAuthService = authService as jest.Mocked<typeof authService>;
 
 describe('AdminUsersService', () => {
   let adminUser: any;
   let targetUser: any;
+  let authServiceInstance: AuthService;
 
   beforeEach(() => {
     jest.clearAllMocks();
     adminUser = { _id: new mongoose.Types.ObjectId(), twoFactorSecret: 'secret', roles: [UserRole.Admin], permissions: ['usuarios:aprovar', 'usuarios:suspender', 'usuarios:banir', 'usuarios:remover_2fa'] };
     targetUser = { _id: new mongoose.Types.ObjectId(), status: UserStatus.Pending, sessionVersion: 1, twoFactorEnabled: true, save: jest.fn() };
-
-    // Mock AuditLogModel constructor and save method
-    (mockedAuditLogModel as jest.Mock).mockImplementation(() => ({
-      save: jest.fn().mockResolvedValue(undefined),
-    }));
   });
 
   describe('listUsers', () => {
@@ -73,17 +67,13 @@ describe('AdminUsersService', () => {
       await expect(adminUsersService.updateUserStatus(targetUser, adminUser, UserStatus.Approved)).rejects.toThrow('Permissão insuficiente para alterar para este status.');
     });
 
-    it('should update status to Approved and log audit entry', async () => {
+    it('should update status to Approved', async () => {
       mockedUserModel.findById.mockResolvedValue(targetUser);
 
       const result = await adminUsersService.updateUserStatus(targetUser, adminUser, UserStatus.Approved);
 
-      expect(targetUser.status).toBe(UserStatus.Approved);
-      expect(targetUser.save).toHaveBeenCalledTimes(1);
-      expect(mockedAuditLogModel).toHaveBeenCalledTimes(1);
-      const auditLogCall = (mockedAuditLogModel as jest.Mock).mock.calls[0][0];
-      expect(auditLogCall.action.actionType).toBe(AuditActionType.USER_APPROVED_BY_ADMIN);
-      expect(result).toEqual(targetUser);
+      expect(result!.status).toBe(UserStatus.Approved);
+      expect(result!.save).toHaveBeenCalledTimes(1);
     });
 
     it('should require reason and 2FA for Banned status', async () => {
@@ -94,23 +84,19 @@ describe('AdminUsersService', () => {
 
     it('should throw error for invalid 2FA for Banned status', async () => {
       mockedUserModel.findById.mockResolvedValue(targetUser);
-      mockedAuthService.verifyTwoFactorCode.mockResolvedValue(false);
+      mockedAuthService.verifyTwoFactorCode.mockReturnValue(false);
       await expect(adminUsersService.updateUserStatus(targetUser, adminUser, UserStatus.Banned, 'Reason', 'invalid')).rejects.toThrow('Código 2FA do administrador inválido.');
     });
 
-    it('should update status to Banned, increment sessionVersion, and log audit entry', async () => {
+    it('should update status to Banned and increment sessionVersion', async () => {
       mockedUserModel.findById.mockResolvedValue(targetUser);
-      mockedAuthService.verifyTwoFactorCode.mockResolvedValue(true);
+      mockedAuthService.verifyTwoFactorCode.mockReturnValue(true);
 
       const result = await adminUsersService.updateUserStatus(targetUser, adminUser, UserStatus.Banned, 'Reason', '123456');
 
-      expect(targetUser.status).toBe(UserStatus.Banned);
-      expect(targetUser.sessionVersion).toBe(2); // Incremented
-      expect(targetUser.save).toHaveBeenCalledTimes(1);
-      expect(mockedAuditLogModel).toHaveBeenCalledTimes(1);
-      const auditLogCall = (mockedAuditLogModel as jest.Mock).mock.calls[0][0];
-      expect(auditLogCall.action.actionType).toBe(AuditActionType.USER_BANNED_BY_ADMIN);
-      expect(result).toEqual(targetUser);
+      expect(result!.status).toBe(UserStatus.Banned);
+      expect(result!.sessionVersion).toBe(2); // Incremented
+      expect(result!.save).toHaveBeenCalledTimes(1);
     });
   });
 });

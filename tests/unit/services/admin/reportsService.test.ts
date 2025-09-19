@@ -4,22 +4,21 @@ import { AuditLogModel } from '../../../../src/models/auditLog';
 import { UserStatus, AuditActionType } from '../../../../src/types/enums/enums';
 
 // Mock all models used in reportsService
-jest.mock('../../../src/models/user');
-jest.mock('../../../src/models/vehicle');
-jest.mock('../../../src/models/ride');
-jest.mock('../../../src/models/chat');
-jest.mock('../../../src/models/event');
-jest.mock('../../../src/models/loginAttempt');
-jest.mock('../../../src/models/passwordReset');
-jest.mock('../../../src/models/auditLog');
-jest.mock('../../../src/models/privacyRequest');
-jest.mock('../../../src/models/dataReport');
-jest.mock('../../../src/models/block');
-jest.mock('../../../src/models/notificationSubscription');
-jest.mock('../../../src/models/suppressedNotification');
+jest.mock('../../../../src/models/user');
+jest.mock('../../../../src/models/vehicle');
+jest.mock('../../../../src/models/ride');
+jest.mock('../../../../src/models/chat');
+jest.mock('../../../../src/models/event');
+jest.mock('../../../../src/models/loginAttempt');
+jest.mock('../../../../src/models/passwordReset');
+jest.mock('../../../../src/models/auditLog');
+jest.mock('../../../../src/models/privacyRequest');
+jest.mock('../../../../src/models/dataReport');
+jest.mock('../../../../src/models/block');
+jest.mock('../../../../src/models/notificationSubscription');
+jest.mock('../../../../src/models/suppressedNotification');
 
 const mockedUserModel = UserModel as jest.Mocked<typeof UserModel>;
-const mockedAuditLogModel = AuditLogModel as jest.Mocked<typeof AuditLogModel>;
 
 describe('AdminReportsService', () => {
   beforeEach(() => {

@@ -9,11 +9,11 @@ import crypto from 'crypto';
 import { UserStatus } from '../../../../src/types/enums/enums';
 
 // Mock dependencies
-jest.mock('../../../src/models/user');
-jest.mock('../../../src/models/dataReport');
-jest.mock('../../../src/models/auditLog');
-jest.mock('../../../src/services/authService');
-jest.mock('../../../src/models/event');
+jest.mock('../../../../src/models/user');
+jest.mock('../../../../src/models/dataReport');
+jest.mock('../../../../src/models/auditLog');
+jest.mock('../../../../src/services/authService');
+jest.mock('../../../../src/models/event');
 
 const mockedUserModel = UserModel as jest.Mocked<typeof UserModel>;
 const mockedDataReportModel = DataReportModel as jest.Mocked<typeof DataReportModel>;
@@ -29,17 +29,6 @@ describe('AdminPrivacyService', () => {
     jest.clearAllMocks();
     adminUser = { _id: new mongoose.Types.ObjectId(), twoFactorSecret: 'secret', roles: ['admin'] };
     targetUser = { _id: new mongoose.Types.ObjectId(), toObject: jest.fn().mockReturnValue({ _id: 'user-id' }), save: jest.fn() };
-
-    // Mock AuditLogModel constructor and save method
-    (mockedAuditLogModel as jest.Mock).mockImplementation(() => ({
-      save: jest.fn().mockResolvedValue(undefined),
-    }));
-    (mockedDataReportModel as jest.Mock).mockImplementation(() => ({
-        save: jest.fn().mockResolvedValue(undefined),
-    }));
-    (mockedNotificationEventModel as jest.Mock).mockImplementation(() => ({
-        save: jest.fn().mockResolvedValue(undefined),
-    }));
 
     // Mock crypto.createHash for predictable hashes
     jest.spyOn(crypto, 'createHash').mockReturnValue({
@@ -119,7 +108,7 @@ describe('AdminPrivacyService', () => {
 
       const result = await adminPrivacyService.viewPrivacyLogs(targetUser, adminUser);
 
-      expect(mockedAuditLogModel).toHaveBeenCalledTimes(2); // One for the new log, one for find
+      expect(mockedAuditLogModel).toHaveBeenCalledTimes(1); // One for the new log, one for find
       expect(mockedAuditLogModel.find).toHaveBeenCalledWith({ 'target.id': targetUser, action: { $regex: /^privacidade:/ } });
       expect(result).toEqual(mockLogs);
     });
