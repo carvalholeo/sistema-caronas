@@ -13,28 +13,28 @@ describe('ChatService', () => {
   let chatServiceInstance: typeof chatService;
 
   // Mock ObjectIds consistentes para testes
-  const mockRideId = { id: new Types.ObjectId('507f1f77bcf86cd799439011') } as unknown as IRide;
-  const mockSenderId = { id: new Types.ObjectId('507f1f77bcf86cd799439012') } as unknown as IUser;
-  const mockOtherUserId = { id: new Types.ObjectId('507f1f77bcf86cd799439013') } as unknown as IUser;
+  const mockRideId = new Types.ObjectId() as unknown as IRide;
+  const mockSenderId = new Types.ObjectId() as unknown as IUser;
+  const mockOtherUserId = new Types.ObjectId() as unknown as IUser;
 
   // Mock de mensagens de chat
   const mockMessages = [
     {
-      _id: new Types.ObjectId('507f1f77bcf86cd799439014'),
+      _id: new Types.ObjectId(),
       ride: mockRideId,
       sender: mockSenderId,
       content: 'Primeira mensagem',
       createdAt: new Date('2023-01-01T10:00:00.000Z')
     },
     {
-      _id: new Types.ObjectId('507f1f77bcf86cd799439015'),
+      _id: new Types.ObjectId(),
       ride: mockRideId,
       sender: mockOtherUserId,
       content: 'Segunda mensagem',
       createdAt: new Date('2023-01-01T10:05:00.000Z')
     },
     {
-      _id: new Types.ObjectId('507f1f77bcf86cd799439016'),
+      _id: new Types.ObjectId(),
       ride: mockRideId,
       sender: mockSenderId,
       content: 'Terceira mensagem',
@@ -141,8 +141,8 @@ describe('ChatService', () => {
 
     it('should handle different ObjectId combinations', async () => {
       // Arrange
-      const differentRideId = { id: new Types.ObjectId('507f1f77bcf86cd799439099') } as unknown as IRide;
-      const differentSenderId = { id: new Types.ObjectId('507f1f77bcf86cd799439088') } as unknown as IUser;
+      const differentRideId = { id: new Types.ObjectId() } as unknown as IRide;
+      const differentSenderId = { id: new Types.ObjectId() } as unknown as IUser;
 
       // Act
       await chatServiceInstance.getChatHistory(differentRideId, differentSenderId);
@@ -228,7 +228,7 @@ describe('ChatService', () => {
       // Arrange
       const messagesFromSender = [
         {
-          _id: new Types.ObjectId('507f1f77bcf86cd799439017'),
+          _id: new Types.ObjectId(),
           ride: mockRideId,
           sender: mockSenderId,
           content: 'Mensagem do próprio usuário',
@@ -252,7 +252,7 @@ describe('ChatService', () => {
       // Arrange
       const messagesFromOther = [
         {
-          _id: new Types.ObjectId('507f1f77bcf86cd799439018'),
+          _id: new Types.ObjectId(),
           ride: mockRideId,
           sender: mockOtherUserId,
           content: 'Mensagem de outro usuário',
@@ -276,7 +276,7 @@ describe('ChatService', () => {
       // Arrange
       const specialMessages = [
         {
-          _id: new Types.ObjectId('507f1f77bcf86cd799439019'),
+          _id: new Types.ObjectId(),
           ride: mockRideId,
           sender: mockSenderId,
           content: 'Mensagem com símbolos: !@#$%^&*()_+-=[]{}|;:,.<>?',
@@ -300,7 +300,7 @@ describe('ChatService', () => {
       // Arrange
       const emptyMessages = [
         {
-          _id: new Types.ObjectId('507f1f77bcf86cd79943901a'),
+          _id: new Types.ObjectId(),
           ride: mockRideId,
           sender: mockSenderId,
           content: '',
@@ -324,7 +324,7 @@ describe('ChatService', () => {
       // Arrange
       const nullMessages = [
         {
-          _id: new Types.ObjectId('507f1f77bcf86cd79943901b'),
+          _id: new Types.ObjectId(),
           ride: mockRideId,
           sender: mockSenderId,
           content: null as unknown as string | null,
@@ -348,14 +348,14 @@ describe('ChatService', () => {
       // Arrange
       const multipleMessages = [
         {
-          _id: new Types.ObjectId('507f1f77bcf86cd79943901c'),
+          _id: new Types.ObjectId(),
           ride: mockRideId,
           sender: mockSenderId,
           content: 'Primeira',
           createdAt: new Date('2023-01-01T10:00:00.000Z')
         },
         {
-          _id: new Types.ObjectId('507f1f77bcf86cd79943901d'),
+          _id: new Types.ObjectId(),
           ride: mockRideId,
           sender: mockOtherUserId,
           content: 'Segunda',
@@ -408,7 +408,7 @@ describe('ChatService', () => {
       // Arrange
       const dateInDifferentTimezone = [
         {
-          _id: new Types.ObjectId('507f1f77bcf86cd79943901e'),
+          _id: new Types.ObjectId(),
           ride: mockRideId,
           sender: mockSenderId,
           content: 'Teste timezone',
@@ -432,7 +432,7 @@ describe('ChatService', () => {
       // Arrange
       const invalidDateMessage = [
         {
-          _id: new Types.ObjectId('507f1f77bcf86cd79943901f'),
+          _id: new Types.ObjectId(),
           ride: mockRideId,
           sender: mockSenderId,
           content: 'Teste data inválida',
