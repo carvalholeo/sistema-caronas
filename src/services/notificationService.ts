@@ -12,7 +12,7 @@ import { Types } from 'mongoose';
 import { NotificationScope } from '../types/enums/enums';
 import { SuppressedNotificationModel } from '../models/suppressedNotification';
 
-class NotificationService {
+export class NotificationService {
   private providers: Map<string, INotificationProvider>;
 
   constructor() {
@@ -37,7 +37,7 @@ class NotificationService {
     }
 
     const subscription = await NotificationSubscriptionModel.findOneAndUpdate(
-      { user: user._id, deviceIdentifier },
+      { user: user, deviceIdentifier },
       { $set: data },
       { new: true, upsert: true, runValidators: true }
     );
@@ -207,4 +207,4 @@ class NotificationService {
   }
 }
 
-export default new NotificationService();
+export const notificationService =  new NotificationService();

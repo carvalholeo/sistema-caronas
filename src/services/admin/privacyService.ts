@@ -4,7 +4,6 @@ import { DataReportModel } from 'models/dataReport';
 import { AuditLogModel } from 'models/auditLog';
 import { authService } from 'services/authService';
 import crypto from 'crypto';
-import { Types } from 'mongoose';
 import { IAuditLog, IUser } from 'types';
 import { AuditActionType, AuditLogCategory, AuditLogSeverityLevels, NotificationScope, UserStatus } from 'types/enums/enums';
 import { NotificationEventModel } from 'models/event';

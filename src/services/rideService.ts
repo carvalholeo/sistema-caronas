@@ -7,7 +7,7 @@ import { Types } from 'mongoose';
 import { VehicleStatus, RideStatus, PassengerStatus } from 'types/enums/enums';
 
 class RideService {
-    public async createRide(driverId: Types.ObjectId, rideData: any): Promise<IRide> {
+    public async createRide(driverId: IUser, rideData: any): Promise<IRide> {
         const vehicle = await VehicleModel.findOne({ _id: rideData.vehicle, owner: driverId });
         if (!vehicle || vehicle.status !== VehicleStatus.Active) {
             throw new Error('Veículo inválido ou não pertence ao motorista.');
@@ -20,7 +20,7 @@ class RideService {
         return ride;
     }
 
-    public async createRecurrentRide(driverId: Types.ObjectId, rideData: any): Promise<any[]> {
+    public async createRecurrentRide(driverId: IUser, rideData: any): Promise<any[]> {
         const { vehicle: vehicleId, availableSeats, recurrence } = rideData;
         const vehicle = await VehicleModel.findOne({ _id: vehicleId, owner: driverId, status: VehicleStatus.Active });
         if (!vehicle) {
@@ -36,9 +36,9 @@ class RideService {
         const endDate = new Date(recurrence.endDate);
 
         while (currentDate <= endDate) {
-            if (recurrence.daysOfWeek.includes(currentDate.getDay())) {
+            if (recurrence.daysOfWeek.includes(currentDate.getUTCDay())) {
                 const departure = new Date(currentDate);
-                departure.setHours(new Date(rideData.departureTime).getHours(), new Date(rideData.departureTime).getMinutes());
+                departure.setUTCHours(new Date(rideData.departureTime).getUTCHours(), new Date(rideData.departureTime).getUTCMinutes());
 
                 ridesToCreate.push({
                     ...rideData,
@@ -49,10 +49,9 @@ class RideService {
                     status: RideStatus.Scheduled,
                 });
             }
-            currentDate.setDate(currentDate.getDate() + 1);
+            currentDate.setUTCDate(currentDate.getUTCDate() + 1);
         }
         if (ridesToCreate.length === 0) throw new Error('Nenhuma data válida para a recorrência.');
-
         return RideModel.insertMany(ridesToCreate);
     }
 
@@ -62,7 +61,7 @@ class RideService {
      * @param userId - O ID do usuário que está buscando.
      * @returns Uma lista de caronas com o campo 'remainingSeats' adicionado.
      */
-    public async searchRides(searchParams: any, userId: Types.ObjectId): Promise<any[]> {
+    public async searchRides(searchParams: any, userId: IUser): Promise<any[]> {
         const startTime = Date.now();
         const { from, to, date } = searchParams;
         const searchDate = new Date(date);
@@ -141,27 +140,27 @@ class RideService {
         return rides;
     }
 
-    public async getMyRidesAsDriver(driverId: Types.ObjectId): Promise<IRide[]> {
+    public async getMyRidesAsDriver(driverId: IUser): Promise<IRide[]> {
         return RideModel.find({ driver: driverId }).sort({ departureTime: -1 });
     }
 
-    public async getMyRidesAsPassenger(passengerId: Types.ObjectId): Promise<IRide[]> {
+    public async getMyRidesAsPassenger(passengerId: IUser): Promise<IRide[]> {
         return RideModel.find({ 'passengers.user': passengerId }).populate('driver', 'name');
     }
 
-    public async updateRide(rideId: Types.ObjectId, driverId: Types.ObjectId, updateData: any): Promise<IRide | null> {
+    public async updateRide(rideId: IRide, driverId: IUser, updateData: any): Promise<IRide | null> {
         const ride = await RideModel.findById(rideId);
         if (!ride || ride.driver.toString() !== driverId.toString()) throw new Error("Carona não encontrada ou não pertence ao motorista.");
         if (ride.status !== RideStatus.Scheduled) throw new Error("Apenas caronas futuras podem ser editadas.");
         if (ride.passengers.length > 0) throw new Error("Caronas com passageiros não podem ser editadas.");
-        if (new Date(ride.departureTime).getTime() - Date.now() < 30 * 60 * 1000) throw new Error("Caronas não podem ser editadas com menos de 30 minutos de antecedência.");
+        if (new Date(ride.departureTime).getUTCDate() - Date.now() < 30 * 60 * 1000) throw new Error("Caronas não podem ser editadas com menos de 30 minutos de antecedência.");
 
         Object.assign(ride, updateData);
         await ride.save();
         return ride;
     }
 
-    public async requestSeat(rideId: Types.ObjectId, passengerId: Types.ObjectId): Promise<IRide | null> {
+    public async requestSeat(rideId: IRide, passengerId: IUser): Promise<IRide | null> {
         const ride = await RideModel.findById(rideId);
         if (!ride) throw new Error("Carona não encontrada.");
         if (ride.driver.toString() === passengerId.toString()) throw new Error("Você não pode solicitar uma vaga em sua própria carona.");
@@ -173,7 +172,7 @@ class RideService {
         return ride;
     }
 
-    public async manageSeatRequest(rideId: Types.ObjectId, driverId: Types.ObjectId, passengerId: Types.ObjectId, action: 'approve' | 'reject'): Promise<IRide | null> {
+    public async manageSeatRequest(rideId: IRide, driverId: IUser, passengerId: IUser, action: 'approve' | 'reject'): Promise<IRide | null> {
         const ride = await RideModel.findOne({ _id: rideId, driver: driverId });
         if (!ride) throw new Error("Carona não encontrada ou não pertence ao motorista.");
 
@@ -187,12 +186,11 @@ class RideService {
         } else {
             passenger.status = PassengerStatus.Rejected;
         }
-        passenger.managedAt = new Date();
         await ride.save();
         return ride;
     }
 
-    public async cancelRideByDriver(rideId: Types.ObjectId, driverId: Types.ObjectId): Promise<IRide | null> {
+    public async cancelRideByDriver(rideId: IRide, driverId: IUser): Promise<IRide | null> {
         const ride = await RideModel.findOneAndUpdate(
             { _id: rideId, driver: driverId, status: RideStatus.Scheduled },
             { status: RideStatus.Cancelled },
@@ -202,7 +200,7 @@ class RideService {
         return ride;
     }
 
-    public async cancelSeatByPassenger(rideId: Types.ObjectId, passengerId: Types.ObjectId): Promise<IRide | null> {
+    public async cancelSeatByPassenger(rideId: IRide, passengerId: IUser): Promise<IRide | null> {
         const ride = await RideModel.findById(rideId);
         if (!ride) throw new Error("Carona não encontrada.");
 
@@ -213,7 +211,6 @@ class RideService {
             ride.availableSeats += 1;
         }
         passenger.status = PassengerStatus.Cancelled;
-        passenger.managedAt = new Date();
         await ride.save();
         return ride;
     }

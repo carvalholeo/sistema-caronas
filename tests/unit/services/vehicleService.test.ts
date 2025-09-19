@@ -3,6 +3,7 @@ import { VehicleModel } from '../../../src/models/vehicle';
 import { UserModel } from '../../../src/models/user';
 import mongoose from 'mongoose';
 import { VehicleStatus, UserRole } from '../../../src/types/enums/enums';
+import { IUser } from '../../../src/types';
 
 // Mock dependencies
 jest.mock('../../../src/models/vehicle');
@@ -13,13 +14,14 @@ const mockedUserModel = UserModel as jest.Mocked<typeof UserModel>;
 
 describe('VehicleService', () => {
   let ownerId: mongoose.Types.ObjectId;
+  let owner: IUser;
 
   beforeEach(() => {
     jest.clearAllMocks();
-    ownerId = new mongoose.Types.ObjectId();
+    owner = { _id: new mongoose.Types.ObjectId(), name: 'John Doe', email: 'john@example.com', roles: [] } as unknown as IUser;
 
     // Mock VehicleModel constructor and save method
-    (mockedVehicleModel as jest.Mock).mockImplementation((data) => ({
+    (mockedVehicleModel as unknown as jest.Mock).mockImplementation((data) => ({
       ...data,
       save: jest.fn().mockResolvedValue(true),
     }));
@@ -41,17 +43,17 @@ describe('VehicleService', () => {
     it('should create a new vehicle with Active status if no existing active vehicle with same plate', async () => {
       mockedVehicleModel.findOne.mockResolvedValue(null);
 
-      const result = await vehicleService.createVehicle(ownerId, vehicleData);
+      const result = await vehicleService.createVehicle(owner, vehicleData);
 
       expect(mockedVehicleModel.findOne).toHaveBeenCalledWith({ plate: vehicleData.plate, status: VehicleStatus.Active });
       expect(mockedVehicleModel).toHaveBeenCalledWith(expect.objectContaining({
         ...vehicleData,
-        owner: ownerId,
+        owner: owner,
         status: VehicleStatus.Active,
       }));
       expect(result.save).toHaveBeenCalledTimes(1);
       expect(mockedUserModel.updateOne).toHaveBeenCalledWith(
-        { _id: ownerId, roles: { $ne: UserRole.Motorista } },
+        { _id: owner, roles: { $ne: UserRole.Motorista } },
         { $addToSet: { roles: UserRole.Motorista } }
       );
       expect(result.plate).toBe(vehicleData.plate);
@@ -60,12 +62,12 @@ describe('VehicleService', () => {
     it('should create a new vehicle with Pending status if existing active vehicle with same plate', async () => {
       mockedVehicleModel.findOne.mockResolvedValue({ _id: new mongoose.Types.ObjectId(), plate: vehicleData.plate, status: VehicleStatus.Active });
 
-      const result = await vehicleService.createVehicle(ownerId, vehicleData);
+      const result = await vehicleService.createVehicle(owner, vehicleData);
 
       expect(mockedVehicleModel.findOne).toHaveBeenCalledWith({ plate: vehicleData.plate, status: VehicleStatus.Active });
       expect(mockedVehicleModel).toHaveBeenCalledWith(expect.objectContaining({
         ...vehicleData,
-        owner: ownerId,
+        owner: owner,
         status: VehicleStatus.Pending,
       }));
       expect(result.save).toHaveBeenCalledTimes(1);
@@ -82,9 +84,9 @@ describe('VehicleService', () => {
       ];
       mockedVehicleModel.find.mockResolvedValue(mockVehicles as any);
 
-      const result = await vehicleService.getVehiclesByOwner(ownerId);
+      const result = await vehicleService.getVehiclesByOwner(owner);
 
-      expect(mockedVehicleModel.find).toHaveBeenCalledWith({ owner: ownerId });
+      expect(mockedVehicleModel.find).toHaveBeenCalledWith({ owner: owner });
       expect(result).toEqual(mockVehicles);
     });
   });

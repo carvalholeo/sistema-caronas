@@ -1,10 +1,10 @@
 // Lógica de negócio para buscar e exportar mensagens de chat.
-import { IChatMessage } from 'types';
+import { IChatMessage, IRide, IUser } from 'types';
 import { ChatMessageModel } from 'models/chat';
 import { Types } from 'mongoose';
 
 class ChatService {
-  public async getChatHistory(rideId: Types.ObjectId, senderId: Types.ObjectId): Promise<IChatMessage[]> {
+  public async getChatHistory(rideId: IRide, senderId: IUser): Promise<IChatMessage[]> {
     return ChatMessageModel.find({
       $or: [
         { ride: rideId },
@@ -13,7 +13,7 @@ class ChatService {
     }).sort({ createdAt: 1 });
   }
 
-  public async exportChatHistoryAsTxt(rideId: Types.ObjectId, requestingUserId: Types.ObjectId): Promise<string> {
+  public async exportChatHistoryAsTxt(rideId: IRide, requestingUserId: IUser): Promise<string> {
     const messages = await this.getChatHistory(rideId, requestingUserId);
     if (messages.length === 0) return "Nenhuma mensagem nesta conversa.";
 

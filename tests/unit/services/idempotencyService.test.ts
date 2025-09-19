@@ -4,7 +4,7 @@ import { IdempotencyRequestModel } from '../../../src/models/idempotency';
 // Mock dependencies
 jest.mock('../../../src/models/idempotency');
 
-const mockedIdempotencyRequestModel = IdempotencyRequestModel as jest.Mocked<typeof IdempotencyRequestModel>;
+const mockedIdempotencyRequestModel = IdempotencyRequestModel as unknown as jest.Mocked<typeof IdempotencyRequestModel>;
 
 describe('IdempotencyService', () => {
   beforeEach(() => {
@@ -32,10 +32,14 @@ describe('IdempotencyService', () => {
     });
   });
 
+  // tests/unit/services/idempotencyService.test.ts
+
   describe('startRequest', () => {
     it('should create and save a new processing request', async () => {
       const mockSave = jest.fn().mockResolvedValue(true);
-      (mockedIdempotencyRequestModel as jest.Mock).mockImplementation(() => ({
+
+      // CORREÇÃO 1: Adicione 'as unknown' antes de 'as jest.Mock'
+      (mockedIdempotencyRequestModel as unknown as jest.Mock).mockImplementation(() => ({
         save: mockSave,
       }));
 
@@ -43,7 +47,10 @@ describe('IdempotencyService', () => {
       await idempotencyService.startRequest(key);
 
       expect(mockedIdempotencyRequestModel).toHaveBeenCalledTimes(1);
-      const newRequestInstance = (mockedIdempotencyRequestModel as jest.Mock).mock.calls[0][0];
+
+      // CORREÇÃO 2: Adicione 'as unknown' aqui também
+      const newRequestInstance = (mockedIdempotencyRequestModel as unknown as jest.Mock).mock.calls[0][0];
+
       expect(newRequestInstance.key).toBe(key);
       expect(newRequestInstance.status).toBe('processing');
       expect(newRequestInstance.expiresAt).toBeInstanceOf(Date);

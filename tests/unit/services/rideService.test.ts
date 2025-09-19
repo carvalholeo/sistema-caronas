@@ -4,16 +4,18 @@ import { VehicleModel } from '../../../src/models/vehicle';
 import { SearchEventModel, RideViewEventModel } from '../../../src/models/event';
 import mongoose from 'mongoose';
 import { randomUUID } from 'crypto';
-import { VehicleStatus, RideStatus } from '../../../src/types/enums/enums';
+import { VehicleStatus, RideStatus, UserRole } from '../../../src/types/enums/enums';
+import { IRide, IUser, IVehicle } from '../../../src/types/';
 
 // Mock dependencies
 jest.mock('../../../src/models/ride');
 jest.mock('../../../src/models/vehicle');
 jest.mock('../../../src/models/event');
+jest.mock('../../../src/models/user');
 jest.mock('crypto', () => ({
   __esModule: true,
   ...jest.requireActual('crypto'),
-  randomUUID: jest.fn(),
+  randomUUID: jest.fn().mockReturnValue('mock-uuid'),
 }));
 
 const mockedRideModel = RideModel as jest.Mocked<typeof RideModel>;
@@ -23,53 +25,59 @@ const mockedRideViewEventModel = RideViewEventModel as jest.Mocked<typeof RideVi
 const mockedRandomUUID = randomUUID as jest.Mock;
 
 describe('RideService', () => {
-  let driverId: mongoose.Types.ObjectId;
-  let vehicleId: mongoose.Types.ObjectId;
-  let mockVehicle: any;
-  let mockRide: any;
+  let mockVehicle: IVehicle;
+  let mockRide: IRide;
+  let mockDriver: IUser;
 
   beforeEach(() => {
     jest.clearAllMocks();
-    driverId = new mongoose.Types.ObjectId();
-    vehicleId = new mongoose.Types.ObjectId();
+
+    mockDriver = {
+      _id: new mongoose.Types.ObjectId(),
+      name: 'Driver Test',
+      email: 'abcd@efgh.com',
+      matricula: 'a123456',
+      roles: [UserRole.Motorista],
+    } as unknown as IUser;
 
     mockVehicle = {
-      _id: vehicleId,
-      owner: driverId,
+      _id: new mongoose.Types.ObjectId(),
+      owner: mockDriver,
       status: VehicleStatus.Active,
       capacity: 4,
-    };
+    } as unknown as IVehicle;
 
     mockRide = {
       _id: new mongoose.Types.ObjectId(),
-      driver: driverId,
-      vehicle: vehicleId,
+      driver: mockDriver,
+      vehicle: mockVehicle,
       availableSeats: 3,
       passengers: [],
       status: RideStatus.Scheduled,
       save: jest.fn().mockResolvedValue(true),
       toObject: jest.fn().mockReturnThis(),
-    };
+    } as unknown as IRide;
 
     mockedVehicleModel.findOne.mockResolvedValue(mockVehicle);
-    (mockedRideModel as jest.Mock).mockImplementation(() => mockRide);
-    mockedRideModel.insertMany.mockResolvedValue([mockRide]);
+    (mockedRideModel as unknown as jest.Mock).mockImplementation(() => mockRide);
+    mockedRideModel.insertMany.mockResolvedValue([(mockRide as any)]);
     mockedRideModel.findById.mockResolvedValue(mockRide);
     mockedRideModel.findOne.mockResolvedValue(mockRide);
-    mockedRideModel.find.mockResolvedValue([mockRide]);
+    mockedRideModel.find.mockResolvedValue([(mockRide as any)]);
     mockedRideModel.findOneAndUpdate.mockResolvedValue(mockRide);
 
-    (mockedSearchEventModel as jest.Mock).mockImplementation(() => ({
+    (mockedSearchEventModel as unknown as jest.Mock).mockImplementation(() => ({
       create: jest.fn().mockResolvedValue(true),
     }));
-    (mockedRideViewEventModel as jest.Mock).mockImplementation(() => ({
+    (mockedRideViewEventModel as unknown as jest.Mock).mockImplementation(() => ({
       create: jest.fn().mockResolvedValue(true),
     }));
   });
 
   describe('createRide', () => {
     const rideData = {
-      vehicle: vehicleId,
+      vehicle: mockVehicle,
+      driver: mockDriver,
       origin: { location: 'A', point: { coordinates: [0, 0] } },
       destination: { location: 'B', point: { coordinates: [1, 1] } },
       departureTime: new Date(),
@@ -79,25 +87,25 @@ describe('RideService', () => {
 
     it('should throw an error if vehicle is not found or not owned by driver', async () => {
       mockedVehicleModel.findOne.mockResolvedValue(null);
-      await expect(rideService.createRide(driverId, rideData)).rejects.toThrow('Veículo inválido ou não pertence ao motorista.');
+      await expect(rideService.createRide(mockDriver, rideData)).rejects.toThrow('Veículo inválido ou não pertence ao motorista.');
     });
 
     it('should throw an error if vehicle is not active', async () => {
       mockVehicle.status = VehicleStatus.Inactive;
-      await expect(rideService.createRide(driverId, rideData)).rejects.toThrow('Veículo inválido ou não pertence ao motorista.');
+      await expect(rideService.createRide(mockDriver, rideData)).rejects.toThrow('Veículo inválido ou não pertence ao motorista.');
     });
 
     it('should throw an error if available seats exceed vehicle capacity', async () => {
       const invalidRideData = { ...rideData, availableSeats: 5 };
-      await expect(rideService.createRide(driverId, invalidRideData)).rejects.toThrow('A quantidade de assentos excede a capacidade do veículo.');
+      await expect(rideService.createRide(mockDriver, invalidRideData)).rejects.toThrow('A quantidade de assentos excede a capacidade do veículo.');
     });
 
     it('should successfully create a ride', async () => {
-      const result = await rideService.createRide(driverId, rideData);
+      const result = await rideService.createRide(mockDriver, rideData);
 
       expect(mockedRideModel).toHaveBeenCalledWith(expect.objectContaining({
         ...rideData,
-        driver: driverId,
+        driver: mockDriver,
       }));
       expect(mockRide.save).toHaveBeenCalledTimes(1);
       expect(result).toEqual(mockRide);
@@ -110,45 +118,67 @@ describe('RideService', () => {
       endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
     };
     const rideData = {
-      vehicle: vehicleId,
+      ...mockRide,
+      driver: mockDriver,
+      vehicle: mockVehicle,
       origin: { location: 'A', point: { coordinates: [0, 0] } },
       destination: { location: 'B', point: { coordinates: [1, 1] } },
-      departureTime: new Date(Date.now() + 2 * 60 * 60 * 1000), // 2 hours from now
-      availableSeats: 3,
+      departureTime: new Date(Date.now() + 4 * 60 * 60 * 1000), // 4 hours from now
       price: 10,
       recurrence: recurrenceData,
-    };
+    } as unknown as IRide;
 
     it('should throw an error if vehicle is invalid or not active', async () => {
       mockedVehicleModel.findOne.mockResolvedValue(null);
-      await expect(rideService.createRecurrentRide(driverId, rideData)).rejects.toThrow('Veículo inválido ou não pertence ao motorista.');
+      await expect(rideService.createRecurrentRide(mockDriver, rideData)).rejects.toThrow('Veículo inválido ou não pertence ao motorista.');
     });
 
     it('should throw an error if available seats exceed vehicle capacity', async () => {
       const invalidRideData = { ...rideData, availableSeats: 5 };
-      await expect(rideService.createRecurrentRide(driverId, invalidRideData)).rejects.toThrow('A quantidade de assentos excede a capacidade do veículo.');
+      await expect(rideService.createRecurrentRide(mockDriver, invalidRideData)).rejects.toThrow('A quantidade de assentos excede a capacidade do veículo.');
     });
 
     it('should throw an error if no valid dates for recurrence', async () => {
       const invalidRecurrenceData = { ...rideData, recurrence: { ...recurrenceData, endDate: new Date(Date.now() - 1000) } };
-      await expect(rideService.createRecurrentRide(driverId, invalidRecurrenceData)).rejects.toThrow('Nenhuma data válida para a recorrência.');
+      await expect(rideService.createRecurrentRide(mockDriver, invalidRecurrenceData)).rejects.toThrow('Nenhuma data válida para a recorrência.');
     });
 
     it('should successfully create recurrent rides', async () => {
+      const rideForRecurrence = {
+        ...mockRide,
+        driver: mockDriver,
+        vehicle: mockVehicle,
+        origin: { location: 'A', point: { coordinates: [0, 0] } },
+        destination: { location: 'B', point: { coordinates: [1, 1] } },
+        departureTime: new Date(Date.now() + 4 * 60 * 60 * 1000), // 4 hours from now
+        price: 10,
+        recurrence: recurrenceData,
+      } as unknown as IRide;
+
       mockedRandomUUID.mockReturnValue('mock-uuid');
-      const result = await rideService.createRecurrentRide(driverId, rideData);
+      mockedRideModel.insertMany.mockResolvedValue([rideForRecurrence as any]);
+
+
+      const result = await rideService.createRecurrentRide(mockDriver, rideForRecurrence);
+      const ridesToCreate = mockedRideModel.insertMany.mock.calls[0][0] as Partial<IRide>[];
 
       expect(mockedRideModel.insertMany).toHaveBeenCalledTimes(1);
-      const ridesToCreate = mockedRideModel.insertMany.mock.calls[0][0];
       expect(ridesToCreate.length).toBeGreaterThan(0);
-      expect(ridesToCreate[0]).toEqual(expect.objectContaining({
-        driver: driverId,
-        vehicle: vehicleId,
+
+      expect(ridesToCreate[0]).toMatchObject({
+        driver: mockDriver,
+        vehicle: mockVehicle,
+        origin: { location: 'A', point: { coordinates: [0, 0] } },
+        destination: { location: 'B', point: { coordinates: [1, 1] } },
+        price: 10,
+        availableSeats: mockRide.availableSeats,
+        status: RideStatus.Scheduled,
         isRecurrent: true,
         recurrenceId: 'mock-uuid',
-        status: RideStatus.Scheduled,
-      }));
-      expect(result).toEqual([mockRide]);
+      });
+
+      expect(ridesToCreate[0].departureTime).toBeInstanceOf(Date);
+      expect(ridesToCreate[0].departureTime?.getUTCDate()).toBeGreaterThanOrEqual(rideData.departureTime.getUTCDate());
     });
   });
 });

@@ -2,11 +2,11 @@
 import { VehicleModel } from 'models/vehicle';
 import { UserModel } from 'models/user';
 import { Types } from 'mongoose';
-import { IVehicle } from 'types';
+import { IUser, IVehicle } from 'types';
 import { VehicleStatus, UserRole } from 'types/enums/enums';
 
 class VehicleService {
-    public async createVehicle(ownerId: Types.ObjectId, vehicleData: any): Promise<IVehicle> {
+    public async createVehicle(ownerId: IUser, vehicleData: any): Promise<IVehicle> {
         const { plate } = vehicleData;
 
         const existingVehicle = await VehicleModel.findOne({ plate, status: VehicleStatus.Active });
@@ -24,7 +24,7 @@ class VehicleService {
         return vehicle;
     }
 
-    public async getVehiclesByOwner(ownerId: Types.ObjectId): Promise<IVehicle[]> {
+    public async getVehiclesByOwner(ownerId: IUser): Promise<IVehicle[]> {
         return VehicleModel.find({ owner: ownerId });
     }
 }
