@@ -6,14 +6,7 @@ jest.mock('../../../src/models/user');
 jest.mock('../../../src/models/loginAttempt');
 jest.mock('../../../src/models/passwordReset');
 jest.mock('../../../src/utils/security');
-jest.mock('../../../src/services/notificationService', () => ({
-  __esModule: true,
-  default: {
-    sendNotification: jest.fn(),
-    subscribe: jest.fn(),
-    updatePreferences: jest.fn()
-  }
-}));
+jest.mock('../../../src/services/notificationService');
 
 jest.mock('../../../src/services/emailService', () => ({
   __esModule: true,
@@ -123,7 +116,7 @@ describe('AuthService', () => {
     LoginAttemptModel = loginAttemptMod.LoginAttemptModel;
     PasswordResetModel = passwordResetMod.PasswordResetModel;
     generateToken = secMod.generateToken;
-    notificationService = notificationMod.default || notificationMod;
+    notificationService = notificationMod.notificationService;
     emailService = emailMod.emailService;
     speakeasy = speakeasyMod.default || speakeasyMod;
     crypto = cryptoMod.default || cryptoMod;

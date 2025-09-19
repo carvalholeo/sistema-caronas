@@ -7,7 +7,7 @@ import { INotificationPayload, IUser } from '../types';
 import { PasswordResetStatus, UserRole, UserStatus } from '../types/enums/enums';
 import crypto from 'crypto';
 import { PasswordResetModel } from '../models/passwordReset';
-import notificationService from './notificationService';
+import {notificationService} from './notificationService';
 import { emailService } from './emailService';
 import { EmailTemplate } from '../types/enums/email';
 
