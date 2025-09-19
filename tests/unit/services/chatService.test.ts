@@ -1,7 +1,7 @@
 import { chatService } from '../../../src/services/chatService';
 import { ChatMessageModel } from '../../../src/models/chat';
 import { Types } from 'mongoose';
-import { IChatMessage } from '../../../src/types';
+import { IChatMessage, IRide, IUser } from '../../../src/types';
 
 // Mocking de TODAS as dependências externas
 jest.mock('../../../src/models/chat');
@@ -13,9 +13,9 @@ describe('ChatService', () => {
   let chatServiceInstance: typeof chatService;
 
   // Mock ObjectIds consistentes para testes
-  const mockRideId = new Types.ObjectId('507f1f77bcf86cd799439011');
-  const mockSenderId = new Types.ObjectId('507f1f77bcf86cd799439012');
-  const mockOtherUserId = new Types.ObjectId('507f1f77bcf86cd799439013');
+  const mockRideId = { id: new Types.ObjectId('507f1f77bcf86cd799439011') } as unknown as IRide;
+  const mockSenderId = { id: new Types.ObjectId('507f1f77bcf86cd799439012') } as unknown as IUser;
+  const mockOtherUserId = { id: new Types.ObjectId('507f1f77bcf86cd799439013') } as unknown as IUser;
 
   // Mock de mensagens de chat
   const mockMessages = [
@@ -141,8 +141,8 @@ describe('ChatService', () => {
 
     it('should handle different ObjectId combinations', async () => {
       // Arrange
-      const differentRideId = new Types.ObjectId('507f1f77bcf86cd799439099');
-      const differentSenderId = new Types.ObjectId('507f1f77bcf86cd799439088');
+      const differentRideId = { id: new Types.ObjectId('507f1f77bcf86cd799439099') } as unknown as IRide;
+      const differentSenderId = { id: new Types.ObjectId('507f1f77bcf86cd799439088') } as unknown as IUser;
 
       // Act
       await chatServiceInstance.getChatHistory(differentRideId, differentSenderId);
@@ -456,7 +456,7 @@ describe('ChatService', () => {
   describe('Edge Cases and Error Handling', () => {
     it('should handle undefined parameters in getChatHistory', async () => {
       // Act
-      await chatServiceInstance.getChatHistory(undefined as unknown as Types.ObjectId, undefined as unknown as Types.ObjectId);
+      await chatServiceInstance.getChatHistory(undefined as unknown as IRide, undefined as unknown as IUser);
 
       // Assert
       expect(MockedChatMessageModel.find).toHaveBeenCalledWith({
@@ -475,7 +475,7 @@ describe('ChatService', () => {
       MockedChatMessageModel.find = jest.fn().mockReturnValue(mockQuery);
 
       // Act
-      const result = await chatServiceInstance.exportChatHistoryAsTxt(undefined as unknown as Types.ObjectId, undefined as unknown as Types.ObjectId);
+      const result = await chatServiceInstance.exportChatHistoryAsTxt(undefined as unknown as IRide, undefined as unknown as IUser);
 
       // Assert
       expect(result).toBe("Nenhuma mensagem nesta conversa.");
