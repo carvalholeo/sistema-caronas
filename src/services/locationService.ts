@@ -2,9 +2,8 @@ import { Server, Socket } from 'socket.io';
 import { RideModel } from 'models/ride';
 import { LocationLogModel } from 'models/locationLog';
 import { BlockModel } from 'models/block';
-import { Types } from 'mongoose';
 import { RideStatus, LocationLogAction } from 'types/enums/enums';
-import { IRide } from 'types';
+import { IRide, IUser } from 'types';
 
 class LocationService {
 
@@ -15,29 +14,31 @@ class LocationService {
    * @returns O objeto da carona se a validação for bem-sucedida.
    * @throws Um erro se o usuário não tiver permissão ou a carona não estiver em andamento.
    */
-  public async validateUserForLocationRoom(rideId: IRide, userId: string) {
+  public async validateUserForLocationRoom(rideId: IRide, userId: IUser) {
     const ride = await RideModel.findById(rideId); // .lean() para performance
 
     if (!ride) {
       throw new Error('Carona não encontrada.');
     }
 
-    if (ride.status !== RideStatus.InProgress) {
-      throw new Error('Não é possível entrar na sala: a carona não está em andamento.');
-    }
-
-    const driverId = (ride.driver._id as Types.ObjectId).toString();
+    const driverId = ride.driver;
     const serviceUserId = userId;
 
     const isDriver = driverId === serviceUserId;
+    const isApprovedPassenger = ride.passengers.some(p => p.user === serviceUserId && p.status === 'approved');
 
-    const isApprovedPassenger = ride.passengers.some(p => {
-      const passengerId = (p.user._id as Types.ObjectId).toString();
-      return passengerId === serviceUserId && p.status === 'approved';
-    });
+    const isRideAbleToShareLocation = [RideStatus.Scheduled, RideStatus.InProgress].includes(ride.status);
+    const canUserSendLocation = isDriver || isApprovedPassenger;
 
-    if (!isDriver && !isApprovedPassenger) {
-      throw new Error('Você não tem permissão para acessar a localização desta carona.');
+    const messageLocationPermissionNotFound = 'Você não tem permissão para acessar a localização desta carona.';
+    const messageRideCannotReceiveLocation = 'Não é possível entrar na sala: a carona não iniciou ou não está em andamento.';
+
+    if (!isRideAbleToShareLocation) {
+      throw new Error(messageRideCannotReceiveLocation);
+    }
+
+    if (!canUserSendLocation) {
+      throw new Error(messageLocationPermissionNotFound);
     }
 
     return ride;
@@ -49,13 +50,13 @@ class LocationService {
    * @param userId - O ID do usuário (motorista).
    * @param action - A ação a ser registrada (início ou fim).
    */
-  public async logSharingActivity(rideId: Types.ObjectId, userId: Types.ObjectId, action: LocationLogAction): Promise<void> {
+  public async logSharingActivity(rideId: IRide, userId: IUser, action: LocationLogAction): Promise<void> {
     const ride = await RideModel.findById(rideId);
     // Garante que apenas o motorista da carona possa registrar essa atividade
     if (!ride) return;
 
-    const driverId = (ride.driver._id as Types.ObjectId).toString();
-    const serviceUserId = (userId._id as Types.ObjectId).toString();
+    const driverId = ride.driver.toString();
+    const serviceUserId = userId.toString();
 
     if (driverId === serviceUserId) {
       await new LocationLogModel({
@@ -76,7 +77,7 @@ class LocationService {
   public async broadcastLocationUpdate(
     io: Server,
     socket: Socket,
-    data: { rideId: Types.ObjectId; lat: number; lng: number }
+    data: { rideId: IRide; lat: number; lng: number }
   ): Promise<void> {
     const { rideId, lat, lng } = data;
     const room = `ride-location-${rideId}`;
@@ -86,7 +87,7 @@ class LocationService {
     const ride = await RideModel.findById(rideId);
     if (!ride) return;
 
-    const driverId = (ride.driver._id as Types.ObjectId).toString();
+    const driverId = ride.driver;
     const socketUserId = socket.userId;
 
     const isSenderDriver = driverId === socketUserId;
@@ -106,8 +107,8 @@ class LocationService {
 
       const isBlocked = await BlockModel.findOne({
         $or: [
-          { blocker: new Types.ObjectId(socketUserId), blocked: new Types.ObjectId(targetSocket.userId) },
-          { blocker: new Types.ObjectId(targetSocket.userId), blocked: new Types.ObjectId(socketUserId) }
+          { blocker: socket.userId, blocked: targetSocket.userId },
+          { blocker: targetSocket.userId, blocked: socket.userId }
         ]
       });
 
