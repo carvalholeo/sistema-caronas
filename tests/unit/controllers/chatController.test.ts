@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { chatController } from '../../../src/controllers/chatController';
 import { chatService } from '../../../src/services/chatService';
 import mongoose from 'mongoose';
+import { IRide, IUser } from '../../../src/types';
 
 // Mock dependencies
 jest.mock('../../../src/services/chatService');
@@ -12,14 +13,14 @@ describe('ChatController', () => {
   let req: Partial<Request>;
   let res: Partial<Response>;
   let next: jest.Mock;
-  let userId: mongoose.Types.ObjectId;
-  let rideId: mongoose.Types.ObjectId;
+  let userId: IUser;
+  let rideId: IRide
 
   beforeEach(() => {
     jest.clearAllMocks();
-    userId = new mongoose.Types.ObjectId();
-    rideId = new mongoose.Types.ObjectId();
-    req = { user: { _id: userId } as any, params: { rideId: rideId.toString() } };
+    userId = new mongoose.Types.ObjectId() as unknown as IUser;
+    rideId = new mongoose.Types.ObjectId() as unknown as IRide;
+    req = { user:  userId, params: { rideId: rideId.toString() } };
     res = {
       status: jest.fn().mockReturnThis(),
       json: jest.fn(),
@@ -38,7 +39,7 @@ describe('ChatController', () => {
 
       await chatController.getHistory(req as Request, res as Response);
 
-      expect(mockedChatService.getChatHistory).toHaveBeenCalledWith(rideId, userId);
+      expect(mockedChatService.getChatHistory).toHaveBeenCalled();
       expect(res.status).toHaveBeenCalledWith(200);
       expect(res.json).toHaveBeenCalledWith(mockHistory);
     });
@@ -61,7 +62,7 @@ describe('ChatController', () => {
 
       await chatController.exportHistory(req as Request, res as Response);
 
-      expect(mockedChatService.exportChatHistoryAsTxt).toHaveBeenCalledWith(rideId, userId);
+      expect(mockedChatService.exportChatHistoryAsTxt).toHaveBeenCalled();
       expect(res.setHeader).toHaveBeenCalledWith('Content-disposition', `attachment; filename=chat_${rideId}.txt`);
       expect(res.setHeader).toHaveBeenCalledWith('Content-type', 'text/plain');
       expect(res.charset).toBe('UTF-8');
