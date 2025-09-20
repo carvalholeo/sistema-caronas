@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { adminRidesService } from 'services/admin/rideService';
 import { Types } from 'mongoose';
+import { IRide } from 'types';
 
 class AdminRidesController {
   /**
@@ -20,11 +21,11 @@ class AdminRidesController {
    */
   public async getRideDetails(req: Request, res: Response): Promise<Response> {
     try {
-      const { rideId } = req.params;
+      const rideId: IRide = req.params.rideId as unknown as IRide;
       const adminUser = req.user!;
       const rideDetails = await adminRidesService.getRideDetails(
-        rideId as unknown as Types.ObjectId,
-        adminUser._id as unknown as Types.ObjectId
+        rideId,
+        adminUser
       );
       return res.status(200).json(rideDetails);
     } catch (error: Error | any) {
@@ -37,11 +38,11 @@ class AdminRidesController {
    */
   public async updateRide(req: Request, res: Response): Promise<Response> {
     try {
-      const { rideId } = req.params;
+      const rideId: IRide = req.params.rideId as unknown as IRide;
       const { reason, ...updateData } = req.body;
       const adminUser = req.user!;
       const updatedRide = await adminRidesService.updateRide(
-        rideId as unknown as Types.ObjectId,
+        rideId,
         adminUser,
         reason,
         updateData
@@ -57,12 +58,12 @@ class AdminRidesController {
    */
   public async cancelRide(req: Request, res: Response): Promise<Response> {
     try {
-      const { rideId } = req.params;
+      const rideId: IRide = req.params.rideId as unknown as IRide;
       const { reason } = req.body;
       const adminUser = req.user!;
       const cancelledRide = await adminRidesService.cancelRide(
-        rideId as unknown as Types.ObjectId,
-        adminUser._id as unknown as Types.ObjectId,
+        rideId,
+        adminUser,
         reason);
       return res.status(200).json(cancelledRide);
     } catch (error: Error | any) {
@@ -75,12 +76,12 @@ class AdminRidesController {
    */
   public async forcePublishRide(req: Request, res: Response): Promise<Response> {
     try {
-      const { rideId } = req.params;
+      const rideId: IRide = req.params.rideId as unknown as IRide;
       const { reason } = req.body;
       const adminUser = req.user!;
       const publishedRide = await adminRidesService.forcePublishRide(
-        rideId as unknown as Types.ObjectId,
-        adminUser._id as unknown as Types.ObjectId,
+        rideId,
+        adminUser,
         reason);
       return res.status(200).json(publishedRide);
     } catch (error: Error | any) {
