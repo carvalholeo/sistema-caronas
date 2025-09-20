@@ -2,9 +2,11 @@ import { Request, Response } from 'express';
 import { adminChatController } from '../../../../src/controllers/admin/chatController';
 import { adminChatService } from '../../../../src/services/admin/chatService';
 import mongoose from 'mongoose';
+import { IUser } from '../../../../src/types';
+import { UserRole } from '../../../../src/types/enums/enums';
 
 // Mock dependencies
-jest.mock('../../../src/services/admin/chatService');
+jest.mock('../../../../src/services/admin/chatService');
 
 const mockedAdminChatService = adminChatService as jest.Mocked<typeof adminChatService>;
 
@@ -12,11 +14,11 @@ describe('AdminChatController', () => {
   let req: Partial<Request>;
   let res: Partial<Response>;
   let next: jest.Mock;
-  let adminUser: any;
+  let adminUser: IUser;
 
   beforeEach(() => {
     jest.clearAllMocks();
-    adminUser = { _id: new mongoose.Types.ObjectId(), roles: ['admin'] };
+    adminUser = { _id: new mongoose.Types.ObjectId(), roles: [UserRole.Admin] } as unknown as IUser;
     req = { user: adminUser, params: {}, body: {} };
     res = {
       status: jest.fn().mockReturnThis(),
