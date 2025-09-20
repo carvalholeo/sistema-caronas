@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { rideService } from 'services/rideService';
 import { Types } from 'mongoose';
+import { IRide, IUser } from 'types';
 
 class RideController {
   /**
@@ -9,7 +10,7 @@ class RideController {
   public async create(req: Request, res: Response): Promise<Response> {
     try {
       const ride = await rideService.createRide(
-        req.user!._id as unknown as Types.ObjectId,
+        req.user!,
         req.body);
       return res.status(201).json(ride);
     } catch (error: Error | any) {
@@ -23,7 +24,7 @@ class RideController {
   public async createRecurrent(req: Request, res: Response): Promise<Response> {
     try {
       const rides = await rideService.createRecurrentRide(
-        req.user!._id as unknown as Types.ObjectId,
+        req.user!,
         req.body);
       return res.status(201).json(rides);
     } catch (error: Error | any) {
@@ -36,7 +37,7 @@ class RideController {
    */
   public async search(req: Request, res: Response): Promise<Response> {
     try {
-      const rides = await rideService.searchRides(req.query, req.user!._id as unknown as Types.ObjectId);
+      const rides = await rideService.searchRides(req.query, req.user!);
       return res.status(200).json(rides);
     } catch (error: Error | any) {
       return res.status(500).json({ message: 'Erro ao buscar caronas.', error: error.message });
@@ -48,7 +49,7 @@ class RideController {
    */
   public async getMyRidesAsDriver(req: Request, res: Response): Promise<Response> {
     try {
-      const rides = await rideService.getMyRidesAsDriver(req.user!._id as unknown as Types.ObjectId);
+      const rides = await rideService.getMyRidesAsDriver(req.user!);
       return res.status(200).json(rides);
     } catch (error: Error | any) {
       return res.status(500).json({ message: 'Erro ao buscar suas caronas como motorista.', error: error.message });
@@ -60,7 +61,7 @@ class RideController {
    */
   public async getMyRidesAsPassenger(req: Request, res: Response): Promise<Response> {
     try {
-      const rides = await rideService.getMyRidesAsPassenger(req.user!._id as unknown as Types.ObjectId);
+      const rides = await rideService.getMyRidesAsPassenger(req.user!);
       return res.status(200).json(rides);
     } catch (error: Error | any) {
       return res.status(500).json({ message: 'Erro ao buscar suas caronas como caroneiro.', error: error.message });
@@ -72,8 +73,8 @@ class RideController {
    */
   public async getDetails(req: Request, res: Response): Promise<Response> {
     try {
-      const { id } = req.params;
-      const rideDetails = await rideService.getRideDetails({_id: id}, {_id: req.user!._id});
+      const id: IRide = req.params.id as unknown as IRide;
+      const rideDetails = await rideService.getRideDetails(id, req.user!);
       return res.status(200).json(rideDetails);
     } catch (error: Error | any) {
       // Usa 403 (Proibido) se o usuário não tiver permissão para ver
@@ -86,8 +87,8 @@ class RideController {
    */
   public async update(req: Request, res: Response): Promise<Response> {
     try {
-      const { id } = req.params;
-      const ride = await rideService.updateRide(id as unknown as Types.ObjectId, req.user!._id as unknown as Types.ObjectId, req.body);
+      const id: IRide = req.params.id as unknown as IRide;
+      const ride = await rideService.updateRide(id, req.user!, req.body);
       return res.status(200).json(ride);
     } catch (error: Error | any) {
       return res.status(403).json({ message: error.message });
@@ -99,8 +100,8 @@ class RideController {
    */
   public async requestSeat(req: Request, res: Response): Promise<Response> {
     try {
-      const { id } = req.params;
-      const ride = await rideService.requestSeat(id as unknown as Types.ObjectId, req.user!._id as unknown as Types.ObjectId);
+      const id: IRide = req.params.id as unknown as IRide;
+      const ride = await rideService.requestSeat(id, req.user!);
       return res.status(200).json(ride);
     } catch (error: Error | any) {
       return res.status(400).json({ message: error.message });
@@ -112,12 +113,13 @@ class RideController {
    */
   public async manageSeatRequest(req: Request, res: Response): Promise<Response> {
     try {
-      const { id, passengerId } = req.params;
+      const id: IRide = req.params.id as unknown as IRide;
+      const passengerId: IUser = req.params.passengerId as unknown as IUser;
       const { action } = req.body; // 'approve' ou 'reject'
       const ride = await rideService.manageSeatRequest(
-        id as unknown as Types.ObjectId,
-        req.user!._id as unknown as Types.ObjectId,
-        passengerId as unknown as Types.ObjectId,
+        id,
+        req.user!,
+        passengerId,
         action);
       return res.status(200).json(ride);
     } catch (error: Error | any) {
@@ -130,8 +132,8 @@ class RideController {
    */
   public async cancelByDriver(req: Request, res: Response): Promise<Response> {
     try {
-      const { id } = req.params;
-      const ride = await rideService.cancelRideByDriver(id as unknown as Types.ObjectId, req.user!._id as unknown as Types.ObjectId);
+      const id: IRide = req.params.id as unknown as IRide;
+      const ride = await rideService.cancelRideByDriver(id, req.user!);
       return res.status(200).json({ message: 'Carona cancelada com sucesso.', ride });
     } catch (error: Error | any) {
       return res.status(403).json({ message: error.message });
@@ -143,8 +145,8 @@ class RideController {
    */
   public async cancelByPassenger(req: Request, res: Response): Promise<Response> {
     try {
-      const { id } = req.params;
-      const ride = await rideService.cancelSeatByPassenger(id as unknown as Types.ObjectId, req.user!._id as unknown as Types.ObjectId);
+      const id: IRide = req.params.id as unknown as IRide;
+      const ride = await rideService.cancelSeatByPassenger(id, req.user!);
       return res.status(200).json({ message: 'Reserva cancelada com sucesso.', ride });
     } catch (error: Error | any) {
       return res.status(403).json({ message: error.message });

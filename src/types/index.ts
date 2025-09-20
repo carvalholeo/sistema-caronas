@@ -35,6 +35,7 @@ export interface IDataReport extends Document {
   adminUser: IUser;
   hash: string;
   includedDataPoints: string[];
+  createdAt: Date;
 }
 
 export interface IBlock extends Document {

@@ -6,7 +6,6 @@ module.exports = {
   testPathIgnorePatterns: ['/node_modules/', '/dist/'],
   coverageDirectory: 'coverage',
   maxWorkers: '50%',
-  workerThreads: true,
   collectCoverageFrom: [
     'src/**/*.{ts,js}',
     '!src/**/*.d.ts',
