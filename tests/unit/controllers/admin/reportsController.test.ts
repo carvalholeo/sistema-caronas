@@ -3,7 +3,7 @@ import { adminReportsController } from '../../../../src/controllers/admin/report
 import { adminReportsService } from '../../../../src/services/admin/reportsService';
 
 // Mock dependencies
-jest.mock('../../../src/services/admin/reportsService');
+jest.mock('../../../../src/services/admin/reportsService');
 
 const mockedAdminReportsService = adminReportsService as jest.Mocked<typeof adminReportsService>;
 
@@ -99,7 +99,7 @@ describe('AdminReportsController', () => {
         await (adminReportsController as any)[methodName](req as Request, res as Response);
 
         expect(spyHandleReportRequest).toHaveBeenCalledTimes(1);
-        expect(spyHandleReportRequest).toHaveBeenCalledWith(req, res, (mockedAdminReportsService as any)[methodName], expect.any(Boolean));
+        expect(spyHandleReportRequest).toHaveBeenCalledWith(req, res, (mockedAdminReportsService as any)[methodName]);
       });
     });
   });
@@ -107,7 +107,7 @@ describe('AdminReportsController', () => {
   // Test getEngagementReport separately as it doesn't use handleReportRequest
   describe('getEngagementReport', () => {
     it('should return engagement report on success', async () => {
-      const mockReport = { mau: 100, dau: 50 };
+      const mockReport = { mau: 100, dau: 50, dauMauRatio: 2 };
       mockedAdminReportsService.getEngagementReport.mockResolvedValue(mockReport);
       req.query = { endDate: '2023-01-31' };
 
