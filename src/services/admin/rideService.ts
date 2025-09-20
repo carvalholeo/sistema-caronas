@@ -1,9 +1,9 @@
 // Lógica de negócio para ações administrativas em caronas.
-import { IRide, IUser } from 'types';
-import { RideModel } from 'models/ride';
 import { Types } from 'mongoose';
-import { AuditLogModel } from 'models/auditLog';
-import { AuditActionType, AuditLogCategory, AuditLogSeverityLevels, RideStatus } from 'types/enums/enums';
+import { IRide, IUser } from '../../types';
+import { RideModel } from '../../models/ride';
+import { AuditLogModel } from '../../models/auditLog';
+import { AuditActionType, AuditLogCategory, AuditLogSeverityLevels, RideStatus } from '../../types/enums/enums';
 
 class AdminRidesService {
   public async getRideDetails(rideId: IRide, adminId: IUser): Promise<IRide | null> {

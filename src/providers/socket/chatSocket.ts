@@ -1,9 +1,9 @@
 // Lógica de tempo real para o chat usando Socket.IO.
 import { Server } from 'socket.io';
 
-import { verifyToken } from 'utils/security';
-import logger from 'utils/logger';
-import { locationService } from 'services/locationService';
+import { verifyToken } from '../../utils/security';
+import logger from '../../utils/logger';
+import { locationService } from '../../services/locationService';
 
 export const initializeChatSockets = (io: Server) => {
   io.use(async (socket, next) => {

@@ -1,7 +1,6 @@
 import { Request, Response } from 'express';
-import { adminSecurityService } from 'services/admin/securityService';
-import { Types } from 'mongoose';
-import { IBlock, IUser } from 'types';
+import { adminSecurityService } from '../../services/admin/securityService';
+import { IBlock, IUser } from '../../types';
 
 class AdminSecurityController {
   /**

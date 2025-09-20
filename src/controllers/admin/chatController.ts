@@ -1,7 +1,6 @@
 import { Request, Response } from 'express';
-import { adminChatService } from 'services/admin/chatService';
-import { Types } from 'mongoose';
-import { IChatMessage, IRide, IUser } from 'types';
+import { adminChatService } from '../../services/admin/chatService';
+import { IChatMessage, IRide, IUser } from '../../types';
 
 class AdminChatController {
   /**

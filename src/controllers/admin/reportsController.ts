@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { adminReportsService } from 'services/admin/reportsService';
+import { adminReportsService } from '../../services/admin/reportsService';
 
 class AdminReportsController {
 

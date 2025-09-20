@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { UserRole } from 'types/enums/enums';
+import { UserRole } from '../types/enums/enums';
 
 const rbac = (roles: UserRole[]) => {
     return (req: Request, res: Response, next: NextFunction) => {

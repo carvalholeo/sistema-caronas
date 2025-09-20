@@ -1,9 +1,8 @@
 // Lógica de negócio para CRUD de veículos.
-import { VehicleModel } from 'models/vehicle';
-import { UserModel } from 'models/user';
-import { Types } from 'mongoose';
-import { IUser, IVehicle } from 'types';
-import { VehicleStatus, UserRole } from 'types/enums/enums';
+import { VehicleModel } from '../models/vehicle';
+import { UserModel } from '../models/user';
+import { IUser, IVehicle } from '../types';
+import { VehicleStatus, UserRole } from '../types/enums/enums';
 
 class VehicleService {
     public async createVehicle(ownerId: IUser, vehicleData: any): Promise<IVehicle> {

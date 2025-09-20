@@ -1,10 +1,10 @@
 // Lógica de negócio para o painel de segurança.
-import { BlockModel } from 'models/block';
-import { UserModel } from 'models/user';
-import { AuditLogModel } from 'models/auditLog';
-import { authService } from 'services/authService';
-import { IBlock, IUser } from 'types';
-import { AuditActionType, AuditLogCategory, AuditLogSeverityLevels, BlockStatus } from 'types/enums/enums';
+import { BlockModel } from '../../models/block';
+import { UserModel } from '../../models/user';
+import { AuditLogModel } from '../../models/auditLog';
+import { authService } from '../../services/authService';
+import { IBlock, IUser } from '../../types';
+import { AuditActionType, AuditLogCategory, AuditLogSeverityLevels, BlockStatus } from '../../types/enums/enums';
 
 class AdminSecurityService {
   public async listAllBlocks(): Promise<IBlock[]> {

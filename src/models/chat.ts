@@ -1,6 +1,6 @@
-import { Schema, Types, model } from 'mongoose';
-import { IChatMessage, IRide, IRidePassenger } from 'types';
-import { MessageStatus } from 'types/enums/enums';
+import { Schema, model } from 'mongoose';
+import { IChatMessage, IRide, IRidePassenger } from '../types';
+import { MessageStatus } from '../types/enums/enums';
 
 const ChatMessageSchema = new Schema<IChatMessage>({
   ride: { type: Schema.Types.ObjectId, ref: 'Ride', required: true },

@@ -1,12 +1,12 @@
 // Lógica de negócio para o painel de privacidade (LGPD/GDPR).
-import { UserModel } from 'models/user';
-import { DataReportModel } from 'models/dataReport';
-import { AuditLogModel } from 'models/auditLog';
-import { authService } from 'services/authService';
 import crypto from 'crypto';
-import { IAuditLog, IUser } from 'types';
-import { AuditActionType, AuditLogCategory, AuditLogSeverityLevels, NotificationScope, UserStatus } from 'types/enums/enums';
-import { NotificationEventModel } from 'models/event';
+import { UserModel } from '../../models/user';
+import { DataReportModel } from '../../models/dataReport';
+import { AuditLogModel } from '../../models/auditLog';
+import { authService } from '../../services/authService';
+import { IAuditLog, IUser } from '../../types';
+import { AuditActionType, AuditLogCategory, AuditLogSeverityLevels, NotificationScope, UserStatus } from '../../types/enums/enums';
+import { NotificationEventModel } from '../../models/event';
 
 export interface IReportData {
   profile: object;

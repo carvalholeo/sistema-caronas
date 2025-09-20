@@ -1,6 +1,6 @@
 import { Schema, model } from 'mongoose';
-import { IEventBase, INotificationEvent, IRideViewEvent, ISearchEvent } from 'types';
-import { NotificationScope, NotificationType } from 'types/enums/enums';
+import { IEventBase, INotificationEvent, IRideViewEvent, ISearchEvent } from '../types';
+import { NotificationScope, NotificationType } from '../types/enums/enums';
 
 const baseOptions = {
   discriminatorKey: 'kind', // campo que identifica o subtipo

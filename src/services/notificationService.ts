@@ -1,3 +1,5 @@
+import { Types } from 'mongoose';
+
 import { INotificationProvider } from '../providers/notifications/INotificationProvider';
 import { NotificationSubscriptionModel } from '../models/notificationSubscription';
 import { INotificationPayload, IUpdatePreferencesData, IUser, INotificationSubscription } from '../types';
@@ -8,7 +10,6 @@ import { AndroidProvider } from '../providers/notifications/AndroidProvider';
 import { IosProvider } from '../providers/notifications/IosProvider';
 import { EmailProvider } from '../providers/notifications/EmailProvider';
 import { NotificationEventModel } from '../models/event';
-import { Types } from 'mongoose';
 import { NotificationScope } from '../types/enums/enums';
 import { SuppressedNotificationModel } from '../models/suppressedNotification';
 

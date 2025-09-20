@@ -1,6 +1,6 @@
 import { Schema, model } from 'mongoose';
-import { IRide, IUser, ILocation, IRidePassenger } from 'types';
-import { PassengerStatus, RideStatus, VehicleStatus } from 'types/enums/enums';
+import { IRide, IUser, ILocation, IRidePassenger } from '../types';
+import { PassengerStatus, RideStatus, VehicleStatus } from '../types/enums/enums';
 import { VehicleModel } from './vehicle';
 
 const PointSchema = new Schema<ILocation>({

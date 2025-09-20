@@ -2,9 +2,9 @@ import fs from 'fs/promises';
 import path from 'path';
 import handlebars from 'handlebars';
 import juice from 'juice';
-import { EmailTemplate } from 'types/enums/email';
-import { TemplateDataMap } from 'types/types/email';
-import logger from 'utils/logger';
+import { EmailTemplate } from '../types/enums/email';
+import { TemplateDataMap } from '../types/types/email';
+import logger from '../utils/logger';
 
 export class EmailService {
   private templates: Map<EmailTemplate, handlebars.TemplateDelegate> = new Map();
@@ -20,16 +20,16 @@ export class EmailService {
    * Carrega e compila todos os templates de e-mail na memória ao iniciar.
    */
   private async initializeTemplates(): Promise<void> {
-    const templatesDir = path.join(__dirname, 'templates', 'emails');
+    const templatesDir = path.join(__dirname, 'templates');
 
     // Carrega o layout principal
-    const layoutPath = path.join(templatesDir, 'templates', 'layouts', 'base.hbs');
+    const layoutPath = path.join(templatesDir, 'layouts', 'base.hbs');
     const layoutSource = await fs.readFile(layoutPath, 'utf-8');
     this.layout = handlebars.compile(layoutSource);
 
     // Carrega os templates individuais
     for (const templateName of Object.values(EmailTemplate)) {
-      const filePath = path.join(templatesDir, `${templateName}.hbs`);
+      const filePath = path.join(templatesDir, 'emails' ,`${templateName}.hbs`);
       try {
         const source = await fs.readFile(filePath, 'utf-8');
         this.templates.set(templateName, handlebars.compile(source));

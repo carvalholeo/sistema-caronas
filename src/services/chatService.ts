@@ -1,6 +1,6 @@
 // Lógica de negócio para buscar e exportar mensagens de chat.
-import { IChatMessage, IRide, IUser } from 'types';
-import { ChatMessageModel } from 'models/chat';
+import { IChatMessage, IRide, IUser } from '../types';
+import { ChatMessageModel } from '../models/chat';
 
 class ChatService {
   public async getChatHistory(rideId: IRide, senderId: IUser): Promise<IChatMessage[]> {

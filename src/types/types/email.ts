@@ -1,5 +1,5 @@
-import { EmailTemplate } from "types/enums/email";
-import { IPasswordResetRequestData, IPasswordResetSuccessData, ITwoFactorEnabledData, IRideCancelledData, IRideStatusUpdatedData, INewChatMessageData, IVehicleStatusUpdatedData, IProfileUpdatedData } from "types/intefaces/email";
+import { EmailTemplate } from "../enums/email";
+import { IPasswordResetRequestData, IPasswordResetSuccessData, ITwoFactorEnabledData, IRideCancelledData, IRideStatusUpdatedData, INewChatMessageData, IVehicleStatusUpdatedData, IProfileUpdatedData } from "../intefaces/email";
 
 export type TemplateDataMap = {
   [EmailTemplate.PasswordResetRequest]: IPasswordResetRequestData;

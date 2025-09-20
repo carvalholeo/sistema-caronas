@@ -1,7 +1,7 @@
+import { Request, Response, NextFunction } from 'express';
 import rateLimit, {RateLimitRequestHandler} from 'express-rate-limit';
 import { RedisStore } from 'rate-limit-redis';
 import { getRedisClient } from '../../providers/cache/redis';
-import { Request, Response, NextFunction } from 'express';
 
 let limiter: RateLimitRequestHandler | null = null;
 

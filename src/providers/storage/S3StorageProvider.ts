@@ -4,8 +4,8 @@ import {
   DeleteObjectCommand,
 } from '@aws-sdk/client-s3';
 import { IStorageProvider } from './IStorageProvider';
-import {randomUUID} from 'crypto';
-import logger from 'utils/logger';
+import { randomUUID } from 'crypto';
+import logger from '../../utils/logger';
 
 export class S3StorageProvider implements IStorageProvider {
   private s3Client: S3Client;

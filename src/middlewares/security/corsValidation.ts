@@ -1,11 +1,5 @@
-import cors, { CorsRequest } from 'cors';
-import { NextFunction } from 'express';
+import cors from 'cors';
 
-interface CorsResponse {
-  statusCode?: number | undefined;
-  setHeader(key: string, value: string): any;
-  end(): any;
-}
 export function corsValidation() {
   const options: cors.CorsOptions = {
     origin: process.env.FRONTEND_URL || "http://localhost:3000",

@@ -1,10 +1,10 @@
-import { RideModel } from 'models/ride';
-import { IRide, IUser } from 'types'
-import { VehicleModel } from 'models/vehicle';
 import { randomUUID } from 'crypto';
-import { RideViewEventModel, SearchEventModel } from 'models/event';
 import { Types } from 'mongoose';
-import { VehicleStatus, RideStatus, PassengerStatus } from 'types/enums/enums';
+import { RideModel } from '../models/ride';
+import { IRide, IUser } from '../types'
+import { VehicleModel } from '../models/vehicle';
+import { RideViewEventModel, SearchEventModel } from '../models/event';
+import { VehicleStatus, RideStatus, PassengerStatus } from '../types/enums/enums';
 
 class RideService {
     public async createRide(driverId: IUser, rideData: any): Promise<IRide> {

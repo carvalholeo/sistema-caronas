@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
-import { chatService } from 'services/chatService';
-import { IRide, IUser } from 'types';
+import { chatService } from '../services/chatService';
+import { IRide, IUser } from '../types';
 
 class ChatController {
   public async getHistory(req: Request, res: Response): Promise<Response> {

@@ -1,6 +1,5 @@
 import { Request, Response } from 'express';
-import { Types } from 'mongoose';
-import { vehicleService } from 'services/vehicleService';
+import { vehicleService } from '../services/vehicleService';
 
 class VehicleController {
   public async create(req: Request, res: Response): Promise<Response> {

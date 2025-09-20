@@ -1,7 +1,6 @@
 import { Request, Response } from 'express';
-import { adminUsersService } from 'services/admin/userService';
-import { Types } from 'mongoose';
-import { IUser } from 'types';
+import { adminUsersService } from '../../services/admin/userService';
+import { IUser } from '../../types';
 
 class AdminUsersController {
   /**

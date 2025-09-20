@@ -1,6 +1,5 @@
 import helmet from "helmet";
 
-
 export const helmetCSP = helmet({
   contentSecurityPolicy: {
     directives: {

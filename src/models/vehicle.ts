@@ -1,6 +1,6 @@
 import { Schema, model } from 'mongoose';
-import { IVehicle } from 'types';
-import { RideStatus, VehicleStatus } from 'types/enums/enums';
+import { IVehicle } from '../types';
+import { RideStatus, VehicleStatus } from '../types/enums/enums';
 import { RideModel } from './ride';
 
 const VehicleSchema = new Schema<IVehicle>({

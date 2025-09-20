@@ -1,11 +1,11 @@
-import { UserModel } from 'models/user';
 import speakeasy from 'speakeasy';
+import crypto from 'crypto';
+import { UserModel } from '../models/user';
 import { LoginAttemptModel } from '../models/loginAttempt';
 import authConfig from '../config/auth';
 import { generateToken } from '../utils/security';
 import { INotificationPayload, IUser } from '../types';
 import { PasswordResetStatus, UserRole, UserStatus } from '../types/enums/enums';
-import crypto from 'crypto';
 import { PasswordResetModel } from '../models/passwordReset';
 import {notificationService} from './notificationService';
 import { emailService } from './emailService';

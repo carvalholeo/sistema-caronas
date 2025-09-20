@@ -1,7 +1,7 @@
+import { Request, Response, NextFunction } from 'express';
+import { RedisStore } from 'rate-limit-redis';
 import  slowDown, {SlowDownRequestHandler} from 'express-slow-down';
 import { getRedisClient } from '../../providers/cache/redis';
-import { RedisStore } from 'rate-limit-redis';
-import { Request, Response, NextFunction } from 'express';
 
 let limiter: SlowDownRequestHandler | null = null;
 

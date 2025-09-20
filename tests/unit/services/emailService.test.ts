@@ -116,23 +116,13 @@ describe('EmailService', () => {
     });
 
     it('should load layout template successfully', async () => {
-      // Arrange
-      const expectedLayoutPath = 'templates/emails/templates/layouts/base.hbs';
-
       // Act - Aguardar a inicialização
       await new Promise(resolve => setTimeout(resolve, 0));
 
       // Assert
       expect(mockedPath.join).toHaveBeenCalledWith(
         expect.any(String), // __dirname
-        'templates',
-        'emails'
-      );
-      expect(mockedPath.join).toHaveBeenCalledWith(
-        expect.any(String), // templatesDir
-        'templates',
-        'layouts',
-        'base.hbs'
+        'templates'
       );
       expect(mockedFs.readFile).toHaveBeenCalledWith(
         expect.stringContaining('base.hbs'),
