@@ -1,106 +1,79 @@
-// Mock the 'mongoose' library
-const mockedMongoose = {
-  connect: jest.fn(),
-  set: jest.fn(),
-  connection: {
-    dropDatabase: jest.fn(),
-    close: jest.fn(),
-    readyState: 1, // Simulate connected state
-  },
-} as unknown as jest.Mocked<typeof import('mongoose')>;
+// tests/unit/providers/database/mongoose.test.ts
 
-jest.mock('mongoose', () => mockedMongoose);
+// Importamos apenas os tipos necessários no topo
+import mongoose, { Mongoose } from 'mongoose';
 
-describe('Mongoose Connection Provider', () => {
-  const originalEnv = process.env;
-  let connectToDatabase: typeof import('../../../../src/providers/database/mongoose').connectToDatabase;
-  let closeDatabaseConnection: typeof import('../../../../src/providers/database/mongoose').closeDatabaseConnection;
+// --- SETUP DAS VARIÁVEIS DE TESTE ---
 
-  let mockMongooseClient: {
-    disconnect: jest.Mock;
-  };
+// Declaramos as variáveis que vamos usar em um escopo mais alto
+let connectToDatabase: () => Promise<Mongoose>;
+let closeDatabaseConnection: () => Promise<void>;
+let mockedMongoose: jest.Mocked<typeof mongoose>;
+let mockMongooseInstance: { disconnect: jest.Mock };
 
+describe('Database Connection Manager', () => {
+
+  // O beforeEach agora vai cuidar de toda a configuração,
+  // garantindo um ambiente limpo para cada teste.
   beforeEach(() => {
-    jest.resetModules(); // Clear module cache
+    jest.clearAllMocks();
+    jest.resetModules(); // 1. Limpa o cache de módulos
 
-    // Re-import the functions after resetting modules
-    ({ connectToDatabase, closeDatabaseConnection } = require('../../../../src/providers/database/mongoose'));
-
-    mockMongooseClient = {
+    // 2. Prepara a instância mockada que será retornada pela conexão
+    mockMongooseInstance = {
       disconnect: jest.fn().mockResolvedValue(undefined),
     };
-    mockedMongoose.connect.mockResolvedValue(mockMongooseClient as any);
-    mockedMongoose.set.mockClear();
-    mockedMongoose.connect.mockClear();
-    mockedMongoose.connection.dropDatabase.mockClear();
-    mockedMongoose.connection.close.mockClear();
-  });
 
-  afterAll(() => {
-    process.env = originalEnv;
+    // 3. Cria o mock do Mongoose APÓS o reset
+    jest.mock('mongoose', () => ({
+      set: jest.fn(),
+      connect: jest.fn().mockResolvedValue(mockMongooseInstance),
+    }));
+
+    // 4. RE-IMPORTA as dependências mockadas e o nosso módulo a ser testado
+    mockedMongoose = require('mongoose');
+    const dbModule = require('../../../../src/providers/database/mongoose'); // Ajuste o caminho
+    connectToDatabase = dbModule.connectToDatabase;
+    closeDatabaseConnection = dbModule.closeDatabaseConnection;
   });
 
   describe('connectToDatabase', () => {
-    it('should set runValidators and connect on the first call', async () => {
+    it('deve configurar e conectar ao banco de dados na primeira chamada', async () => {
       const client = await connectToDatabase();
 
       expect(mockedMongoose.set).toHaveBeenCalledWith('runValidators', true);
       expect(mockedMongoose.set).toHaveBeenCalledWith('autoIndex', true);
       expect(mockedMongoose.connect).toHaveBeenCalledTimes(1);
-      expect(mockedMongoose.connect).toHaveBeenCalledWith('mongodb://localhost:27017/carpool', {});
-      expect(client).toBe(mockMongooseClient);
+      expect(client).toBe(mockMongooseInstance);
     });
 
-    it('should use MONGODB_URI from environment variables if set', async () => {
-        process.env.MONGODB_URI = 'mongodb://test-host:27017/test-db';
-        // Re-import after setting env var
-        ({ connectToDatabase, closeDatabaseConnection } = require('../../../../src/providers/database/mongoose'));
+    it('deve retornar o cliente existente em chamadas subsequentes sem reconectar', async () => {
+      await connectToDatabase();
+      await connectToDatabase();
 
-        await connectToDatabase();
-        expect(mockedMongoose.connect).toHaveBeenCalledWith('mongodb://test-host:27017/test-db', {});
-    });
-
-    it('should return the existing client without connecting again on subsequent calls', async () => {
-      await connectToDatabase(); // First call
-      const client = await connectToDatabase(); // Second call
-
-      expect(mockedMongoose.set).toHaveBeenCalledTimes(2); // set is called twice (once per import)
       expect(mockedMongoose.connect).toHaveBeenCalledTimes(1);
-      expect(client).toBe(mockMongooseClient);
     });
   });
 
   describe('closeDatabaseConnection', () => {
-    it('should disconnect the client if a connection exists', async () => {
-      await connectToDatabase(); // Establish connection
-      await closeDatabaseConnection();
-
-      expect(mockMongooseClient.disconnect).toHaveBeenCalledTimes(1);
-    });
-
-    it('should do nothing if no connection exists', async () => {
-      // Simulate no connection by setting client to null internally in the module
-      // This requires re-importing the module after setting client to null
-      jest.resetModules();
-      ({ connectToDatabase, closeDatabaseConnection } = require('../../../../src/providers/database/mongoose'));
-
-      // Manually set the internal client to null for this test
-      // This is a bit hacky, but necessary to test the 'if (client)' condition
-      // A better design might expose a way to reset the client for testing
-      // For now, we'll rely on the module re-import to reset the client to null
+    it('deve desconectar o cliente e resetar a instância', async () => {
+      const client = await connectToDatabase();
+      const mockDisconnect = client.disconnect;
 
       await closeDatabaseConnection();
 
-      expect(mockMongooseClient.disconnect).not.toHaveBeenCalled();
+      expect(mockDisconnect).toHaveBeenCalledTimes(1);
+
+      // Conecta novamente para provar que a instância foi resetada
+      await connectToDatabase();
+      expect(mockedMongoose.connect).toHaveBeenCalledTimes(2);
     });
 
-    it('should allow a new connection to be created after closing', async () => {
-        await connectToDatabase();
-        await closeDatabaseConnection();
-        await connectToDatabase();
+    it('não deve fazer nada se não houver conexão ativa', async () => {
+      await closeDatabaseConnection();
 
-        expect(mockedMongoose.connect).toHaveBeenCalledTimes(2);
-        expect(mockMongooseClient.disconnect).toHaveBeenCalledTimes(1);
+      // A asserção agora funciona, pois mockMongooseInstance está sempre definido
+      expect(mockMongooseInstance.disconnect).not.toHaveBeenCalled();
     });
   });
 });

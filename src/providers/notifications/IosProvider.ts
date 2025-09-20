@@ -9,6 +9,8 @@ export class IosProvider implements INotificationProvider {
 
   constructor() {
     // As credenciais DEVEM vir de variáveis de ambiente.
+    if (this.apnProvider) return;
+
     const options = {
       token: {
         key: process.env.APNS_KEY_PATH!, // Caminho para o seu ficheiro .p8

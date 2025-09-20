@@ -6,8 +6,8 @@ import { INotificationPayload, INotificationSubscription } from '../../../../src
 
 // Mock dependencies
 jest.mock('node-apn-flitto');
-jest.mock('../../../src/models/notificationSubscription');
-jest.mock('../../../src/utils/logger');
+jest.mock('../../../../src/models/notificationSubscription');
+jest.mock('../../../../src/utils/logger');
 
 const mockedApnProvider = apn.Provider as jest.MockedClass<typeof apn.Provider>;
 const mockedLogger = logger as jest.Mocked<typeof logger>;
@@ -34,6 +34,7 @@ describe('IosProvider', () => {
     process.env.APNS_KEY_ID = 'KEY123';
     process.env.APNS_TEAM_ID = 'TEAM123';
     process.env.APNS_BUNDLE_ID = 'com.example.app';
+    process.env.NODE_ENV = 'production';
   };
 
   describe('Constructor', () => {
@@ -46,7 +47,7 @@ describe('IosProvider', () => {
           keyId: 'KEY123',
           teamId: 'TEAM123',
         },
-        production: false,
+        production: true,
       });
     });
   });
@@ -59,13 +60,13 @@ describe('IosProvider', () => {
     const mockPayload: INotificationPayload = {
         title: 'Test Title',
         body: 'Test Body',
-        category: 'test-category',
-    };
+        category: 'communication',
+    } as INotificationPayload;
 
     it('should not send if destination (deviceToken) is missing', async () => {
         setValidEnv();
         const provider = new IosProvider();
-        const subWithoutDest = { ...mockSubscription, destination: undefined };
+        const subWithoutDest = { ...mockSubscription, destination: undefined } as unknown as INotificationSubscription;
         await provider.send(subWithoutDest, mockPayload);
 
         expect(mockedLogger.warn).toHaveBeenCalledWith(expect.stringContaining('sem deviceToken'));

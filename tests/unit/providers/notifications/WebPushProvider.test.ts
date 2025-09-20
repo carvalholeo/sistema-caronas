@@ -6,8 +6,8 @@ import { INotificationPayload, INotificationSubscription } from '../../../../src
 
 // Mock dependencies
 jest.mock('web-push');
-jest.mock('../../../src/models/notificationSubscription');
-jest.mock('../../../src/utils/logger');
+jest.mock('../../../../src/models/notificationSubscription');
+jest.mock('../../../../src/utils/logger');
 
 const mockedWebpush = webpush as jest.Mocked<typeof webpush>;
 const mockedLogger = logger as jest.Mocked<typeof logger>;
@@ -65,7 +65,7 @@ describe('WebPushProvider', () => {
     const mockPayload: INotificationPayload = {
         title: 'WebPush Title',
         body: 'WebPush Body',
-        category: 'webpush-category',
+        category: 'communication',
     };
 
     beforeEach(() => {
@@ -74,7 +74,7 @@ describe('WebPushProvider', () => {
 
     it('should send a web push notification successfully', async () => {
         const provider = new WebPushProvider();
-        mockedWebpush.sendNotification.mockResolvedValue({});
+        // mockedWebpush.sendNotification.mockResolvedValue({});
 
         await provider.send(mockSubscription, mockPayload);
 
@@ -92,7 +92,7 @@ describe('WebPushProvider', () => {
 
         await provider.send(mockSubscription, mockPayload);
 
-        expect(mockedLogger.info).toHaveBeenCalledWith(expect.stringContaining('Assinatura WebPush para'), 'é inválida. Removendo.');
+        expect(mockedLogger.info).toHaveBeenCalledWith(`Assinatura WebPush para ${mockSubscription.endpoint} é inválida. Removendo.`);
         expect(mockedNotificationSubscriptionModel.deleteOne).toHaveBeenCalledWith({ endpoint: mockSubscription.endpoint });
     });
 
@@ -103,7 +103,7 @@ describe('WebPushProvider', () => {
 
         await provider.send(mockSubscription, mockPayload);
 
-        expect(mockedLogger.info).toHaveBeenCalledWith(expect.stringContaining('Assinatura WebPush para'), 'é inválida. Removendo.');
+        expect(mockedLogger.info).toHaveBeenCalledWith(`Assinatura WebPush para ${mockSubscription.endpoint} é inválida. Removendo.`);
         expect(mockedNotificationSubscriptionModel.deleteOne).toHaveBeenCalledWith({ endpoint: mockSubscription.endpoint });
     });
 

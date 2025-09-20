@@ -1,23 +1,45 @@
+// tests/unit/providers/storage/S3StorageProvider.test.ts
+
 import { S3Client } from '@aws-sdk/client-s3';
 import { S3StorageProvider } from '../../../../src/providers/storage/S3StorageProvider';
 import logger from '../../../../src/utils/logger';
-import crypto from 'crypto';
+import { randomUUID } from 'crypto';
 
-// Mock dependencies
-jest.mock('@aws-sdk/client-s3');
-jest.mock('../../../src/utils/logger');
+// Mock dependências
+jest.mock('../../../../src/utils/logger');
+jest.mock('crypto', () => ({
+  ...jest.requireActual('crypto'), // Mantém outras funções de crypto
+  randomUUID: jest.fn(),
+}));
+
+
+// --- CORREÇÃO PRINCIPAL: SIMPLIFICANDO O MOCK DO S3 ---
+
+// 1. Criamos uma única função mock para o método 'send' que será compartilhada.
+const mockSend = jest.fn();
+
+// 2. Mockamos o S3Client para que qualquer instância criada use nossa função 'mockSend'.
+jest.mock('@aws-sdk/client-s3', () => ({
+  S3Client: jest.fn().mockImplementation(() => ({
+    send: mockSend,
+  })),
+  // Mockamos os comandos para que o teste não falhe ao tentar instanciá-los
+  PutObjectCommand: jest.fn().mockImplementation(input => ({ input })),
+  DeleteObjectCommand: jest.fn().mockImplementation(input => ({ input })),
+}));
 
 const mockedS3Client = S3Client as jest.MockedClass<typeof S3Client>;
 const mockedLogger = logger as jest.Mocked<typeof logger>;
+const mockedRandomUUID = randomUUID as jest.Mock;
+
 
 describe('S3StorageProvider', () => {
   const originalEnv = process.env;
 
   beforeEach(() => {
-    jest.resetModules();
+    // Limpamos o estado dos mocks antes de cada teste
+    jest.clearAllMocks();
     process.env = { ...originalEnv };
-    mockedS3Client.mockClear();
-    (mockedS3Client.prototype.send as jest.Mock)?.mockClear();
   });
 
   afterAll(() => {
@@ -53,8 +75,8 @@ describe('S3StorageProvider', () => {
     it('should upload a file and return its public URL', async () => {
       setValidEnv();
       const provider = new S3StorageProvider();
-      const sendMock = mockedS3Client.prototype.send as jest.Mock;
-      sendMock.mockResolvedValue({});
+      // Agora configuramos o comportamento do 'mockSend' diretamente
+      mockSend.mockResolvedValue({});
 
       const mockFile = {
         originalname: 'test.jpg',
@@ -62,60 +84,76 @@ describe('S3StorageProvider', () => {
         mimetype: 'image/jpeg',
       } as Express.Multer.File;
 
-      const mockHash = 'a1b2c3d4e5f6';
-      jest.spyOn(crypto, 'randomBytes').mockReturnValue(Buffer.from(mockHash, 'hex'));
+      mockedRandomUUID.mockReturnValue('mock-hash');
 
       const fileUrl = await provider.saveFile(mockFile);
 
-      expect(sendMock).toHaveBeenCalledTimes(1);
-      const command = sendMock.mock.calls[0][0];
+      expect(mockSend).toHaveBeenCalledTimes(1);
+      const command = mockSend.mock.calls[0][0];
       expect(command.input.Bucket).toBe('test-bucket');
-      expect(command.input.Key).toBe(`${mockHash}-test.jpg`);
+      expect(command.input.Key).toBe('mock-hash-test.jpg');
       expect(command.input.Body).toBe(mockFile.buffer);
-      expect(fileUrl).toBe(`https://test-bucket.s3.us-east-1.amazonaws.com/${mockHash}-test.jpg`);
+      expect(fileUrl).toBe('https://test-bucket.s3.us-east-1.amazonaws.com/mock-hash-test.jpg');
     });
 
     it('should throw an error if S3 upload fails', async () => {
-        setValidEnv();
-        const provider = new S3StorageProvider();
-        const sendMock = mockedS3Client.prototype.send as jest.Mock;
-        const uploadError = new Error('S3 Error');
-        sendMock.mockRejectedValue(uploadError);
+      setValidEnv();
+      const provider = new S3StorageProvider();
+      const uploadError = new Error('S3 Error');
+      mockSend.mockRejectedValue(uploadError);
 
-        const mockFile = { originalname: 'test.jpg' } as Express.Multer.File;
+      const mockFile = { originalname: 'test.jpg', buffer: Buffer.from(''), mimetype: '' } as Express.Multer.File;
 
-        await expect(provider.saveFile(mockFile)).rejects.toThrow('Falha ao salvar o arquivo no S3.');
-        expect(mockedLogger.error).toHaveBeenCalledWith(expect.any(String), uploadError);
+      await expect(provider.saveFile(mockFile)).rejects.toThrow('Falha ao salvar o arquivo no S3.');
+      expect(mockedLogger.error).toHaveBeenCalledWith(expect.any(String), uploadError);
     });
   });
 
   describe('deleteFile', () => {
     it('should delete a file from S3 based on its URL', async () => {
-        setValidEnv();
-        const provider = new S3StorageProvider();
-        const sendMock = mockedS3Client.prototype.send as jest.Mock;
-        sendMock.mockResolvedValue({});
+      setValidEnv();
+      const provider = new S3StorageProvider();
+      mockSend.mockResolvedValue({});
 
-        const fileKey = 'some-hash-test.jpg';
-        const fileUrl = `https://test-bucket.s3.us-east-1.amazonaws.com/${fileKey}`;
+      const fileKey = 'some-hash-test.jpg';
+      const fileUrl = `https://test-bucket.s3.us-east-1.amazonaws.com/${fileKey}`;
 
-        await provider.deleteFile(fileUrl);
+      await provider.deleteFile(fileUrl);
 
-        expect(sendMock).toHaveBeenCalledTimes(1);
-        const command = sendMock.mock.calls[0][0];
-        expect(command.input.Bucket).toBe('test-bucket');
-        expect(command.input.Key).toBe(fileKey);
+      expect(mockSend).toHaveBeenCalledTimes(1);
+      const command = mockSend.mock.calls[0][0];
+      expect(command.input.Bucket).toBe('test-bucket');
+      expect(command.input.Key).toBe(fileKey);
     });
 
-    it('should log an error but not throw if deletion fails', async () => {
-        setValidEnv();
-        const provider = new S3StorageProvider();
-        const sendMock = mockedS3Client.prototype.send as jest.Mock;
-        const deleteError = new Error('S3 Delete Error');
-        sendMock.mockRejectedValue(deleteError);
+    it('should not throw an error if an invalid URL is passed', async () => {
+      setValidEnv();
+      const provider = new S3StorageProvider();
+      const deleteError = new TypeError('Invalid URL');
+      mockSend.mockRejectedValue(deleteError);
 
-        await expect(provider.deleteFile('some-url')).resolves.not.toThrow();
-        expect(mockedLogger.error).toHaveBeenCalledWith(expect.any(String), deleteError);
+      await expect(provider.deleteFile('some-url')).resolves.not.toThrow();
+      // Pega o segundo argumento (o objeto de erro) da primeira chamada ao logger
+      expect(mockedLogger.error).toHaveBeenCalledTimes(1);
+
+      // @ts-ignore
+      const loggedError = mockedLogger.error.mock.calls[0][1];
+
+      // Verifica se o erro logado é do tipo correto
+      expect((loggedError as unknown as TypeError)!.message).toBe('Invalid URL');
+    });
+
+    it('should not throw an error if deletion fails, only log', async () => {
+      setValidEnv();
+      const provider = new S3StorageProvider();
+      const deleteError = new TypeError('S3 Delete Error');
+      const fileKey = 'some-hash-test.jpg';
+      const fileUrl = `https://test-bucket.s3.us-east-1.amazonaws.com/${fileKey}`;
+
+      mockSend.mockRejectedValue(deleteError);
+
+      await expect(provider.deleteFile(fileUrl)).resolves.not.toThrow();
+      expect(mockedLogger.error).toHaveBeenCalledWith(expect.any(String), deleteError);
     });
   });
 });

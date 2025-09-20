@@ -5,7 +5,7 @@ import { INotificationPayload, INotificationSubscription } from '../../../../src
 
 // Mock dependencies
 jest.mock('nodemailer');
-jest.mock('../../../src/utils/logger');
+jest.mock('../../../../src/utils/logger');
 
 const mockedNodemailer = nodemailer as jest.Mocked<typeof nodemailer>;
 const mockedLogger = logger as jest.Mocked<typeof logger>;
@@ -59,14 +59,14 @@ describe('EmailProvider', () => {
     const mockPayload: INotificationPayload = {
         title: 'Email Title',
         body: 'Email Body',
-        category: 'test-category',
+        category: 'communication',
         url: 'https://example.com/details'
     };
 
     it('should not send if destination (email) is missing', async () => {
         setValidEnv();
         const provider = new EmailProvider();
-        const subWithoutDest = { ...mockSubscription, destination: undefined };
+        const subWithoutDest = { ...mockSubscription, destination: undefined } as unknown as INotificationSubscription;
         await provider.send(subWithoutDest, mockPayload);
 
         expect(mockedLogger.warn).toHaveBeenCalledWith(expect.stringContaining('sem endereço'));

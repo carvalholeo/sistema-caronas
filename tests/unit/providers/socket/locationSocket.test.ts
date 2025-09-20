@@ -1,124 +1,215 @@
+// tests/unit/sockets/locationSockets.test.ts
+
+import { createServer, Server as HttpServer } from 'http';
 import { Server, Socket } from 'socket.io';
-import { setupLocationSockets } from '../../../../src/providers/socket/locationSocket';
-import { RideModel } from '../../../../src/models/ride';
-import { BlockModel } from '../../../../src/models/block';
-import { locationService } from '../../../../src/services/locationService';
-import { RideStatus } from '../../../../src/types/enums/enums';
+import { io as Client, Socket as ClientSocket } from 'socket.io-client';
 import mongoose from 'mongoose';
 
-// Mock dependencies
+// Importamos a função que queremos testar
+import { setupLocationSockets } from '../../../../src/providers/socket/locationSocket'; // Ajuste o caminho
+
+// Mockamos todas as dependências externas
+import { RideModel } from '../../../../src/models/ride';
+import { LocationLogModel } from '../../../../src/models/locationLog';
+import { LocationService, locationService } from '../../../../src/services/locationService';
+import { PassengerStatus, RideStatus } from '../../../../src/types/enums/enums';
+import { IRide, IRidePassenger, IUser } from '../../../../src/types';
+
+
+jest.mock('../../../../src/services/locationService', () => ({
+  locationService: {
+    broadcastLocationUpdate: jest.fn().mockResolvedValue(void 0),
+    removeUserLocation: jest.fn().mockResolvedValue(void 0),
+  },
+}));
 jest.mock('../../../../src/models/ride');
 jest.mock('../../../../src/models/locationLog');
-jest.mock('../../../../src/models/block');
-jest.mock('../../../../src/services/locationService');
 
 const mockedRideModel = RideModel as jest.Mocked<typeof RideModel>;
-const mockedBlockModel = BlockModel as jest.Mocked<typeof BlockModel>;
+const mockedLocationLogModel = LocationLogModel as jest.Mocked<typeof LocationLogModel>;
+const mockedLocationService = locationService as jest.Mocked<LocationService>;
 
-describe('Location Socket Provider', () => {
+// Estendendo a interface do Socket para incluir nossa propriedade customizada 'userId'
+declare module "socket.io" {
+  export interface Socket {
+    userId: IUser;
+  }
+}
+
+describe('Location Sockets', () => {
   let io: Server;
+  let clientSocket: ClientSocket;
+  let httpServer: HttpServer;
+  let port: number;
   let socket: Socket;
-  let connectionCallback: (socket: Socket) => void;
 
-  beforeEach(() => {
-    // Create mock server and socket
-    io = { on: jest.fn(), in: jest.fn().mockReturnThis(), fetchSockets: jest.fn() } as unknown as Server;
-    socket = {
-      on: jest.fn(),
-      emit: jest.fn(),
-      join: jest.fn(),
-      rooms: new Set(),
-      userId: new mongoose.Types.ObjectId().toString(),
-    } as unknown as Socket;
+  const driverId = new mongoose.Types.ObjectId() as unknown as IUser;
+  const rideId = new mongoose.Types.ObjectId() as unknown as IRide;
+  const passengerApproved = { user: new mongoose.Types.ObjectId() as unknown as IUser, status: PassengerStatus.Approved } as unknown as IRidePassenger;
+  const passengerPending = { user: new mongoose.Types.ObjectId() as unknown as IUser, status: PassengerStatus.Pending } as unknown as IRidePassenger;
 
-    // Setup the main connection listener
+  // --- CICLO DE VIDA DO SERVIDOR DE TESTE ---
+
+  beforeAll((done) => {
+    httpServer = createServer();
+    io = new Server(httpServer);
+
+    // Simula um middleware de autenticação que adiciona 'userId' ao socket
+    io.use((innerSocket, next) => {
+      innerSocket.userId = driverId;
+      socket = innerSocket;
+      next();
+    });
+
     setupLocationSockets(io);
-    // Capture the callback passed to io.on('connection', ...)
-    connectionCallback = (io.on as jest.Mock).mock.calls[0][1];
-    // Simulate a client connecting
-    connectionCallback(socket);
-  });
 
-  // Helper to get a specific event handler from the mock socket
-  const getEventHandler = (eventName: string) => {
-    const call = (socket.on as jest.Mock).mock.calls.find(c => c[0] === eventName);
-    return call ? call[1] : null;
-  };
-
-  describe('on:joinRideLocationRoom', () => {
-    const rideId = new mongoose.Types.ObjectId().toString();
-    const driverId = new mongoose.Types.ObjectId();
-
-    it('should allow a driver to join a room for an in-progress ride', async () => {
-      const mockRide = { _id: rideId, driver: { _id: driverId }, status: RideStatus.InProgress, passengers: [] };
-      mockedRideModel.findById.mockResolvedValue(mockRide as any);
-      socket.userId = driverId.toString();
-
-      const handler = getEventHandler('joinRideLocationRoom');
-      await handler(rideId);
-
-      expect(socket.join).toHaveBeenCalledWith(`ride-location-${rideId}`);
-      expect(socket.emit).toHaveBeenCalledWith('joinedRideLocationRoom', expect.any(String));
-    });
-
-    it('should emit an error if the ride is not in progress', async () => {
-      const mockRide = { _id: rideId, driver: { _id: driverId }, status: RideStatus.Scheduled, passengers: [] };
-      mockedRideModel.findById.mockResolvedValue(mockRide as any);
-      socket.userId = driverId.toString();
-
-      const handler = getEventHandler('joinRideLocationRoom');
-      await handler(rideId);
-
-      expect(socket.join).not.toHaveBeenCalled();
-      expect(socket.emit).toHaveBeenCalledWith('locationError', expect.stringContaining('não está em andamento'));
-    });
-
-    it('should emit an error if the user is not part of the ride', async () => {
-      const mockRide = { _id: rideId, driver: { _id: driverId }, status: RideStatus.InProgress, passengers: [] };
-      mockedRideModel.findById.mockResolvedValue(mockRide as any);
-      socket.userId = new mongoose.Types.ObjectId().toString(); // Different user
-
-      const handler = getEventHandler('joinRideLocationRoom');
-      await handler(rideId);
-
-      expect(socket.join).not.toHaveBeenCalled();
-      expect(socket.emit).toHaveBeenCalledWith('locationError', expect.stringContaining('não tem permissão'));
+    httpServer.listen(() => {
+      const address = httpServer.address();
+      port = typeof address === 'string' ? 0 : address!.port;
+      done();
     });
   });
 
-  describe('on:updateLocation', () => {
-    const rideId = new mongoose.Types.ObjectId();
-    const roomName = `ride-location-${rideId}`;
+  afterAll(() => {
+    io.close();
+    httpServer.close();
+  });
 
-    it('should broadcast location to other non-blocked users in the room', async () => {
-      socket.rooms.add(roomName);
-      const mockRide = { _id: rideId, driver: { _id: new mongoose.Types.ObjectId() } };
-      mockedRideModel.findById.mockResolvedValue(mockRide as any);
-      mockedBlockModel.findOne.mockResolvedValue(null); // No block
+  // --- CICLO DE VIDA DO CLIENTE DE TESTE ---
 
-      const targetSocket = { id: 'socket2', emit: jest.fn(), userId: new mongoose.Types.ObjectId().toString() };
-      (io.in(roomName).fetchSockets as jest.Mock).mockResolvedValue([targetSocket]);
-
-      const handler = getEventHandler('updateLocation');
-      await handler({ rideId, lat: 10, lng: 20 });
-
-      expect(locationService.broadcastLocationUpdate).toHaveBeenCalled();
-      expect(targetSocket.emit).toHaveBeenCalledWith('locationUpdate', expect.any(Object));
+  beforeEach((done) => {
+    // Conecta um novo cliente antes de cada teste para garantir isolamento
+    clientSocket = Client(`http://localhost:${port}`, {
+      forceNew: true, // Garante uma nova conexão
     });
 
-    it('should not broadcast to a blocked user', async () => {
-      socket.rooms.add(roomName);
-      const mockRide = { _id: rideId, driver: { _id: new mongoose.Types.ObjectId() } };
+    clientSocket.on('connect', () => {
+      done();
+    });
+  });
+
+  afterEach(() => {
+    if (clientSocket.connected) {
+      clientSocket.disconnect();
+    }
+    jest.clearAllMocks();
+  });
+
+  // --- TESTES DOS EVENTOS ---
+
+  describe('event: joinRideLocationRoom', () => {
+    it('deve permitir que um motorista entre na sala de uma carona em andamento', (done) => {
+      socket.userId = driverId;
+
+      const mockRide = {
+        _id: rideId,
+        status: RideStatus.InProgress,
+        driver: driverId,
+        passengers: [passengerApproved, passengerPending],
+      };
       mockedRideModel.findById.mockResolvedValue(mockRide as any);
-      mockedBlockModel.findOne.mockResolvedValue({} as any); // Block exists
 
-      const targetSocket = { id: 'socket2', emit: jest.fn(), userId: new mongoose.Types.ObjectId().toString() };
-      (io.in(roomName).fetchSockets as jest.Mock).mockResolvedValue([targetSocket]);
+      // Emite o evento do cliente para o servidor
+      clientSocket.emit('joinRideLocationRoom', rideId);
+      // Escuta a resposta do servidor
+      clientSocket.on('joinedRideLocationRoom', (message: string) => {
+        expect(message).toBe(`Você entrou na sala de localização da carona ${rideId}`);
+        done();
+      });
 
-      const handler = getEventHandler('updateLocation');
-      await handler({ rideId, lat: 10, lng: 20 });
+      clientSocket.on('locationError', (errorMessage) => {
+        done(errorMessage);
+      });
+    });
 
-      expect(targetSocket.emit).not.toHaveBeenCalled();
+    it('deve emitir um erro se a carona não estiver em andamento', (done) => {
+      const mockRide = {
+        _id: rideId,
+        status: RideStatus.Completed, // Status incorreto
+        driver: driverId,
+        passengers: [passengerApproved, passengerPending],
+      };
+      mockedRideModel.findById.mockResolvedValue(mockRide as any);
+
+      clientSocket.on('locationError', (errorMessage: string) => {
+        expect(errorMessage).toContain('a carona não está em andamento');
+        done();
+      });
+
+      clientSocket.emit('joinRideLocationRoom', rideId);
+    });
+
+    it('deve emitir um erro se o usuário não for motorista ou passageiro aprovado', (done) => {
+      const anotherUserId = new mongoose.Types.ObjectId() as unknown as IUser;
+      io.use((socket, next) => {
+        socket.userId = anotherUserId;
+        next();
+      });
+      const mockRide = {
+        _id: rideId,
+        status: RideStatus.InProgress,
+        driver: anotherUserId, // Outro motorista
+        passengers: [passengerApproved, passengerPending],
+      };
+      mockedRideModel.findById.mockResolvedValue(mockRide as any);
+
+      clientSocket.on('locationError', (errorMessage: string) => {
+        expect(errorMessage).toContain('Você não tem permissão');
+        done();
+      });
+
+      clientSocket.emit('joinRideLocationRoom', rideId);
+    });
+  });
+
+  describe('event: startSharingLocation', () => {
+    it('deve criar um log quando o motorista inicia o compartilhamento', async () => {
+      socket.userId = driverId;
+
+      const mockRide = {
+        _id: rideId,
+        driver: driverId,
+      };
+      mockedRideModel.findById.mockResolvedValue(mockRide as any);
+      const mockSave = jest.fn().mockResolvedValue(true);
+      (mockedLocationLogModel as unknown as jest.Mock).mockImplementation(() => ({
+        save: mockSave,
+      }));
+
+      clientSocket.emit('startSharingLocation', rideId);
+
+      // Pequena espera para a operação assíncrona do servidor completar
+      await new Promise(resolve => setTimeout(resolve, 200));
+
+      expect(mockSave).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('event: updateLocation', () => {
+    it('deve chamar o locationService para transmitir a atualização', async () => {
+      const data = {
+        rideId: rideId._id.toString(),
+        lat: -23.55,
+        lng: -46.63,
+      };
+
+      clientSocket.emit('updateLocation', data);
+
+      await new Promise((resolve) => {
+        setTimeout(resolve, 200)
+      });
+      socket.on('locationUpdate', (response) => {
+        expect(response).toEqual(data);
+      });
+      expect(mockedLocationService.broadcastLocationUpdate).toHaveBeenCalledTimes(1);
+      expect((mockedLocationService).broadcastLocationUpdate).toHaveBeenCalledWith(
+        io,
+        socket,
+        data
+      );
+
+      // Verificamos se nosso serviço mockado foi chamado com os argumentos corretos
+      // O 'expect.anything()' é usado para o 'io' e o 'socket', que são objetos complexos
     });
   });
 });

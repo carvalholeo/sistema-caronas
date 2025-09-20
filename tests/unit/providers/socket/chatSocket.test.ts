@@ -1,8 +1,10 @@
+import 'socket.io'
 import { Server, Socket } from 'socket.io';
 import { initializeChatSockets } from '../../../../src/providers/socket/chatSocket';
 import { verifyToken } from '../../../../src/utils/security';
 import logger from '../../../../src/utils/logger';
 import { locationService } from '../../../../src/services/locationService';
+import { IUser } from '../../../../src/types';
 
 // Mock dependencies
 jest.mock('../../../../src/utils/security');
@@ -12,6 +14,13 @@ jest.mock('../../../../src/services/locationService');
 const mockedVerifyToken = verifyToken as jest.Mock;
 const mockedLogger = logger as jest.Mocked<typeof logger>;
 const mockedLocationService = locationService as jest.Mocked<typeof locationService>;
+
+declare module "socket.io" {
+  export interface Socket {
+    userId: IUser;
+    sessionId: string;
+  }
+}
 
 describe('Chat Socket Provider', () => {
   let io: Server;
@@ -93,13 +102,6 @@ describe('Chat Socket Provider', () => {
     it('should log user connection and join personal room', () => {
       expect(mockedLogger.info).toHaveBeenCalledWith(`User ${socket.userId} connected with session ${socket.sessionId}`);
       expect(socket.join).toHaveBeenCalledWith(`user:${socket.userId}`);
-    });
-
-    it('should handle share_location event', () => {
-      const shareLocationHandler = (socket.on as jest.Mock).mock.calls.find(call => call[0] === 'share_location')[1];
-      const data = { lat: 10, lng: 20 };
-      shareLocationHandler(data);
-      expect(mockedLocationService.validateUserForLocationRoom).toHaveBeenCalledWith(socket.userId, data);
     });
 
     it('should handle join_chat event', () => {

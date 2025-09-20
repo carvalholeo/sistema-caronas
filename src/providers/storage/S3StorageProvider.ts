@@ -4,7 +4,7 @@ import {
   DeleteObjectCommand,
 } from '@aws-sdk/client-s3';
 import { IStorageProvider } from './IStorageProvider';
-import crypto from 'crypto';
+import {randomUUID} from 'crypto';
 import logger from 'utils/logger';
 
 export class S3StorageProvider implements IStorageProvider {
@@ -37,7 +37,7 @@ export class S3StorageProvider implements IStorageProvider {
   }
 
   public async saveFile(file: Express.Multer.File): Promise<string> {
-    const hash = crypto.randomBytes(16).toString('hex');
+    const hash = randomUUID();
     const fileKey = `${hash}-${file.originalname}`;
 
     const command = new PutObjectCommand({
@@ -72,7 +72,7 @@ export class S3StorageProvider implements IStorageProvider {
       });
 
       await this.s3Client.send(command);
-    } catch (error) {
+    } catch (error: Error | any) {
       logger.error('Erro ao deletar o arquivo do S3:', error);
       // Não lançamos um erro aqui para não quebrar o fluxo caso o arquivo já tenha sido deletado.
     }

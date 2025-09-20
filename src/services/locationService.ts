@@ -5,7 +5,7 @@ import { BlockModel } from 'models/block';
 import { RideStatus, LocationLogAction } from 'types/enums/enums';
 import { IRide, IUser } from 'types';
 
-class LocationService {
+export class LocationService {
 
   /**
    * Verifica se um usuário pode entrar na sala de localização de uma carona.
