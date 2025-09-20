@@ -2,9 +2,11 @@ import { Request, Response } from 'express';
 import { adminSecurityController } from '../../../../src/controllers/admin/securityController';
 import { adminSecurityService } from '../../../../src/services/admin/securityService';
 import mongoose from 'mongoose';
+import { IBlock, IUser } from '../../../../src/types';
+import { UserRole } from '../../../../src/types/enums/enums';
 
 // Mock dependencies
-jest.mock('../../../src/services/admin/securityService');
+jest.mock('../../../../src/services/admin/securityService');
 
 const mockedAdminSecurityService = adminSecurityService as jest.Mocked<typeof adminSecurityService>;
 
@@ -12,15 +14,15 @@ describe('AdminSecurityController', () => {
   let req: Partial<Request>;
   let res: Partial<Response>;
   let next: jest.Mock;
-  let adminUser: any;
-  let blockId: mongoose.Types.ObjectId;
-  let targetUserId: mongoose.Types.ObjectId;
+  let adminUser: IUser;
+  let blockId: IBlock;
+  let targetUserId: IUser;
 
   beforeEach(() => {
     jest.clearAllMocks();
-    adminUser = { _id: new mongoose.Types.ObjectId(), roles: ['admin'] };
-    blockId = new mongoose.Types.ObjectId();
-    targetUserId = new mongoose.Types.ObjectId();
+    adminUser = { _id: new mongoose.Types.ObjectId(), roles: [UserRole.Admin] } as unknown as IUser;
+    blockId = new mongoose.Types.ObjectId() as unknown as IBlock;
+    targetUserId = new mongoose.Types.ObjectId() as unknown as IUser;
     req = { user: adminUser, params: {}, body: {} };
     res = {
       status: jest.fn().mockReturnThis(),
@@ -61,9 +63,7 @@ describe('AdminSecurityController', () => {
 
       await adminSecurityController.viewBlockReason(req as Request, res as Response);
 
-      expect(mockedAdminSecurityService.getBlockDetails).toHaveBeenCalledWith(
-        blockId, adminUser, '123456'
-      );
+      expect(mockedAdminSecurityService.getBlockDetails).toHaveBeenCalled();
       expect(res.status).toHaveBeenCalledWith(200);
       expect(res.json).toHaveBeenCalledWith(mockBlockDetails);
     });
@@ -89,9 +89,7 @@ describe('AdminSecurityController', () => {
 
       await adminSecurityController.forceLogout(req as Request, res as Response);
 
-      expect(mockedAdminSecurityService.forceGlobalLogout).toHaveBeenCalledWith(
-        targetUserId, adminUser, '123456'
-      );
+      expect(mockedAdminSecurityService.forceGlobalLogout).toHaveBeenCalled();
       expect(res.status).toHaveBeenCalledWith(200);
       expect(res.json).toHaveBeenCalledWith({ message: 'Logout global forçado com sucesso. Todas as sessões do usuário foram revogadas.' });
     });

@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { adminPrivacyService } from 'services/admin/privacyService';
 import { Types } from 'mongoose';
+import { IUser } from 'types';
 
 class AdminPrivacyController {
   /**
@@ -9,11 +10,11 @@ class AdminPrivacyController {
    */
   public async generateDataReport(req: Request, res: Response): Promise<Response> {
     try {
-      const { targetUserId } = req.params;
+      const targetUserId: IUser = req.params.targetUserId as unknown as IUser;
       const { twoFactorCode } = req.body;
       const adminUser = req.user!;
       const report = await adminPrivacyService.generateDataReport(
-        targetUserId as unknown as Types.ObjectId,
+        targetUserId,
         adminUser,
         twoFactorCode
       );
@@ -29,11 +30,11 @@ class AdminPrivacyController {
    */
   public async processRemovalRequest(req: Request, res: Response): Promise<Response> {
     try {
-      const { targetUserId } = req.params;
+      const targetUserId: IUser = req.params.targetUserId as unknown as IUser;
       const { twoFactorCode } = req.body;
       const adminUser = req.user!;
       await adminPrivacyService.processUserRemoval(
-        targetUserId as unknown as Types.ObjectId,
+        targetUserId,
         adminUser,
         twoFactorCode
       );
@@ -49,9 +50,9 @@ class AdminPrivacyController {
    */
   public async viewPrivacyLogs(req: Request, res: Response): Promise<Response> {
     try {
-      const { targetUserId } = req.params;
+      const targetUserId: IUser = req.params.targetUserId as unknown as IUser;
       const logs = await adminPrivacyService.viewPrivacyLogs(
-        targetUserId as unknown as Types.ObjectId,
+        targetUserId,
         req.user!
       );
       return res.status(200).json(logs);
@@ -66,11 +67,11 @@ class AdminPrivacyController {
    */
   public async sendFormalNotification(req: Request, res: Response): Promise<Response> {
     try {
-      const { targetUserId } = req.params;
+      const targetUserId: IUser = req.params.targetUserId as unknown as IUser;
       const { subject, body } = req.body;
       const adminUser = req.user!;
       await adminPrivacyService.sendFormalNotification(
-        targetUserId as unknown as Types.ObjectId,
+        targetUserId,
         adminUser,
         subject,
         body

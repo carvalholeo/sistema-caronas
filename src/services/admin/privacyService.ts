@@ -8,12 +8,12 @@ import { IAuditLog, IUser } from 'types';
 import { AuditActionType, AuditLogCategory, AuditLogSeverityLevels, NotificationScope, UserStatus } from 'types/enums/enums';
 import { NotificationEventModel } from 'models/event';
 
-interface IReportData {
+export interface IReportData {
   profile: object;
   // Outros dados relacionados (veículos, caronas, etc) poderiam ser adicionados aqui
 }
 
-interface IReport {
+export interface IReport {
   reportData: IReportData;
   hash: string;
 }

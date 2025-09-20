@@ -21,12 +21,12 @@ class AdminUsersController {
    */
   public async updateUserStatus(req: Request, res: Response): Promise<Response> {
     try {
-      const { targetUserId } = req.params;
+      const targetUserId: IUser = req.params.targetUserId as unknown as IUser;
       const { status, reason, twoFactorCode } = req.body;
       const adminUser = req.user!;
 
       const updatedUser = await adminUsersService.updateUserStatus(
-        targetUserId as unknown as Types.ObjectId,
+        targetUserId,
         adminUser,
         status,
         reason,
@@ -43,10 +43,10 @@ class AdminUsersController {
    */
   public async updateUser(req: Request, res: Response): Promise<Response> {
     try {
-      const { targetUserId } = req.params;
+      const targetUserId: IUser = req.params.targetUserId as unknown as IUser;
       const adminUser = req.user!;
 
-      const updatedUser = await adminUsersService.updateUser(targetUserId as unknown as Types.ObjectId, adminUser, req.body);
+      const updatedUser = await adminUsersService.updateUser(targetUserId, adminUser, req.body);
       return res.status(200).json(updatedUser);
     } catch (error: Error | any) {
       return res.status(403).json({ message: error.message });
@@ -58,12 +58,12 @@ class AdminUsersController {
    */
   public async promoteToAdmin(req: Request, res: Response): Promise<Response> {
     try {
-      const { targetUserId } = req.params;
+      const targetUserId: IUser = req.params.targetUserId as unknown as IUser;
       const { promoterTwoFactorCode } = req.body;
       const adminUser = req.user!;
 
       const promotedUser = await adminUsersService.promoteToAdmin(
-        targetUserId as unknown as Types.ObjectId,
+        targetUserId,
         adminUser,
         promoterTwoFactorCode
       );
@@ -78,12 +78,12 @@ class AdminUsersController {
    */
   public async updateAdminPermissions(req: Request, res: Response): Promise<Response> {
     try {
-      const { targetUserId } = req.params;
+      const targetUserId: IUser = req.params.targetUserId as unknown as IUser;
       const { permissions } = req.body;
       const adminUser = req.user!;
 
       const updatedUser = await adminUsersService.updateAdminPermissions(
-        targetUserId as unknown as Types.ObjectId,
+        targetUserId,
         adminUser as unknown as IUser,
         permissions
       );
@@ -98,8 +98,8 @@ class AdminUsersController {
    */
   public async getAdminPermissions(req: Request, res: Response): Promise<Response> {
     try {
-      const { targetUserId } = req.params;
-      const permissions = await adminUsersService.getAdminPermissions(targetUserId as unknown as Types.ObjectId);
+      const targetUserId: IUser = req.params.targetUserId as unknown as IUser;
+      const permissions = await adminUsersService.getAdminPermissions(targetUserId);
       return res.status(200).json(permissions);
     } catch (error: Error | any) {
       return res.status(404).json({ message: error.message });
@@ -111,12 +111,12 @@ class AdminUsersController {
    */
   public async demoteAdmin(req: Request, res: Response): Promise<Response> {
     try {
-      const { targetUserId } = req.params;
+      const targetUserId: IUser = req.params.targetUserId as unknown as IUser;
       const { reason, twoFactorCode } = req.body;
       const adminUser = req.user!;
 
       const demotedUser = await adminUsersService.demoteAdmin(
-        targetUserId as unknown as Types.ObjectId,
+        targetUserId,
         adminUser,
         reason,
         twoFactorCode

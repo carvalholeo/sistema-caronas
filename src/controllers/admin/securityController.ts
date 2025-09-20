@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { adminSecurityService } from 'services/admin/securityService';
 import { Types } from 'mongoose';
+import { IBlock, IUser } from 'types';
 
 class AdminSecurityController {
   /**
@@ -22,11 +23,11 @@ class AdminSecurityController {
    */
   public async viewBlockReason(req: Request, res: Response): Promise<Response> {
     try {
-      const { blockId } = req.params;
+      const blockId: IBlock = req.params.blockId as unknown as IBlock;
       const { twoFactorCode } = req.body;
       const adminUser = req.user!;
       const block = await adminSecurityService.getBlockDetails(
-        blockId as unknown as Types.ObjectId,
+        blockId,
         adminUser,
         twoFactorCode
       );
@@ -42,11 +43,11 @@ class AdminSecurityController {
    */
   public async forceLogout(req: Request, res: Response): Promise<Response> {
     try {
-      const { targetUserId } = req.params;
+      const targetUserId: IUser = req.params.targetUserId as unknown as IUser;
       const { twoFactorCode } = req.body;
       const adminUser = req.user!;
       await adminSecurityService.forceGlobalLogout(
-        targetUserId as unknown as Types.ObjectId,
+        targetUserId,
         adminUser,
         twoFactorCode
       );
