@@ -4,6 +4,7 @@ import { LocationLogModel } from 'models/locationLog';
 import { Types } from 'mongoose';
 import { locationService } from 'services/locationService';
 import { RideStatus, LocationLogAction } from 'types/enums/enums';
+import { IRide } from 'types';
 
 export const setupLocationSockets = (io: Server) => {
   io.on('connection', (socket: Socket) => {
@@ -59,7 +60,7 @@ export const setupLocationSockets = (io: Server) => {
     /**
      * Evento para um usuário enviar sua atualização de coordenadas.
      */
-    socket.on('updateLocation', async (data: { rideId: Types.ObjectId; lat: number; lng: number }) => {
+    socket.on('updateLocation', async (data: { rideId: IRide; lat: number; lng: number }) => {
       const { rideId, lat, lng } = data;
 
       locationService.broadcastLocationUpdate(
