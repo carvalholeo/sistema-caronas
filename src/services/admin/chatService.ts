@@ -1,5 +1,5 @@
 // Lógica de negócio para moderação e auditoria de chats.
-import { ChatMessageModel } from 'models/chat';
+import { ChatMessageModel } from '../../models/chat';
 import { AuditLogModel } from '../../models/auditLog';
 import { authService } from '../../services/authService';
 import { IChatMessage, IRide, IUser } from '../../types';

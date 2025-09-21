@@ -233,7 +233,7 @@ describe('CarpoolApp', () => {
       expect(mockApp.use).toHaveBeenCalledWith('/api/chat', chatRoutes);
       expect(mockApp.use).toHaveBeenCalledWith('/api/notifications', notificationRoutes);
       expect(mockApp.use).toHaveBeenCalledWith('/api/admin', adminRoutes);
-      expect(mockApp.use).toHaveBeenCalledWith('*', expect.any(Function)); // 404 handler
+      expect(mockApp.use).toHaveBeenCalledWith('/', expect.any(Function)); // 404 handler
     });
 
     it('health check should return 503 when shutting down', () => {
