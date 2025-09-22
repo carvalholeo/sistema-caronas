@@ -1,8 +1,7 @@
-import { createServer, Server as HttpServer } from 'http';
+import { createServer } from 'http';
 import express from 'express';
 import compression from 'compression';
 import { Server } from 'socket.io';
-import { config } from 'dotenv';
 import logger from '../../src/utils/logger';
 import authRoutes from '../../src/routes/auth';
 import userRoutes from '../../src/routes/users';
@@ -65,7 +64,6 @@ const mockedCreateServer = createServer as jest.Mock;
 const mockedExpress = express as jest.MockedFunction<typeof express>;
 const mockedCompression = compression as jest.MockedFunction<typeof compression>;
 const mockedSocketIoServer = Server as jest.MockedClass<typeof Server>;
-const mockedConfig = config as jest.Mock;
 const mockedLogger = logger as jest.Mocked<typeof logger>;
 const mockedConnectToDatabase = connectToDatabase as jest.Mock;
 const mockedCloseDatabaseConnection = closeDatabaseConnection as jest.Mock;
@@ -84,7 +82,7 @@ describe('CarpoolApp', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    jest.resetModules(); 
+    jest.resetModules();
     process.setMaxListeners(Infinity);
 
     mockApp = {
@@ -261,7 +259,7 @@ describe('CarpoolApp', () => {
     it('should re-instantiate Socket.IO server and set up socket handlers', () => {
       mockedSocketIoServer.mockClear();
       (appInstance as any).initializeSocketIO();
-      expect(mockedSocketIoServer).toHaveBeenCalledTimes(1); 
+      expect(mockedSocketIoServer).toHaveBeenCalledTimes(1);
       expect(mockedSocketIoServer).toHaveBeenCalledWith(mockServer);
       expect(mockedSetupLocationSockets).toHaveBeenCalledWith(mockIoInstance);
       expect(mockedInitializeChatSockets).toHaveBeenCalledWith(mockIoInstance);

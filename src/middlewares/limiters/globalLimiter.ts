@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import rateLimit, { RateLimitRequestHandler } from 'express-rate-limit';
+import rateLimit, { RateLimitRequestHandler, ipKeyGenerator } from 'express-rate-limit';
 import { RedisStore } from 'rate-limit-redis';
 import { getRedisClient } from '../../providers/cache/redis';
 
@@ -14,7 +14,9 @@ const globalLimiter = (req: Request, res: Response, next: NextFunction) => {
         max: 100, // limit each IP to 100 requests per windowMs
         store: new RedisStore({
           sendCommand: (...args: string[]) => redisClient.sendCommand(args),
+          prefix: 'globalLimiter:',
         }),
+        keyGenerator: (req: Request) => ipKeyGenerator(req.ip ?? "::1"),
         standardHeaders: true,
         legacyHeaders: false,
       });

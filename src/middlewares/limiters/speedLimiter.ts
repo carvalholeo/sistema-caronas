@@ -12,16 +12,17 @@ export const speedLimiter = (req: Request, res: Response, next: NextFunction) =>
       limiter = slowDown({
         windowMs: 15 * 60 * 1000, // 15 minutes
         delayAfter: 50, // allow 50 requests per 15 minutes without delay
-        delayMs: 500, // add 500ms delay per request after delayAfter
+        delayMs: () => 500, // add 500ms delay per request after delayAfter
         store: new RedisStore({
           sendCommand: (...args: string[]) => redisClient.sendCommand(args),
+          prefix: 'speedLimiter:',
         }),
       });
     } else {
       limiter = slowDown({
         windowMs: 15 * 60 * 1000,
         delayAfter: 50,
-        delayMs: 500,
+        delayMs: () => 500,
       });
     }
   }

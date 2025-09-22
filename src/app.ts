@@ -48,11 +48,11 @@ class CarpoolApp {
         methods: ["GET", "POST"]
       }
     });
-
     this.initializeDatabase();
     this.initializeRedis();
     this.initializeMiddleware();
     this.initializeRoutes();
+    this.initializeSocketIO();
     this.initializeErrorHandling();
   }
 
@@ -141,8 +141,7 @@ class CarpoolApp {
   }
 
   private initializeSocketIO(): void {
-    // Socket.IO authentication middleware
-    this.io = new Server(this.server);
+
     setupLocationSockets(this.io);
     initializeChatSockets(this.io);
   }
@@ -166,8 +165,8 @@ class CarpoolApp {
 
   public listen(): void {
     this.isShuttingDown = false;
-    this.initializeSocketIO();
     const port = process.env.PORT || 3001;
+
     this.server.listen(port, () => {
       logger.info(`Server is running on port ${port}`);
       logger.info(`Environment: ${process.env.NODE_ENV}`);
