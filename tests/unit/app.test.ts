@@ -260,7 +260,12 @@ describe('CarpoolApp', () => {
       mockedSocketIoServer.mockClear();
       (appInstance as any).initializeSocketIO();
       expect(mockedSocketIoServer).toHaveBeenCalledTimes(1);
-      expect(mockedSocketIoServer).toHaveBeenCalledWith(mockServer);
+      expect(mockedSocketIoServer).toHaveBeenCalledWith(mockServer, {
+        cors: {
+          origin: process.env.FRONTEND_URL || "http://localhost:3000",
+          methods: ["GET", "POST"]
+        }
+      });
       expect(mockedSetupLocationSockets).toHaveBeenCalledWith(mockIoInstance);
       expect(mockedInitializeChatSockets).toHaveBeenCalledWith(mockIoInstance);
     });

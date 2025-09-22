@@ -35,19 +35,14 @@ config();
 class CarpoolApp {
   public app: express.Application;
   public server: HttpServer;
-  public io: Server;
+  public io: Server | undefined;
   private isShuttingDown: boolean = false;
   private isReloading = false;
 
   constructor() {
     this.app = express();
     this.server = createServer(this.app);
-    this.io = new Server(this.server, {
-      cors: {
-        origin: process.env.FRONTEND_URL || "http://localhost:3000",
-        methods: ["GET", "POST"]
-      }
-    });
+
     this.initializeDatabase();
     this.initializeRedis();
     this.initializeMiddleware();
@@ -141,6 +136,12 @@ class CarpoolApp {
   }
 
   private initializeSocketIO(): void {
+    this.io = new Server(this.server, {
+      cors: {
+        origin: process.env.FRONTEND_URL || "http://localhost:3000",
+        methods: ["GET", "POST"]
+      }
+    });
 
     setupLocationSockets(this.io);
     initializeChatSockets(this.io);
