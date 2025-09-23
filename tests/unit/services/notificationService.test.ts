@@ -1,7 +1,6 @@
 import { NotificationService } from '../../../src/services/notificationService';
 import { NotificationSubscriptionModel } from '../../../src/models/notificationSubscription';
 import { NotificationEventModel } from '../../../src/models/event';
-import { SuppressedNotificationModel } from '../../../src/models/suppressedNotification';
 import { WebPushProvider } from '../../../src/providers/notifications/WebPushProvider';
 import { INotificationPayload, IUser } from '../../../src/types';
 import { Types } from 'mongoose';
