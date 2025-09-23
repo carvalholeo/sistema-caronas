@@ -25,7 +25,7 @@ describe('CORS Middleware validation', () => {
   });
 
   it('should use default origin when FRONTEND_URL is not set', () => {
-    require('../../../../src/middlewares/security/corsValidation').corsValidation();
+    require('../../../../src/middlewares/security/corsValidation');
 
     expect(mockCors).toHaveBeenCalledTimes(1);
     expect(mockCors).toHaveBeenCalledWith({

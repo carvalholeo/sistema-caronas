@@ -1,4 +1,4 @@
-import { IdempotencyRequestModel, IIdempotencyRequest } from 'models/idempotency';
+import { IdempotencyRequestModel, IIdempotencyRequest } from '../models/idempotency';
 
 class IdempotencyService {
   /**

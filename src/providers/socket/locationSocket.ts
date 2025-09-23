@@ -1,9 +1,9 @@
 import { Server, Socket } from 'socket.io';
-import { RideModel } from 'models/ride';
-import { LocationLogModel } from 'models/locationLog';
-import { locationService } from 'services/locationService';
-import { RideStatus, LocationLogAction } from 'types/enums/enums';
-import { IRide } from 'types';
+import { RideModel } from '../../models/ride';
+import { LocationLogModel } from '../../models/locationLog';
+import { locationService } from '../../services/locationService';
+import { RideStatus, LocationLogAction } from '../../types/enums/enums';
+import { IRide } from '../../types';
 
 export const setupLocationSockets = (io: Server) => {
   io.on('connection', (socket: Socket) => {

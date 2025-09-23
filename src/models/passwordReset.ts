@@ -1,6 +1,6 @@
 import { Schema, model, Model } from 'mongoose';
-import { IPasswordReset } from 'types';
-import { PasswordResetStatus } from 'types/enums/enums';
+import { IPasswordReset } from '../types';
+import { PasswordResetStatus } from '../types/enums/enums';
 
 const PasswordResetSchema = new Schema<IPasswordReset>({
   user: { type: Schema.Types.ObjectId, ref: 'User', required: true },

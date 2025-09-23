@@ -1,6 +1,6 @@
 import { Schema, model } from 'mongoose';
-import { ISuppressedNotification } from 'types';
-import { SuppressionReason } from 'types/enums/enums';
+import { ISuppressedNotification } from '../types';
+import { SuppressionReason } from '../types/enums/enums';
 
 const SuppressedNotificationSchema = new Schema<ISuppressedNotification>({
   user: { type: Schema.Types.ObjectId, ref: 'User', required: true },

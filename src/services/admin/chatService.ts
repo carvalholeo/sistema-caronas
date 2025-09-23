@@ -1,9 +1,9 @@
 // Lógica de negócio para moderação e auditoria de chats.
-import { ChatMessageModel } from 'models/chat';
-import { AuditLogModel } from 'models/auditLog';
-import { authService } from 'services/authService';
-import { IChatMessage, IRide, IUser } from 'types';
-import { AuditActionType, AuditLogCategory, AuditLogSeverityLevels } from 'types/enums/enums';
+import { ChatMessageModel } from '../../models/chat';
+import { AuditLogModel } from '../../models/auditLog';
+import { authService } from '../../services/authService';
+import { IChatMessage, IRide, IUser } from '../../types';
+import { AuditActionType, AuditLogCategory, AuditLogSeverityLevels } from '../../types/enums/enums';
 
 class AdminChatService {
   public async readConversation(rideId: IRide, senderId: IUser, adminId: IUser): Promise<IChatMessage[]> {

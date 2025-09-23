@@ -1,7 +1,6 @@
 import { Request, Response } from 'express';
-import { adminPrivacyService } from 'services/admin/privacyService';
-import { Types } from 'mongoose';
-import { IUser } from 'types';
+import { adminPrivacyService } from '../../services/admin/privacyService';
+import { IUser } from '../../types';
 
 class AdminPrivacyController {
   /**

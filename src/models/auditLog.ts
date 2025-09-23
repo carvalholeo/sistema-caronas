@@ -1,7 +1,7 @@
 import { Schema, model } from 'mongoose';
-import { IAuditLog } from 'types';
-import { AuditActionType, AuditLogCategory, AuditLogSeverityLevels } from 'types/enums/enums';
-import { ipValidator } from 'utils/ipValidator';
+import { IAuditLog } from '../types';
+import { AuditActionType, AuditLogCategory, AuditLogSeverityLevels } from '../types/enums/enums';
+import { ipValidator } from '../utils/ipValidator';
 
 const AuditLogSchema = new Schema<IAuditLog>({
   actor: {

@@ -1,33 +1,32 @@
-import rateLimit, { RateLimitRequestHandler } from 'express-rate-limit';
-import { getRedisClient } from '../../providers/cache/redis';
-import { RedisStore } from 'rate-limit-redis';
 import { Request, Response, NextFunction } from 'express';
+import rateLimit, { Options, RateLimitRequestHandler } from 'express-rate-limit';
+import { limiterKeyGenerator } from 'utils/limitersKeyGenerators';
+import { RedisStore } from 'rate-limit-redis';
+import { getRedisClient } from '../../providers/cache/redis';
 
 let limiter: RateLimitRequestHandler | null = null;
+const options: Partial<Options> = {
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // limit each IP to 100 requests per windowMs
+  keyGenerator: (req: Request) => limiterKeyGenerator(req),
+  standardHeaders: true,
+  legacyHeaders: false,
+};
 
-const globalLimiter = (req: Request, res: Response, next: NextFunction) => {
+export const globalLimiter = (req: Request, res: Response, next: NextFunction) => {
   if (!limiter) {
     const redisClient = getRedisClient();
     if (redisClient) {
       limiter = rateLimit({
-        windowMs: 15 * 60 * 1000, // 15 minutes
-        max: 100, // limit each IP to 100 requests per windowMs
+        ...options,
         store: new RedisStore({
           sendCommand: (...args: string[]) => redisClient.sendCommand(args),
+          prefix: 'globalLimiter:',
         }),
-        standardHeaders: true,
-        legacyHeaders: false,
       });
     } else {
-      limiter = rateLimit({
-        windowMs: 15 * 60 * 1000,
-        max: 100,
-        standardHeaders: true,
-        legacyHeaders: false,
-      });
+      limiter = rateLimit(options);
     }
   }
   return limiter(req, res, next);
 };
-
-export { globalLimiter };

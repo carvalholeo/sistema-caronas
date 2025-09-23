@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
-import { idempotencyService } from 'services/idempotencyService';
-import logger from 'utils/logger';
+import { idempotencyService } from '../services/idempotencyService';
+import logger from '../utils/logger';
 
 export const idempotencyMiddleware = async (req: Request, res: Response, next: NextFunction) => {
   // Aplica o middleware apenas para métodos que alteram dados

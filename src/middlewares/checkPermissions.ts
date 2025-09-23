@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
-import { AuditLogModel } from 'models/auditLog';
 import { Types } from 'mongoose';
-import { AuditActionType, AuditLogCategory, AuditLogSeverityLevels, UserRole } from 'types/enums/enums';
+import { AuditLogModel } from '../models/auditLog';
+import { AuditActionType, AuditLogCategory, AuditLogSeverityLevels, UserRole } from '../types/enums/enums';
 
 export function checkPermission(requiredPermission: string) {
   return async (req: Request, res: Response, next: NextFunction) => {

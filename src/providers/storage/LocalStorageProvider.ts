@@ -1,7 +1,7 @@
-import { IStorageProvider } from './IStorageProvider';
 import fs from 'fs/promises';
 import path from 'path';
-import logger from 'utils/logger';
+import { IStorageProvider } from './IStorageProvider';
+import logger from '../../utils/logger';
 
 export class LocalStorageProvider implements IStorageProvider {
   private uploadsDir = path.resolve(__dirname, '..', '..', '..', 'uploads');

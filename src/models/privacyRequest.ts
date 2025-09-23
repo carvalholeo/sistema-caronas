@@ -1,6 +1,6 @@
 import { Schema, model } from 'mongoose';
-import { IPrivacyRequest } from 'types';
-import { PrivacyRequestStatus, PrivacyRequestType } from 'types/enums/enums';
+import { IPrivacyRequest } from '../types';
+import { PrivacyRequestStatus, PrivacyRequestType } from '../types/enums/enums';
 
 const PrivacyRequestSchema = new Schema<IPrivacyRequest>({
   user: { type: Schema.Types.ObjectId, ref: 'User', required: true },

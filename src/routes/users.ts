@@ -4,10 +4,10 @@ import {
     updateUserProfile,
     approveUserRegistration,
     updateProfilePicture
-} from 'controllers/userController';
-import { authMiddleware } from 'middlewares/auth';
-import { userUpdateValidator } from 'middlewares/validators/users';
-import { requestValidator } from 'middlewares/requestValidator';
+} from '../controllers/userController';
+import { authMiddleware } from '../middlewares/auth';
+import { userUpdateValidator } from '../middlewares/validators/users';
+import { requestValidator } from '../middlewares/requestValidator';
 import { upload } from '../config/uploadAndMulter';
 
 const router = Router();

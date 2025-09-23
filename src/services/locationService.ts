@@ -1,9 +1,9 @@
 import { Server, Socket } from 'socket.io';
-import { RideModel } from 'models/ride';
-import { LocationLogModel } from 'models/locationLog';
-import { BlockModel } from 'models/block';
-import { RideStatus, LocationLogAction } from 'types/enums/enums';
-import { IRide, IUser } from 'types';
+import { RideModel } from '../models/ride';
+import { LocationLogModel } from '../models/locationLog';
+import { BlockModel } from '../models/block';
+import { RideStatus, LocationLogAction } from '../types/enums/enums';
+import { IRide, IUser } from '../types';
 
 export class LocationService {
 

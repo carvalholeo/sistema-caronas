@@ -1,6 +1,6 @@
 import { Schema, model } from 'mongoose';
-import { ILoginAttempt } from 'types';
-import { ipValidator } from 'utils/ipValidator';
+import { ILoginAttempt } from '../types';
+import { ipValidator } from '../utils/ipValidator';
 
 const LoginAttemptSchema = new Schema<ILoginAttempt>({
   user: { type: Schema.Types.ObjectId, ref: 'User' },

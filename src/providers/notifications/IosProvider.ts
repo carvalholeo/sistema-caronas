@@ -10,6 +10,7 @@ export class IosProvider implements INotificationProvider {
   constructor() {
     // As credenciais DEVEM vir de variáveis de ambiente.
     if (this.apnProvider) return;
+    if (process.env.ENABLE_APNS === 'false') return;
 
     const options = {
       token: {

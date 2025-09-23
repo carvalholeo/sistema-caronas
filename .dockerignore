@@ -1,0 +1,47 @@
+# Arquivos do Git
+.git
+.gitignore
+
+# Arquivos do Docker
+Dockerfile
+.dockerignore
+docker-compose.yml
+
+# Dependências do Node.js - NUNCA copie as dependências locais
+# Elas devem ser instaladas dentro do contêiner para garantir compatibilidade.
+node_modules
+
+# Pasta de build do TypeScript. Será gerada dentro do contêiner.
+dist
+build
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Arquivos de ambiente - NUNCA inclua segredos na imagem.
+# Eles devem ser injetados em tempo de execução.
+.env
+.env.*
+!.env.example
+
+# Arquivos de teste e cobertura de código
+tests
+coverage
+jest.config.js
+jest.config.ts
+
+# Arquivos de configuração de ferramentas de desenvolvimento
+nodemon.json
+.prettierrc
+.eslintrc.js
+
+# Arquivos de Sistema Operacional e Editores
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

@@ -1,4 +1,5 @@
 import { MongoMemoryServer } from 'mongodb-memory-server';
+import { RedisMemoryServer } from 'redis-memory-server';
 import mongoose from 'mongoose';
 
 declare global {
@@ -7,6 +8,23 @@ declare global {
 }
 
 let mongoServer: MongoMemoryServer;
+let redisServer: RedisMemoryServer;
+
+export const setupRedisServer = async () => {
+  redisServer = new RedisMemoryServer({
+    autoStart: true,
+  });
+  await redisServer.ensureInstance();
+  const host = await redisServer.getHost();
+  const port = await redisServer.getPort();
+  process.env.REDIS_URI = `redis://${host}:${port}`;
+};
+
+export const teardownRedisServer = async () => {
+  if (redisServer) {
+    await redisServer.stop();
+  }
+};
 
 export const setupTestDatabase = async () => {
   mongoServer = await MongoMemoryServer.create();
@@ -59,6 +77,7 @@ process.env.MONGODB_URI = global.__MONGO_URI__;
 
 beforeAll(async () => {
   await setupTestDatabase();
+  await setupRedisServer();
 }, 30000);
 
 beforeEach(() => {
@@ -73,4 +92,5 @@ afterEach(async () => {
 
 afterAll(async () => {
   await teardownTestDatabase();
+  await teardownRedisServer();
 });

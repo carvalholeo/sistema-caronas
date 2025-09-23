@@ -1,6 +1,6 @@
 import { Schema, model } from 'mongoose';
-import { IBlock } from 'types';
-import { BlockStatus } from 'types/enums/enums';
+import { IBlock } from '../types';
+import { BlockStatus } from '../types/enums/enums';
 
 const BlockSchema = new Schema<IBlock>({
   blockerUser: { type: Schema.Types.ObjectId, ref: 'User', required: true, immutable: true },

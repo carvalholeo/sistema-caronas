@@ -1,5 +1,5 @@
 import { Schema, model } from 'mongoose';
-import { IDataReport } from 'types';
+import { IDataReport } from '../types';
 
 const DataReportSchema = new Schema<IDataReport>({
   user: { type: Schema.Types.ObjectId, ref: 'User', required: true },

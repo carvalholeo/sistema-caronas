@@ -1,6 +1,6 @@
 import { Schema, model } from 'mongoose';
-import { INotificationPreferences, INotificationSubscription } from 'types';
-import { NotificationWeekDays } from 'types/enums/enums';
+import { INotificationPreferences, INotificationSubscription } from '../types';
+import { NotificationWeekDays } from '../types/enums/enums';
 
 const PreferencesSchema = new Schema<INotificationPreferences>(
   {

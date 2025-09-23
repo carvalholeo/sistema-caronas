@@ -26,7 +26,7 @@ import { idempotencyMiddleware } from './middlewares/idempotencyMiddleware';
 import { closeRedisConnection, connectToRedis } from './providers/cache/redis';
 import { globalLimiter } from './middlewares/limiters/globalLimiter';
 import { speedLimiter } from './middlewares/limiters/speedLimiter';
-import { loginLimiter } from './middlewares/limiters/loginLimiter';
+import { loginRateLimiter, loginSlowDown } from './middlewares/limiters/loginLimiter';
 import { helmetCSP } from './middlewares/security/helmetCSP';
 import { corsValidation } from './middlewares/security/corsValidation';
 
@@ -35,24 +35,19 @@ config();
 class CarpoolApp {
   public app: express.Application;
   public server: HttpServer;
-  public io: Server;
+  public io: Server | undefined;
   private isShuttingDown: boolean = false;
   private isReloading = false;
 
   constructor() {
     this.app = express();
     this.server = createServer(this.app);
-    this.io = new Server(this.server, {
-      cors: {
-        origin: process.env.FRONTEND_URL || "http://localhost:3000",
-        methods: ["GET", "POST"]
-      }
-    });
 
     this.initializeDatabase();
     this.initializeRedis();
     this.initializeMiddleware();
     this.initializeRoutes();
+    this.initializeSocketIO();
     this.initializeErrorHandling();
   }
 
@@ -98,7 +93,7 @@ class CarpoolApp {
     this.app.use(speedLimiter);
 
     // Login rate limiter
-    this.app.use('/api/auth/login', loginLimiter);
+    this.app.use('/api/auth/login', loginSlowDown, loginRateLimiter);
 
     // Audit logging
     this.app.use(auditLogger);
@@ -135,14 +130,19 @@ class CarpoolApp {
     this.app.use('/api/admin', adminRoutes);
 
     // 404 handler
-    this.app.use('*', (req, res) => {
+    this.app.use('/', (req, res) => {
       res.status(404).json({ error: 'Route not found' });
     });
   }
 
   private initializeSocketIO(): void {
-    // Socket.IO authentication middleware
-    this.io = new Server(this.server);
+    this.io = new Server(this.server, {
+      cors: {
+        origin: process.env.FRONTEND_URL || "http://localhost:3000",
+        methods: ["GET", "POST"]
+      }
+    });
+
     setupLocationSockets(this.io);
     initializeChatSockets(this.io);
   }
@@ -166,8 +166,8 @@ class CarpoolApp {
 
   public listen(): void {
     this.isShuttingDown = false;
-    this.initializeSocketIO();
     const port = process.env.PORT || 3001;
+
     this.server.listen(port, () => {
       logger.info(`Server is running on port ${port}`);
       logger.info(`Environment: ${process.env.NODE_ENV}`);

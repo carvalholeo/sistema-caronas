@@ -1,8 +1,7 @@
-import { createServer, Server as HttpServer } from 'http';
+import { createServer } from 'http';
 import express from 'express';
 import compression from 'compression';
 import { Server } from 'socket.io';
-import { config } from 'dotenv';
 import logger from '../../src/utils/logger';
 import authRoutes from '../../src/routes/auth';
 import userRoutes from '../../src/routes/users';
@@ -21,7 +20,7 @@ import { idempotencyMiddleware } from '../../src/middlewares/idempotencyMiddlewa
 import { closeRedisConnection, connectToRedis, getRedisClient } from '../../src/providers/cache/redis';
 import { globalLimiter } from '../../src/middlewares/limiters/globalLimiter';
 import { speedLimiter } from '../../src/middlewares/limiters/speedLimiter';
-import { loginLimiter } from '../../src/middlewares/limiters/loginLimiter';
+import { loginRateLimiter, loginSlowDown } from '../../src/middlewares/limiters/loginLimiter';
 import { helmetCSP } from '../../src/middlewares/security/helmetCSP';
 import { corsValidation } from '../../src/middlewares/security/corsValidation';
 import CarpoolApp from '../../src/app';
@@ -65,7 +64,6 @@ const mockedCreateServer = createServer as jest.Mock;
 const mockedExpress = express as jest.MockedFunction<typeof express>;
 const mockedCompression = compression as jest.MockedFunction<typeof compression>;
 const mockedSocketIoServer = Server as jest.MockedClass<typeof Server>;
-const mockedConfig = config as jest.Mock;
 const mockedLogger = logger as jest.Mocked<typeof logger>;
 const mockedConnectToDatabase = connectToDatabase as jest.Mock;
 const mockedCloseDatabaseConnection = closeDatabaseConnection as jest.Mock;
@@ -84,7 +82,7 @@ describe('CarpoolApp', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    jest.resetModules(); 
+    jest.resetModules();
     process.setMaxListeners(Infinity);
 
     mockApp = {
@@ -214,7 +212,7 @@ describe('CarpoolApp', () => {
       expect(mockApp.use).toHaveBeenCalledWith(auditLogger);
       expect(mockApp.use).toHaveBeenCalledWith(globalLimiter);
       expect(mockApp.use).toHaveBeenCalledWith(speedLimiter);
-      expect(mockApp.use).toHaveBeenCalledWith('/api/auth/login', loginLimiter);
+      expect(mockApp.use).toHaveBeenCalledWith('/api/auth/login', loginSlowDown, loginRateLimiter);
       expect(mockApp.use).toHaveBeenCalledWith(auditLogger);
     });
   });
@@ -233,7 +231,7 @@ describe('CarpoolApp', () => {
       expect(mockApp.use).toHaveBeenCalledWith('/api/chat', chatRoutes);
       expect(mockApp.use).toHaveBeenCalledWith('/api/notifications', notificationRoutes);
       expect(mockApp.use).toHaveBeenCalledWith('/api/admin', adminRoutes);
-      expect(mockApp.use).toHaveBeenCalledWith('*', expect.any(Function)); // 404 handler
+      expect(mockApp.use).toHaveBeenCalledWith('/', expect.any(Function)); // 404 handler
     });
 
     it('health check should return 503 when shutting down', () => {
@@ -261,8 +259,13 @@ describe('CarpoolApp', () => {
     it('should re-instantiate Socket.IO server and set up socket handlers', () => {
       mockedSocketIoServer.mockClear();
       (appInstance as any).initializeSocketIO();
-      expect(mockedSocketIoServer).toHaveBeenCalledTimes(1); 
-      expect(mockedSocketIoServer).toHaveBeenCalledWith(mockServer);
+      expect(mockedSocketIoServer).toHaveBeenCalledTimes(1);
+      expect(mockedSocketIoServer).toHaveBeenCalledWith(mockServer, {
+        cors: {
+          origin: process.env.FRONTEND_URL || "http://localhost:3000",
+          methods: ["GET", "POST"]
+        }
+      });
       expect(mockedSetupLocationSockets).toHaveBeenCalledWith(mockIoInstance);
       expect(mockedInitializeChatSockets).toHaveBeenCalledWith(mockIoInstance);
     });
