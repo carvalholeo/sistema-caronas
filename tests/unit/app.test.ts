@@ -20,7 +20,7 @@ import { idempotencyMiddleware } from '../../src/middlewares/idempotencyMiddlewa
 import { closeRedisConnection, connectToRedis, getRedisClient } from '../../src/providers/cache/redis';
 import { globalLimiter } from '../../src/middlewares/limiters/globalLimiter';
 import { speedLimiter } from '../../src/middlewares/limiters/speedLimiter';
-import { loginLimiter } from '../../src/middlewares/limiters/loginLimiter';
+import { loginRateLimiter, loginSlowDown } from '../../src/middlewares/limiters/loginLimiter';
 import { helmetCSP } from '../../src/middlewares/security/helmetCSP';
 import { corsValidation } from '../../src/middlewares/security/corsValidation';
 import CarpoolApp from '../../src/app';
@@ -212,7 +212,7 @@ describe('CarpoolApp', () => {
       expect(mockApp.use).toHaveBeenCalledWith(auditLogger);
       expect(mockApp.use).toHaveBeenCalledWith(globalLimiter);
       expect(mockApp.use).toHaveBeenCalledWith(speedLimiter);
-      expect(mockApp.use).toHaveBeenCalledWith('/api/auth/login', loginLimiter);
+      expect(mockApp.use).toHaveBeenCalledWith('/api/auth/login', loginSlowDown, loginRateLimiter);
       expect(mockApp.use).toHaveBeenCalledWith(auditLogger);
     });
   });

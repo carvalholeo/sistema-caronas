@@ -4,30 +4,30 @@ import crypto from 'crypto';
 
 function limiterKeyGenerator(req: Request) {
   // Garante que seu app.set('trust proxy', 1) está configurado para pegar o IP correto
-  const realIp = req.ip;
+  const generatedIp = ipKeyGenerator(req.ip ?? "::1");
   let key;
 
   if (req.user) {
-    key = `${req.user}:${realIp}`;
+    key = `${req.user}:${generatedIp}`;
   }
 
   // Pega o email do corpo da requisição. Se não vier, usa uma string vazia.
   const email = req.body.email || '';
 
   // Cria um hash da combinação para não expor dados e para normalizar o tamanho da chave.
-  key = `${email}:${realIp}`;
+  key = `${email}:${generatedIp}`;
   return crypto.createHash('sha256').update(key).digest('hex');
 }
 
 const loginKeyGenerator = (req: Request): string => {
   // Garante que seu app.set('trust proxy', 1) está configurado para pegar o IP correto
-  const realIp = req.ip;
+  const generatedIp = ipKeyGenerator(req.ip ?? "::1");
 
   // Pega o email do corpo da requisição. Se não vier, usa uma string vazia.
   const email = req.body.email || '';
 
   // Cria um hash da combinação para não expor dados e para normalizar o tamanho da chave.
-  const key = `${email}:${realIp}`;
+  const key = `${email}:${generatedIp}`;
   return crypto.createHash('sha256').update(key).digest('hex');
 };
 

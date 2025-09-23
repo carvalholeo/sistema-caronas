@@ -26,7 +26,7 @@ import { idempotencyMiddleware } from './middlewares/idempotencyMiddleware';
 import { closeRedisConnection, connectToRedis } from './providers/cache/redis';
 import { globalLimiter } from './middlewares/limiters/globalLimiter';
 import { speedLimiter } from './middlewares/limiters/speedLimiter';
-import { loginLimiter } from './middlewares/limiters/loginLimiter';
+import { loginRateLimiter, loginSlowDown } from './middlewares/limiters/loginLimiter';
 import { helmetCSP } from './middlewares/security/helmetCSP';
 import { corsValidation } from './middlewares/security/corsValidation';
 
@@ -93,7 +93,7 @@ class CarpoolApp {
     this.app.use(speedLimiter);
 
     // Login rate limiter
-    this.app.use('/api/auth/login', loginLimiter);
+    this.app.use('/api/auth/login', loginSlowDown, loginRateLimiter);
 
     // Audit logging
     this.app.use(auditLogger);
