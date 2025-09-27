@@ -4,6 +4,8 @@ import { connectToRedis, getRedisClient, closeRedisConnection } from '../../../.
 // Importamos o 'createClient' para que o Jest saiba o que mockar
 import { createClient } from 'redis';
 
+jest.mock('../../../../src/utils/logger');
+
 // --- SETUP DOS MOCKS ---
 const mockConnect = jest.fn().mockResolvedValue(undefined);
 const mockQuit = jest.fn().mockResolvedValue(undefined);

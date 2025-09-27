@@ -1,4 +1,5 @@
 import { createClient, RedisClientType } from 'redis';
+import logger from '../../utils/logger';
 
 let client: RedisClientType | null = null;
 
@@ -33,7 +34,7 @@ export function getRedisClient() {
 export async function closeRedisConnection(): Promise<void> {
   const canRedisBeEnabled = process.env.ENABLE_REDIS === 'true';
   if (client && canRedisBeEnabled) {
-    await client.quit();
+    await Promise.race([client.quit(), setTimeout(logger.info, 50)]);
   }
   client = null;
 }

@@ -87,13 +87,13 @@ class CarpoolApp {
     this.app.use(auditLogger);
 
     // Rate limiting - Global
-    this.app.use(globalLimiter);
+    this.app.use(globalLimiter());
 
     // Slow down middleware
-    this.app.use(speedLimiter);
+    this.app.use(speedLimiter());
 
     // Login rate limiter
-    this.app.use('/api/auth/login', loginSlowDown, loginRateLimiter);
+    this.app.use('/api/auth/login', loginSlowDown(), loginRateLimiter());
 
     // Audit logging
     this.app.use(auditLogger);

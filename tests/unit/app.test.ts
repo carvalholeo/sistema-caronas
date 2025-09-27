@@ -210,9 +210,9 @@ describe('CarpoolApp', () => {
       expect(mockApp.use).toHaveBeenCalledWith(expect.any(Function));
       expect(mockApp.use).toHaveBeenCalledWith(expect.any(Function));
       expect(mockApp.use).toHaveBeenCalledWith(auditLogger);
-      expect(mockApp.use).toHaveBeenCalledWith(globalLimiter);
-      expect(mockApp.use).toHaveBeenCalledWith(speedLimiter);
-      expect(mockApp.use).toHaveBeenCalledWith('/api/auth/login', loginSlowDown, loginRateLimiter);
+      expect(mockApp.use).toHaveBeenCalledWith(globalLimiter());
+      expect(mockApp.use).toHaveBeenCalledWith(speedLimiter());
+      expect(mockApp.use).toHaveBeenCalledWith('/api/auth/login', loginSlowDown(), loginRateLimiter());
       expect(mockApp.use).toHaveBeenCalledWith(auditLogger);
     });
   });

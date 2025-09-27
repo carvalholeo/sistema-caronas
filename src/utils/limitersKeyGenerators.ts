@@ -12,7 +12,7 @@ function limiterKeyGenerator(req: Request) {
   }
 
   // Pega o email do corpo da requisição. Se não vier, usa uma string vazia.
-  const email = req.body.email || '';
+  const email = req.body?.email || '';
 
   // Cria um hash da combinação para não expor dados e para normalizar o tamanho da chave.
   key = `${email}:${generatedIp}`;
@@ -24,7 +24,7 @@ const loginKeyGenerator = (req: Request): string => {
   const generatedIp = ipKeyGenerator(req.ip ?? "::1");
 
   // Pega o email do corpo da requisição. Se não vier, usa uma string vazia.
-  const email = req.body.email || '';
+  const email = req.body?.email || '';
 
   // Cria um hash da combinação para não expor dados e para normalizar o tamanho da chave.
   const key = `${email}:${generatedIp}`;

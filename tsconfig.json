@@ -2,7 +2,8 @@
   "compilerOptions": {
     "target": "ES2020",
     "module": "commonjs",
-
+    "moduleResolution": "node",
+    "lib": ["ESNext"],
     "strict": true,
     "noImplicitAny": true,
     "strictNullChecks": true,
@@ -14,12 +15,29 @@
     "baseUrl": "./src",
     "typeRoots": [
       "./node_modules/@types",
-    ]
+    ],
+    "paths": {
+      "@/*": ["./*"],
+      "@config/*": ["./config/*"],
+      "@controllers/*": ["./controllers/*"],
+      "@middlewares/*": ["./middlewares/*"],
+      "@models/*": ["./models/*"],
+      "@providers/*": ["./providers/*"],
+      "@routes/*": ["./routes/*"],
+      "@services/*": ["./services/*"],
+      "@types/*": ["./types/*"],
+      "@utils/*": ["./utils/*"]
+    }
   },
   "files": [
     "src/types/express.d.ts",
     "src/types/socket.d.ts"
   ],
   "include": ["src/**/*.ts"],
-  "exclude": ["dist", "tests", "coverage", ".husky", "logs"]
+  "exclude": ["dist", "tests", "coverage", ".husky", "logs"],
+  "ts-node": {
+    "require": ["tsconfig-paths/register"],
+    "transpileOnly": true,
+    "files": true
+  }
 }

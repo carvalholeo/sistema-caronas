@@ -1,0 +1,24 @@
+{
+  "watch": [
+    "src",
+    ".env"
+  ],
+  "ext": "ts,js,json",
+  "ignore": [
+    "src/**/*.test.ts",
+    "src/**/*.spec.ts",
+    "node_modules",
+    "dist",
+    "logs",
+    "uploads",
+    "coverage"
+  ],
+  "exec": "ts-node -r tsconfig-paths/register src/server.ts",
+  "env": {
+    "NODE_ENV": "development"
+  },
+  "delay": "1000",
+  "verbose": true,
+  "legacyWatch": false,
+  "polling": true
+}

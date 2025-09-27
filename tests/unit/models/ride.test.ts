@@ -131,15 +131,19 @@ describe('Ride Model', () => {
     });
 
     it('should fail if driver has more than 4 rides on the same day', async () => {
-      const departure = new Date(Date.now() + 24 * 60 * 60 * 1000);
-      const rideData = (h: number) => createRideData({ departureTime: new Date(departure.getTime() + h * 61 * 60 * 1000) });
+      const baseDate = new Date();
+      baseDate.setHours(8, 0, 0, 0); // 8:00 AM hoje
+      baseDate.setDate(baseDate.getDate() + 1); // Amanhã às 8:00
+      const rideData = (minutesOffset: number) => createRideData({
+        departureTime: new Date(baseDate.getTime() + minutesOffset * 60 * 1000)
+      });
 
-      await new RideModel(rideData(2)).save();
-      await new RideModel(rideData(4)).save();
-      await new RideModel(rideData(6)).save();
-      await new RideModel(rideData(8)).save();
+      await new RideModel(rideData(0)).save();
+      await new RideModel(rideData(120)).save();
+      await new RideModel(rideData(240)).save();
+      await new RideModel(rideData(360)).save();
 
-      const ride5 = new RideModel(rideData(10));
+      const ride5 = new RideModel(rideData(480));
       await expect(ride5.save()).rejects.toThrow('A driver cannot have more than 4 rides on the same day');
     });
   });
@@ -236,7 +240,7 @@ describe('Ride Model', () => {
           const ride = new RideModel(createRideData());
           await ride.save();
           if (fromStatus !== RideStatus.Scheduled) {
-             await RideModel.findByIdAndUpdate(
+            await RideModel.findByIdAndUpdate(
               ride._id,
               { status: fromStatus },
               { new: true, runValidators: false } // Importante: runValidators: false
