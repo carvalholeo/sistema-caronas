@@ -1,0 +1,19 @@
+#!/bin/sh
+
+echo "🔄 Post-merge cleanup and setup..."
+
+# Verificar se package.json mudou
+if git diff HEAD@{1} --name-only | grep -q "package.json"; then
+  echo "📦 package.json changed. Installing dependencies..."
+  npm ci
+fi
+
+# Verificar se é merge para main/master
+branch=$(git rev-parse --abbrev-ref HEAD)
+if [ "$branch" = "main" ] || [ "$branch" = "master" ]; then
+  echo "🚀 Merged to main branch. Running production checks..."
+  npm run build
+  npm run test
+fi
+
+echo "✅ Post-merge cleanup and setup completed."

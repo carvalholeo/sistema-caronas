@@ -1,1 +1,41 @@
-npm test
+#!/bin/sh
+
+echo "🔍 Running carpool-specific validations..."
+
+# 1. Lint e format código
+echo "📝 Formatting and linting code..."
+npx lint-staged
+
+# 2. Verificar se há TODOs ou FIXMEs em produção
+if [ "$NODE_ENV" = "production" ]; then
+  echo "🔍 Checking for TODOs in production code..."
+  if grep -r "TODO\|FIXME\|XXX" src/ --exclude-dir=node_modules; then
+    echo "❌ Found TODO/FIXME comments. Clean before production deploy."
+    exit 1
+  fi
+fi
+
+# 3. Validar estrutura de arquivos críticos
+echo "📁 Validating critical files..."
+required_files=(
+  "src/models/user.ts"
+  "src/models/ride.ts"
+  "src/services/authService.ts"
+  "package.json"
+  "tsconfig.json"
+)
+
+for file in "${required_files[@]}"; do
+  if [ ! -f "$file" ]; then
+    echo "❌ Critical file missing: $file"
+    exit 1
+  fi
+done
+
+# 4. Verificar se variáveis de ambiente estão documentadas
+echo "🌍 Checking environment variables documentation..."
+if [ ! -f ".env.example" ]; then
+  echo "⚠️ .env.example file missing. Please document environment variables."
+fi
+
+echo "✅ Pre-commit checks passed!"

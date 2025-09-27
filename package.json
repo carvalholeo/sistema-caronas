@@ -21,7 +21,7 @@
     "lint": "eslint src --ext .ts",
     "lint:fix": "eslint src --ext .ts --fix",
     "db:seed": "ts-node src/scripts/seed.ts",
-    "prepare": "husky",
+    "prepare": "husky install",
     "precommit": "lint-staged"
   },
   "dependencies": {
@@ -105,5 +105,21 @@
   "license": "LICENSED",
   "engines": {
     "node": ">=22.0.0"
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "lint-staged"
+    }
+  },
+  "lint-staged": {
+    "*.{ts,js}": [
+      "eslint --fix",
+      "prettier --write",
+      "git add"
+    ],
+    "*.{json,md,yml,yaml}": [
+      "prettier --write",
+      "git add"
+    ]
   }
 }

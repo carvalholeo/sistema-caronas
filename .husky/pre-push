@@ -1,0 +1,88 @@
+#!/bin/sh
+
+echo "🚀 Running pre-push checks..."
+
+# 1. Executar testes unitários
+echo "📋 Running unit tests..."
+npm run test
+if [ $? -ne 0 ]; then
+  echo "❌ Unit tests failed. Push aborted."
+  exit 1
+fi
+
+echo "🧪 Running integration tests..."
+npm run test:integration
+if [ $? -ne 0 ]; then
+  echo "❌ Tests failed. Push aborted."
+  exit 1
+fi
+
+# 2. Executar build para verificar TypeScript
+echo "🔨 Building project..."
+npm run build
+if [ $? -ne 0 ]; then
+  echo "❌ Build failed. Push aborted."
+  exit 1
+fi
+
+# 3. Verificar coverage mínimo
+echo "📊 Checking test coverage..."
+npm run test:coverage -- --coverageThreshold='{"global":{"branches":70,"functions":70,"lines":70,"statements":70}}'
+if [ $? -ne 0 ]; then
+  echo "❌ Test coverage below threshold. Push aborted."
+  exit 1
+fi
+
+# 4. Verificar vulnerabilidades
+echo "🔒 Checking for security vulnerabilities..."
+npm audit --audit-level high
+if [ $? -ne 0 ]; then
+  echo "⚠️ Security vulnerabilities found. Please review."
+  echo "Continue? (y/n)"
+  read answer
+  if [ "$answer" != "y" ]; then
+    exit 1
+  fi
+fi
+
+# 5. Verificar se secrets não foram commitados
+echo "🔐 Checking for potential secrets..."
+if git diff HEAD~1 --name-only | xargs grep -l "password\|secret\|key\|token" | grep -v ".md"; then
+  echo "⚠️ Potential secrets detected. Please review:"
+  git diff HEAD~1 | grep -i "password\|secret\|key\|token"
+  echo "Continue? (y/n)"
+  read answer
+  if [ "$answer" != "y" ]; then
+    exit 1
+  fi
+fi
+
+echo "🗄️ Validating database-related changes..."
+
+# 6. Verificar se há mudanças nos models
+if git diff HEAD~1 --name-only | grep -q "src/models/"; then
+  echo "📝 Database models changed. Running validations..."
+
+  # Verificar se migrations foram criadas (se usando migrations)
+  if [ -d "migrations" ]; then
+    recent_migration=$(find migrations -name "*.ts" -newer src/models/*.ts | wc -l)
+    if [ $recent_migration -eq 0 ]; then
+      echo "⚠️ Model changes detected but no recent migrations found."
+      echo "Did you forget to create a migration? (y/n)"
+      read answer
+      if [ "$answer" = "y" ]; then
+        exit 1
+      fi
+    fi
+  fi
+
+  # Executar testes de model
+  echo "🧪 Running model tests..."
+  npm run test -- --testNamePattern="Model"
+  if [ $? -ne 0 ]; then
+    echo "❌ Model tests failed."
+    exit 1
+  fi
+fi
+
+echo "✅ Pre-push checks passed!"
