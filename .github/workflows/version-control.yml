@@ -1,0 +1,277 @@
+name: 🏷️ Version Control
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+permissions:
+  checks: read
+  contents: read
+
+jobs:
+  validate-version:
+    name: Validate Package Version
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📦 Checkout code
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 2 # Precisa do commit anterior para comparação
+
+      - name: 📱 Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+
+      - name: 🔍 Get current version
+        id: current-version
+        run: |
+          CURRENT_VERSION=$(node -p "require('./package.json').version")
+          echo "version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+          echo "Current version: $CURRENT_VERSION"
+
+      - name: 🔍 Get previous version (for push events)
+        id: previous-version
+        if: github.event_name == 'push'
+        run: |
+          git checkout HEAD~1 -- package.json 2>/dev/null || echo "No previous package.json found"
+          if [ -f package.json ]; then
+            PREVIOUS_VERSION=$(node -p "require('./package.json').version" 2>/dev/null || echo "0.0.0")
+          else
+            PREVIOUS_VERSION="0.0.0"
+          fi
+          echo "version=$PREVIOUS_VERSION" >> $GITHUB_OUTPUT
+          echo "Previous version: $PREVIOUS_VERSION"
+          git checkout HEAD -- package.json
+
+      - name: 🔍 Get base version (for PR events)
+        id: base-version
+        if: github.event_name == 'pull_request'
+        run: |
+          git fetch origin ${{ github.base_ref }}
+          git checkout origin/${{ github.base_ref }} -- package.json 2>/dev/null || echo "No base package.json found"
+          if [ -f package.json ]; then
+            BASE_VERSION=$(node -p "require('./package.json').version" 2>/dev/null || echo "0.0.0")
+          else
+            BASE_VERSION="0.0.0"
+          fi
+          echo "version=$BASE_VERSION" >> $GITHUB_OUTPUT
+          echo "Base version: $BASE_VERSION"
+          git checkout HEAD -- package.json
+
+      - name: ✅ Validate semantic version format
+        id: validate-format
+        run: |
+          CURRENT_VERSION="${{ steps.current-version.outputs.version }}"
+
+          # Regex para versão semântica estrita (MAJOR.MINOR.PATCH)
+          SEMANTIC_REGEX="^[0-9]+\.[0-9]+\.[0-9]+$"
+
+          # Regex para versão não-semântica (com sufixos)
+          NON_SEMANTIC_REGEX="^[0-9]+\.[0-9]+\.[0-9]+-(rc|beta|alpha|dev|feature)\.[0-9]+$"
+
+          if [[ $CURRENT_VERSION =~ $SEMANTIC_REGEX ]]; then
+            echo "format=semantic" >> $GITHUB_OUTPUT
+            echo "✅ Version format: SEMANTIC ($CURRENT_VERSION)"
+          elif [[ $CURRENT_VERSION =~ $NON_SEMANTIC_REGEX ]]; then
+            echo "format=non-semantic" >> $GITHUB_OUTPUT
+            echo "✅ Version format: NON-SEMANTIC ($CURRENT_VERSION)"
+          else
+            echo "format=invalid" >> $GITHUB_OUTPUT
+            echo "❌ Version format: INVALID ($CURRENT_VERSION)"
+            echo "::error::Version must follow semantic versioning (X.Y.Z) or pre-release format (X.Y.Z-suffix.N)"
+            exit 1
+          fi
+
+      - name: 🚫 Enforce semantic versioning on main/develop
+        if: contains(fromJson('["main", "develop"]'), github.ref_name) || contains(fromJson('["main", "develop"]'), github.base_ref)
+        run: |
+          VERSION_FORMAT="${{ steps.validate-format.outputs.format }}"
+          BRANCH_NAME="${{ github.ref_name }}"
+          BASE_BRANCH="${{ github.base_ref }}"
+          TARGET_BRANCH="${BRANCH_NAME:-$BASE_BRANCH}"
+
+          if [ "$VERSION_FORMAT" != "semantic" ]; then
+            echo "::error::Branch '$TARGET_BRANCH' requires semantic versioning (X.Y.Z), but found: ${{ steps.current-version.outputs.version }}"
+            echo "❌ Non-semantic versions are not allowed in main/develop branches"
+            exit 1
+          fi
+
+          echo "✅ Semantic version approved for branch: $TARGET_BRANCH"
+
+      - name: 🚫 Prevent semantic versioning on feature branches
+        if: github.event_name == 'pull_request' && !contains(fromJson('["main", "develop"]'), github.head_ref)
+        run: |
+          VERSION_FORMAT="${{ steps.validate-format.outputs.format }}"
+          SOURCE_BRANCH="${{ github.head_ref }}"
+
+          if [ "$VERSION_FORMAT" = "semantic" ]; then
+            echo "::error::Feature branch '$SOURCE_BRANCH' cannot use semantic versioning (X.Y.Z)"
+            echo "❌ Use pre-release format: X.Y.Z-suffix.N (e.g., 1.0.0-rc.1, 1.2.3-beta.2)"
+            echo "Allowed suffixes: rc, beta, alpha, dev, feature"
+            exit 1
+          fi
+
+          echo "✅ Non-semantic version approved for feature branch: $SOURCE_BRANCH"
+
+      - name: 📈 Validate version increment (push events)
+        if: github.event_name == 'push'
+        run: |
+          CURRENT="${{ steps.current-version.outputs.version }}"
+          PREVIOUS="${{ steps.previous-version.outputs.version }}"
+
+          echo "Comparing versions: $PREVIOUS → $CURRENT"
+
+          # Usar Node.js para comparar versões semânticas
+          node << 'EOF'
+          const semver = require('semver');
+          const current = '${{ steps.current-version.outputs.version }}';
+          const previous = '${{ steps.previous-version.outputs.version }}';
+
+          // Limpar versões para comparação (remover sufixos)
+          const cleanCurrent = current.split('-')[0];
+          const cleanPrevious = previous.split('-')[0];
+
+          if (!semver.valid(cleanCurrent)) {
+            console.error(`❌ Invalid current version: ${current}`);
+            process.exit(1);
+          }
+
+          if (!semver.valid(cleanPrevious)) {
+            console.log(`⚠️ Previous version invalid or not found: ${previous}`);
+            console.log(`✅ Accepting first version: ${current}`);
+            process.exit(0);
+          }
+
+          if (semver.lte(cleanCurrent, cleanPrevious)) {
+            console.error(`❌ Version must be incremented: ${previous} → ${current}`);
+            console.error('Please bump at least PATCH version');
+            process.exit(1);
+          }
+
+          console.log(`✅ Version correctly incremented: ${previous} → ${current}`);
+          EOF
+
+      - name: 📈 Validate version increment (PR events)
+        if: github.event_name == 'pull_request'
+        run: |
+          CURRENT="${{ steps.current-version.outputs.version }}"
+          BASE="${{ steps.base-version.outputs.version }}"
+
+          echo "Comparing PR versions: $BASE → $CURRENT"
+
+          node << 'EOF'
+          const semver = require('semver');
+          const current = '${{ steps.current-version.outputs.version }}';
+          const base = '${{ steps.base-version.outputs.version }}';
+
+          // Limpar versões para comparação
+          const cleanCurrent = current.split('-')[0];
+          const cleanBase = base.split('-')[0];
+
+          if (!semver.valid(cleanCurrent)) {
+            console.error(`❌ Invalid current version: ${current}`);
+            process.exit(1);
+          }
+
+          if (!semver.valid(cleanBase)) {
+            console.log(`⚠️ Base version invalid: ${base}`);
+            console.log(`✅ Accepting PR version: ${current}`);
+            process.exit(0);
+          }
+
+          if (semver.lte(cleanCurrent, cleanBase)) {
+            console.error(`❌ Version must be incremented: ${base} → ${current}`);
+            console.error('Please bump at least PATCH version');
+            process.exit(1);
+          }
+
+          console.log(`✅ Version correctly incremented: ${base} → ${current}`);
+          EOF
+
+      - name: 📋 Version Summary
+        run: |
+          echo "## 🏷️ Version Validation Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Field | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Current Version | \`${{ steps.current-version.outputs.version }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Version Format | ${{ steps.validate-format.outputs.format }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Branch | ${{ github.ref_name || github.head_ref }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Event | ${{ github.event_name }} |" >> $GITHUB_STEP_SUMMARY
+
+          if [ "${{ github.event_name }}" = "push" ]; then
+            echo "| Previous Version | \`${{ steps.previous-version.outputs.version }}\` |" >> $GITHUB_STEP_SUMMARY
+          elif [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "| Base Version | \`${{ steps.base-version.outputs.version }}\` |" >> $GITHUB_STEP_SUMMARY
+            echo "| Target Branch | ${{ github.base_ref }} |" >> $GITHUB_STEP_SUMMARY
+          fi
+      - name: 📋 Validate CHANGELOG for semantic versions
+        if: steps.validate-format.outputs.format == 'semantic'
+        run: |
+          CURRENT_VERSION="${{ steps.current-version.outputs.version }}"
+
+          echo "🔍 Checking CHANGELOG.md for version $CURRENT_VERSION"
+
+          if [ ! -f "CHANGELOG.md" ]; then
+            echo "❌ CHANGELOG.md not found"
+            echo "::error::Semantic versions require CHANGELOG.md file"
+            exit 1
+          fi
+
+          # Verificar se a versão está no CHANGELOG
+          if ! grep -q "## \[$CURRENT_VERSION\]" CHANGELOG.md; then
+            echo "❌ Version $CURRENT_VERSION not found in CHANGELOG.md"
+            echo "::error::Semantic version $CURRENT_VERSION must have entry in CHANGELOG.md"
+            echo "Expected format: ## [$CURRENT_VERSION] - YYYY-MM-DD"
+            exit 1
+          fi
+
+          # Verificar formato da entrada
+          VERSION_LINE=$(grep "## \[$CURRENT_VERSION\]" CHANGELOG.md)
+          DATE_PATTERN="\[${CURRENT_VERSION}\] - [0-9]{4}-[0-9]{2}-[0-9]{2}"
+
+          if ! echo "$VERSION_LINE" | grep -qE "$DATE_PATTERN"; then
+            echo "❌ Invalid CHANGELOG format for version $CURRENT_VERSION"
+            echo "Found: $VERSION_LINE"
+            echo "::error::Expected format: ## [$CURRENT_VERSION] - YYYY-MM-DD"
+            exit 1
+          fi
+
+          # Verificar se há pelo menos uma categoria de changes
+          VERSION_SECTION=$(awk "/## \[$CURRENT_VERSION\]/,/## \[.*\]/{print}" CHANGELOG.md | head -n -1)
+
+          CATEGORIES=("Added" "Changed" "Deprecated" "Removed" "Fixed" "Security")
+          FOUND_CATEGORY=false
+
+          for category in "${CATEGORIES[@]}"; do
+            if echo "$VERSION_SECTION" | grep -q "### $category"; then
+              FOUND_CATEGORY=true
+              break
+            fi
+          done
+
+          if [ "$FOUND_CATEGORY" = false ]; then
+            echo "❌ No change categories found for version $CURRENT_VERSION"
+            echo "::error::CHANGELOG entry must contain at least one category: Added, Changed, Deprecated, Removed, Fixed, Security"
+            exit 1
+          fi
+
+          echo "✅ CHANGELOG.md validation passed for version $CURRENT_VERSION"
+
+      - name: 📊 CHANGELOG Summary
+        if: steps.validate-format.outputs.format == 'semantic'
+        run: |
+          VERSION="${{ steps.current-version.outputs.version }}"
+
+          echo "## 📋 CHANGELOG Entry" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`markdown" >> $GITHUB_STEP_SUMMARY
+
+          # Extrair seção da versão do CHANGELOG
+          awk "/## \[$VERSION\]/,/## \[.*\]/{print}" CHANGELOG.md | head -n -1 >> $GITHUB_STEP_SUMMARY || echo "No CHANGELOG entry found" >> $GITHUB_STEP_SUMMARY
+
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY

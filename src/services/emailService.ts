@@ -1,18 +1,19 @@
-import fs from 'fs/promises';
-import path from 'path';
-import handlebars from 'handlebars';
-import juice from 'juice';
-import { EmailTemplate } from '../types/enums/email';
-import { TemplateDataMap } from '../types/types/email';
-import logger from '../utils/logger';
+import fs from "node:fs/promises";
+import path from "node:path";
+import handlebars from "handlebars";
+import juice from "juice";
+import { EmailTemplate } from "../types/enums/email";
+import { TemplateDataMap } from "../types/types/email";
+import logger from "../utils/logger";
 
 export class EmailService {
-  private templates: Map<EmailTemplate, handlebars.TemplateDelegate> = new Map();
+  private templates: Map<EmailTemplate, handlebars.TemplateDelegate> =
+    new Map();
   private layout!: handlebars.TemplateDelegate;
 
   constructor() {
-    this.initializeTemplates().catch(err =>
-      logger.error("Erro ao inicializar templates de e-mail:", err)
+    this.initializeTemplates().catch((err) =>
+      logger.error("Erro ao inicializar templates de e-mail:", err),
     );
   }
 
@@ -20,18 +21,18 @@ export class EmailService {
    * Carrega e compila todos os templates de e-mail na memória ao iniciar.
    */
   private async initializeTemplates(): Promise<void> {
-    const templatesDir = path.join(__dirname, 'templates');
+    const templatesDir = path.join(__dirname, "templates");
 
     // Carrega o layout principal
-    const layoutPath = path.join(templatesDir, 'layouts', 'base.hbs');
-    const layoutSource = await fs.readFile(layoutPath, 'utf-8');
+    const layoutPath = path.join(templatesDir, "layouts", "base.hbs");
+    const layoutSource = await fs.readFile(layoutPath, "utf-8");
     this.layout = handlebars.compile(layoutSource);
 
     // Carrega os templates individuais
     for (const templateName of Object.values(EmailTemplate)) {
-      const filePath = path.join(templatesDir, 'emails' ,`${templateName}.hbs`);
+      const filePath = path.join(templatesDir, "emails", `${templateName}.hbs`);
       try {
-        const source = await fs.readFile(filePath, 'utf-8');
+        const source = await fs.readFile(filePath, "utf-8");
         this.templates.set(templateName, handlebars.compile(source));
       } catch (error) {
         logger.warn(`Template de e-mail não encontrado: ${templateName}.hbs`);
@@ -46,7 +47,7 @@ export class EmailService {
    */
   public async prepareEmailTemplate<T extends EmailTemplate>(
     template: T,
-    data: TemplateDataMap[T]
+    data: TemplateDataMap[T],
   ): Promise<string> {
     const templateFn = this.templates.get(template);
     if (!templateFn) {

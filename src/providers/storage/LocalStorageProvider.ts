@@ -1,10 +1,10 @@
-import fs from 'fs/promises';
-import path from 'path';
-import { IStorageProvider } from './IStorageProvider';
-import logger from '../../utils/logger';
+import fs from "node:fs/promises";
+import path from "node:path";
+import { IStorageProvider } from "./IStorageProvider";
+import logger from "../../utils/logger";
 
 export class LocalStorageProvider implements IStorageProvider {
-  private uploadsDir = path.resolve(__dirname, '..', '..', '..', 'uploads');
+  private uploadsDir = path.resolve(__dirname, "..", "..", "..", "uploads");
 
   constructor() {
     // Garante que o diretório de uploads exista
@@ -14,7 +14,7 @@ export class LocalStorageProvider implements IStorageProvider {
   public async saveFile(file: Express.Multer.File): Promise<string> {
     // O multer já salva o arquivo com um nome único.
     // Esta função apenas retorna a URL pública para acessá-lo.
-    const baseUrl = process.env.APP_BASE_URL || 'http://localhost:3000';
+    const baseUrl = process.env.APP_BASE_URL || "http://localhost:3000";
     return `${baseUrl}/uploads/${file.filename}`;
   }
 
@@ -25,8 +25,8 @@ export class LocalStorageProvider implements IStorageProvider {
       await fs.unlink(filePath);
     } catch (error: any) {
       // Ignora erros se o arquivo não existir
-      if (error.code !== 'ENOENT') {
-        logger.error('Erro ao deletar arquivo local:', error);
+      if (error.code !== "ENOENT") {
+        logger.error("Erro ao deletar arquivo local:", error);
       }
     }
   }

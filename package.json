@@ -1,6 +1,6 @@
 {
   "name": "carpool-backend",
-  "version": "1.0.0",
+  "version": "1.0.0-alpha.1",
   "description": "Backend for the Carpool System, implementing robust authentication, user management, ride management, and real-time communication.",
   "main": "dist/server.ts",
   "scripts": {
@@ -22,7 +22,20 @@
     "lint:fix": "eslint src --ext .ts --fix",
     "db:seed": "ts-node src/scripts/seed.ts",
     "prepare": "husky install",
-    "precommit": "lint-staged"
+    "precommit": "lint-staged",
+    "format:code:check": "prettier --check src/**/*.ts",
+    "format:code:fix": "prettier --write src/**/*.ts",
+    "format:doc:check": "prettier --check ./**/*.md",
+    "format:doc:fix": "prettier --write ./**/*.md",
+    "version:bump": "node scripts/version-bump.js",
+    "version:bump:commit": "node scripts/version-bump.js --commit --changelog",
+    "version:check": "node -e \"console.log('Current version:', require('./package.json').version)\"",
+    "changelog:init": "node scripts/changelog-generator.js init",
+    "changelog:add": "node scripts/changelog-generator.js add",
+    "changelog:add:auto": "node scripts/changelog-generator.js add --auto",
+    "changelog:validate": "node scripts/changelog-generator.js validate",
+    "precommit:version": "node scripts/check-version-rules.js",
+    "precommit:changelog": "npm run changelog:validate"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.883.0",
@@ -113,13 +126,13 @@
   },
   "lint-staged": {
     "*.{ts,js}": [
-      "eslint --fix",
-      "prettier --write",
-      "git add"
+      "prettier --write"
     ],
     "*.{json,md,yml,yaml}": [
-      "prettier --write",
-      "git add"
+      "prettier --write"
     ]
+  },
+  "prettier": {
+    "filepath": "./src/**/*.ts"
   }
 }

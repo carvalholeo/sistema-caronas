@@ -1,12 +1,18 @@
 // Lógica de negócio para o painel de privacidade (LGPD/GDPR).
-import crypto from 'crypto';
-import { UserModel } from '../../models/user';
-import { DataReportModel } from '../../models/dataReport';
-import { AuditLogModel } from '../../models/auditLog';
-import { authService } from '../../services/authService';
-import { IAuditLog, IUser } from '../../types';
-import { AuditActionType, AuditLogCategory, AuditLogSeverityLevels, NotificationScope, UserStatus } from '../../types/enums/enums';
-import { NotificationEventModel } from '../../models/event';
+import crypto from "node:crypto";
+import { UserModel } from "../../models/user";
+import { DataReportModel } from "../../models/dataReport";
+import { AuditLogModel } from "../../models/auditLog";
+import { authService } from "../../services/authService";
+import { IAuditLog, IUser } from "../../types";
+import {
+  AuditActionType,
+  AuditLogCategory,
+  AuditLogSeverityLevels,
+  NotificationScope,
+  UserStatus,
+} from "../../types/enums/enums";
+import { NotificationEventModel } from "../../models/event";
 
 export interface IReportData {
   profile: object;
@@ -19,8 +25,15 @@ export interface IReport {
 }
 
 class AdminPrivacyService {
-  public async generateDataReport(targetUserId: IUser, adminUser: IUser, twoFactorCode: string): Promise<IReport> {
-    if (!authService.verifyTwoFactorCode(adminUser.twoFactorSecret, twoFactorCode)) throw new Error("Código 2FA inválido.");
+  public async generateDataReport(
+    targetUserId: IUser,
+    adminUser: IUser,
+    twoFactorCode: string,
+  ): Promise<IReport> {
+    if (
+      !authService.verifyTwoFactorCode(adminUser.twoFactorSecret, twoFactorCode)
+    )
+      throw new Error("Código 2FA inválido.");
 
     const targetUser = await UserModel.findById(targetUserId);
     if (!targetUser) throw new Error("Usuário não encontrado.");
@@ -30,40 +43,47 @@ class AdminPrivacyService {
       //... aqui seriam buscados dados de outros modelos (veículos, caronas, etc)
     };
     const reportString = JSON.stringify(reportData);
-    const hash = crypto.createHash('sha256').update(reportString).digest('hex');
+    const hash = crypto.createHash("sha256").update(reportString).digest("hex");
 
     await new DataReportModel({
       user: targetUserId,
       adminUser: adminUser,
       hash,
-      includedDataPoints: Object.keys(reportData)
+      includedDataPoints: Object.keys(reportData),
     }).save();
 
     const auditEntry = new AuditLogModel({
       actor: {
         userId: adminUser,
         isAdmin: true,
-        ip: '::1',
+        ip: "::1",
       },
       action: {
         actionType: AuditActionType.PRIVACY_DATA_REPORT_GENERATED,
-        category: AuditLogCategory.PRIVACY
+        category: AuditLogCategory.PRIVACY,
       },
       target: {
         resourceType: UserModel.baseModelName,
-        resourceId: targetUserId
+        resourceId: targetUserId,
       },
       metadata: {
-        severity: AuditLogSeverityLevels.INFO
-      }
+        severity: AuditLogSeverityLevels.INFO,
+      },
     });
     await auditEntry.save();
 
     return { reportData, hash };
   }
 
-  public async processUserRemoval(targetUserId: IUser, adminUser: IUser, twoFactorCode: string): Promise<{ message: string }> {
-    if (!authService.verifyTwoFactorCode(adminUser.twoFactorSecret, twoFactorCode)) throw new Error("Código 2FA inválido.");
+  public async processUserRemoval(
+    targetUserId: IUser,
+    adminUser: IUser,
+    twoFactorCode: string,
+  ): Promise<{ message: string }> {
+    if (
+      !authService.verifyTwoFactorCode(adminUser.twoFactorSecret, twoFactorCode)
+    )
+      throw new Error("Código 2FA inválido.");
     const targetUser = await UserModel.findById(targetUserId);
     if (!targetUser) throw new Error("Usuário não encontrado.");
 
@@ -79,46 +99,52 @@ class AdminPrivacyService {
       actor: {
         userId: adminUser,
         isAdmin: true,
-        ip: '::1',
+        ip: "::1",
       },
       action: {
         actionType: AuditActionType.PRIVACY_USER_REMOVAL_PROCESSED,
-        category: AuditLogCategory.PRIVACY
+        category: AuditLogCategory.PRIVACY,
       },
       target: {
         resourceType: UserModel.baseModelName,
-        resourceId: targetUserId
+        resourceId: targetUserId,
       },
       metadata: {
-        severity: AuditLogSeverityLevels.INFO
-      }
+        severity: AuditLogSeverityLevels.INFO,
+      },
     });
     await auditEntry.save();
 
     return { message: "Usuário anonimizado com sucesso." };
   }
 
-  public async viewPrivacyLogs(targetUserId: IUser, adminUser: IUser): Promise<IAuditLog[]> {
+  public async viewPrivacyLogs(
+    targetUserId: IUser,
+    adminUser: IUser,
+  ): Promise<IAuditLog[]> {
     const auditEntry = new AuditLogModel({
       actor: {
         userId: adminUser,
         isAdmin: true,
-        ip: '::1',
+        ip: "::1",
       },
       action: {
         actionType: AuditActionType.PRIVACY_LOGS_VIEWED_BY_ADMIN,
-        category: AuditLogCategory.PRIVACY
+        category: AuditLogCategory.PRIVACY,
       },
       target: {
         resourceType: UserModel.baseModelName,
-        resourceId: targetUserId
+        resourceId: targetUserId,
       },
       metadata: {
-        severity: AuditLogSeverityLevels.WARN
-      }
+        severity: AuditLogSeverityLevels.WARN,
+      },
     });
     await auditEntry.save();
-    return AuditLogModel.find({ 'target.id': targetUserId, action: { $regex: /^privacidade:/ } });
+    return AuditLogModel.find({
+      "target.id": targetUserId,
+      action: { $regex: /^privacidade:/ },
+    });
   }
 
   /**
@@ -128,24 +154,31 @@ class AdminPrivacyService {
    * @param subject - O assunto da notificação.
    * @param body - O corpo da mensagem da notificação.
    */
-  public async sendFormalNotification(targetUserId: IUser, adminUser: IUser, subject: string, body: string) {
+  public async sendFormalNotification(
+    targetUserId: IUser,
+    adminUser: IUser,
+    subject: string,
+    body: string,
+  ) {
     const targetUser = await UserModel.findById(targetUserId);
     if (!targetUser) {
-      throw new Error('Usuário alvo não encontrado.');
+      throw new Error("Usuário alvo não encontrado.");
     }
 
     const notification = new NotificationEventModel({
       scope: NotificationScope.Privacy,
       user: targetUser,
-      category: 'system',
-      statusHistory: [{
-        status: 'sent',
-        timestamp: new Date(),
-        details: ''
-      }],
+      category: "system",
+      statusHistory: [
+        {
+          status: "sent",
+          timestamp: new Date(),
+          details: "",
+        },
+      ],
       payload: JSON.stringify({ title: subject, body }),
       isAggregated: false,
-      isCritical: true
+      isCritical: true,
     });
     await notification.save();
 
@@ -153,26 +186,26 @@ class AdminPrivacyService {
       actor: {
         userId: adminUser,
         isAdmin: true,
-        ip: '::1',
+        ip: "::1",
       },
       action: {
         actionType: AuditActionType.PRIVACY_FORMAL_NOTIFICATION_SENT,
-        category: AuditLogCategory.PRIVACY
+        category: AuditLogCategory.PRIVACY,
       },
       target: {
         resourceType: UserModel.baseModelName,
-        resourceId: targetUserId
+        resourceId: targetUserId,
       },
       metadata: {
         severity: AuditLogSeverityLevels.INFO,
         extra: {
-          mensagem: `Notificação enviada com assunto: "${subject}"`
-        }
-      }
+          mensagem: `Notificação enviada com assunto: "${subject}"`,
+        },
+      },
     });
     await auditEntry.save();
 
-    return { message: 'Notificação formal registrada e enviada com sucesso.' };
+    return { message: "Notificação formal registrada e enviada com sucesso." };
   }
 }
 

@@ -1,12 +1,17 @@
-import { Request, Response, NextFunction } from 'express';
-import { Types } from 'mongoose';
-import { AuditLogModel } from '../models/auditLog';
-import { AuditActionType, AuditLogCategory, AuditLogSeverityLevels, UserRole } from '../types/enums/enums';
+import { Request, Response, NextFunction } from "express";
+import { Types } from "mongoose";
+import { AuditLogModel } from "../models/auditLog";
+import {
+  AuditActionType,
+  AuditLogCategory,
+  AuditLogSeverityLevels,
+  UserRole,
+} from "../types/enums/enums";
 
 export function checkPermission(requiredPermission: string) {
   return async (req: Request, res: Response, next: NextFunction) => {
     if (!req.user) {
-      return res.status(401).json({ message: 'Autenticação necessária.' });
+      return res.status(401).json({ message: "Autenticação necessária." });
     }
 
     const hasPermission = req.user.permissions.includes(requiredPermission);
@@ -20,14 +25,14 @@ export function checkPermission(requiredPermission: string) {
         userId: req.user || null,
         isAdmin: req.user?.roles.includes(UserRole.Admin) || false,
         ip: req.ip,
-        userAgent: req.headers['user-agent'] || 'Unknown'
+        userAgent: req.headers["user-agent"] || "Unknown",
       },
       action: {
         actionType: AuditActionType.SECURITY_ACCESS_DENIED,
         category: AuditLogCategory.SECURITY,
       },
       target: {
-        resourceType: 'Request',
+        resourceType: "Request",
         resourceId: new Types.ObjectId(),
       },
       metadata: {
@@ -37,21 +42,23 @@ export function checkPermission(requiredPermission: string) {
           query: req.query,
           params: req.params,
           method: req.method,
-          originalUrl: req.originalUrl
-        }
-      }
+          originalUrl: req.originalUrl,
+        },
+      },
     });
 
     await auditEntry.save();
 
-    return res.status(403).json({ message: 'Acesso negado. Você não tem permissão para realizar esta ação.' });
+    return res.status(403).json({
+      message: "Acesso negado. Você não tem permissão para realizar esta ação.",
+    });
   };
 }
 
 export function checkPermissions(requiredPermissions: string[]) {
   for (const permission of requiredPermissions) {
-    if (typeof permission !== 'string') {
-      throw new Error('Permissões devem ser strings.');
+    if (typeof permission !== "string") {
+      throw new TypeError("Permissões devem ser strings.");
     }
 
     checkPermission(permission);

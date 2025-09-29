@@ -1,8 +1,11 @@
-import { Router } from 'express';
-import { notificationController } from '../controllers/notificationController';
-import { authMiddleware } from '../middlewares/auth';
-import { requestValidator } from '../middlewares/requestValidator';
-import { subscribeValidator, updatePreferencesValidator } from '../middlewares/validators/notification';
+import { Router } from "express";
+import { notificationController } from "../controllers/notificationController";
+import { authMiddleware } from "../middlewares/auth";
+import { requestValidator } from "../middlewares/requestValidator";
+import {
+  subscribeValidator,
+  updatePreferencesValidator,
+} from "../middlewares/validators/notification";
 
 const notificationRouter = Router();
 
@@ -16,9 +19,9 @@ notificationRouter.use(requestValidator);
  * @access Private
  */
 notificationRouter.post(
-  '/subscribe',
+  "/subscribe",
   subscribeValidator,
-  notificationController.subscribe
+  notificationController.subscribe,
 );
 
 /**
@@ -27,9 +30,9 @@ notificationRouter.post(
  * @access Private
  */
 notificationRouter.patch(
-  '/subscriptions/:deviceIdentifier/preferences',
+  "/subscriptions/:deviceIdentifier/preferences",
   updatePreferencesValidator,
-  notificationController.updatePreferences
+  notificationController.updatePreferences,
 );
 
 export default notificationRouter;

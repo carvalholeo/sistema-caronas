@@ -1,32 +1,45 @@
-import { Schema, model } from 'mongoose';
-import { INotificationPreferences, INotificationSubscription } from '../types';
-import { NotificationWeekDays } from '../types/enums/enums';
+import { Schema, model } from "mongoose";
+import { INotificationPreferences, INotificationSubscription } from "../types";
+import { NotificationWeekDays } from "../types/enums/enums";
 
 const PreferencesSchema = new Schema<INotificationPreferences>(
   {
     startMinute: { type: Number, required: true, min: 0, max: 1439 },
     endMinute: { type: Number, required: true, min: 0, max: 1439 },
     weekMask: { type: Number, required: true, min: 0, max: 127 },
-    timezone: { type: String, required: true, default: 'America/Sao_Paulo' }, // ex.: "America/Sao_Paulo"
+    timezone: { type: String, required: true, default: "America/Sao_Paulo" }, // ex.: "America/Sao_Paulo"
   },
-  { _id: false }
+  { _id: false },
 );
 
-PreferencesSchema.pre<INotificationPreferences>('validate', function (next) {
-  if (typeof this.startMinute !== 'number' || typeof this.endMinute !== 'number') return next();
-  if (this.startMinute < 0 || this.startMinute > 1439) return next(new Error('startMinute out of range'));
-  if (this.endMinute < 0 || this.endMinute > 1439) return next(new Error('endMinute out of range'));
-  if (typeof this.weekMask !== 'number' || this.weekMask < 0 || this.weekMask > 127) {
-    return next(new Error('weekMask out of range'));
+PreferencesSchema.pre<INotificationPreferences>("validate", function (next) {
+  if (
+    typeof this.startMinute !== "number" ||
+    typeof this.endMinute !== "number"
+  )
+    return next();
+  if (this.startMinute < 0 || this.startMinute > 1439)
+    return next(new Error("startMinute out of range"));
+  if (this.endMinute < 0 || this.endMinute > 1439)
+    return next(new Error("endMinute out of range"));
+  if (
+    typeof this.weekMask !== "number" ||
+    this.weekMask < 0 ||
+    this.weekMask > 127
+  ) {
+    return next(new Error("weekMask out of range"));
   }
-  if (typeof this.timezone !== 'string' || !this.timezone.includes('/')) {
-    return next(new Error('timezone must be a valid IANA name'));
+  if (typeof this.timezone !== "string" || !this.timezone.includes("/")) {
+    return next(new Error("timezone must be a valid IANA name"));
   }
   return next();
 });
 
 PreferencesSchema.methods.convertHourToDatabase = function (timeObject: {
-  startHour: number; endHour: number; weekDays: NotificationWeekDays[]; timezone: string;
+  startHour: number;
+  endHour: number;
+  weekDays: NotificationWeekDays[];
+  timezone: string;
 }) {
   const startMinute = (timeObject.startHour % 24) * 60;
   const endMinute = (timeObject.endHour % 24) * 60;
@@ -36,10 +49,13 @@ PreferencesSchema.methods.convertHourToDatabase = function (timeObject: {
     weekMask: this.daysToMask(timeObject.weekDays),
     timezone: timeObject.timezone,
   };
-}
+};
 
 PreferencesSchema.methods.convertHourFromDatabase = function (p: {
-  startMinute: number; endMinute: number; weekMask: number; timezone: string;
+  startMinute: number;
+  endMinute: number;
+  weekMask: number;
+  timezone: string;
 }) {
   return {
     startHour: Math.floor(p.startMinute / 60),
@@ -47,42 +63,64 @@ PreferencesSchema.methods.convertHourFromDatabase = function (p: {
     weekDays: this.maskToDays(p.weekMask),
     timezone: p.timezone,
   };
-}
+};
 
-PreferencesSchema.methods.daysToMask = (days: NotificationWeekDays[]): number => {
+PreferencesSchema.methods.daysToMask = (
+  days: NotificationWeekDays[],
+): number => {
   return days.reduce((mask, d) => mask | (1 << d), 0);
-}
+};
 
-PreferencesSchema.methods.maskToDays = (mask: number): NotificationWeekDays[] => {
-    return (Array.from({ length: 7 }, (_, d) => d) as NotificationWeekDays[])
-    .filter((d) => (mask & (1 << d)) !== 0);
-  }
+PreferencesSchema.methods.maskToDays = (
+  mask: number,
+): NotificationWeekDays[] => {
+  return (
+    Array.from({ length: 7 }, (_, d) => d) as NotificationWeekDays[]
+  ).filter((d) => (mask & (1 << d)) !== 0);
+};
 
-const NotificationSubscriptionSchema = new Schema<INotificationSubscription>({
-  user: { type: Schema.Types.ObjectId, ref: 'User', required: true },
-  deviceIdentifier: { type: String, required: true },
-  platform: { type: String, enum: ['web', 'ios', 'android', 'email'], required: true, default: 'web' },
-  endpoint: { type: String, required: true },
-  keys: { p256dh: { type: String }, auth: { type: String } },
-  destination: { type: String },
-  isPermissionGranted: { type: Boolean, default: true },
-  notificationsKinds: {
-    security: { type: Boolean, default: true },
-    rides: { type: Boolean, default: false },
-    chats: { type: Boolean, default: false },
-    communication: { type: Boolean, default: false },
-    system: { type: Boolean, default: true }
+const NotificationSubscriptionSchema = new Schema<INotificationSubscription>(
+  {
+    user: { type: Schema.Types.ObjectId, ref: "User", required: true },
+    deviceIdentifier: { type: String, required: true },
+    platform: {
+      type: String,
+      enum: ["web", "ios", "android", "email"],
+      required: true,
+      default: "web",
+    },
+    endpoint: { type: String, required: true },
+    keys: { p256dh: { type: String }, auth: { type: String } },
+    destination: { type: String },
+    isPermissionGranted: { type: Boolean, default: true },
+    notificationsKinds: {
+      security: { type: Boolean, default: true },
+      rides: { type: Boolean, default: false },
+      chats: { type: Boolean, default: false },
+      communication: { type: Boolean, default: false },
+      system: { type: Boolean, default: true },
+    },
+    preferences: { type: PreferencesSchema },
   },
-  preferences: { type: PreferencesSchema }
-}, { timestamps: true });
+  { timestamps: true },
+);
 
-NotificationSubscriptionSchema.pre<INotificationSubscription>('save', function(next) {
-  this.notificationsKinds.security = true;
-  this.notificationsKinds.system = true;
+NotificationSubscriptionSchema.pre<INotificationSubscription>(
+  "save",
+  function (next) {
+    this.notificationsKinds.security = true;
+    this.notificationsKinds.system = true;
 
-  next();
-});
+    next();
+  },
+);
 
-NotificationSubscriptionSchema.index({ user: 1, deviceIdentifier: 1 }, { unique: true });
+NotificationSubscriptionSchema.index(
+  { user: 1, deviceIdentifier: 1 },
+  { unique: true },
+);
 
-export const NotificationSubscriptionModel = model<INotificationSubscription>('NotificationSubscription', NotificationSubscriptionSchema);
+export const NotificationSubscriptionModel = model<INotificationSubscription>(
+  "NotificationSubscription",
+  NotificationSubscriptionSchema,
+);

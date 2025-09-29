@@ -1,6 +1,28 @@
-import { Types, Document } from 'mongoose';
-import { AuditActionType, AuditLogCategory, AuditLogSeverityLevels, BlockStatus, LocationLogAction, MessageStatus, NotificationScope, NotificationType, NotificationWeekDays, PassengerStatus, PasswordResetStatus, PrivacyRequestStatus, PrivacyRequestType, RideStatus, UserRole, UserStatus, VehicleStatus } from '../types/enums/enums';
-import { EventKind, NotificationEventCategory, NotificationStatusHistory } from '../types/types/events';
+import { Types, Document } from "mongoose";
+import {
+  AuditActionType,
+  AuditLogCategory,
+  AuditLogSeverityLevels,
+  BlockStatus,
+  LocationLogAction,
+  MessageStatus,
+  NotificationScope,
+  NotificationType,
+  NotificationWeekDays,
+  PassengerStatus,
+  PasswordResetStatus,
+  PrivacyRequestStatus,
+  PrivacyRequestType,
+  RideStatus,
+  UserRole,
+  UserStatus,
+  VehicleStatus,
+} from "../types/enums/enums";
+import {
+  EventKind,
+  NotificationEventCategory,
+  NotificationStatusHistory,
+} from "../types/types/events";
 // src/types/index.ts
 
 export interface IUser extends Document {
@@ -96,28 +118,32 @@ export interface IRide extends Document<IRide> {
 }
 
 export interface IRideViewEvent extends IEventBase {
-  kind: 'ride_view';
+  kind: "ride_view";
   user: IUser;
   ride: IRide;
   searchEventId?: ISearchEvent;
 }
 
 export interface ISearchEvent extends IEventBase {
-  kind: 'search';
+  kind: "search";
   user: IUser;
   durationMs: number;
   resultsCount: number;
 }
 
 export interface INotificationEvent extends IEventBase {
-  kind: 'notification';
+  kind: "notification";
   scope: NotificationScope;
   subscription?: INotificationSubscription;
   user?: IUser;
   category: NotificationEventCategory;
   type: NotificationType;
   payload: string;
-  statusHistory: Array<{ status: NotificationStatusHistory; timestamp: Date; details?: string }>;
+  statusHistory: Array<{
+    status: NotificationStatusHistory;
+    timestamp: Date;
+    details?: string;
+  }>;
   isAggregated: boolean;
   isCritical: boolean;
 }
@@ -181,7 +207,7 @@ export interface INotificationKind {
 export interface INotificationSubscription extends Document {
   user: IUser;
   deviceIdentifier: string;
-  platform: 'web' | 'ios' | 'android' | 'email';
+  platform: "web" | "ios" | "android" | "email";
   endpoint: string;
   keys: { p256dh: string; auth: string };
   destination: string;
@@ -220,7 +246,7 @@ export interface INotificationTime {
 
 export interface ISuppressedNotification extends Document {
   user: Types.ObjectId | IUser;
-  reason: 'rate_limit' | 'aggregation';
+  reason: "rate_limit" | "aggregation";
   createdAt: Date;
   updatedAt: Date;
 }
@@ -252,7 +278,7 @@ export interface ILoginAttempt extends Document {
 }
 
 export interface ILocation extends Document {
-  type: 'Point';
+  type: "Point";
   coordinates: [number, number]; // [longitude, latitude]
   address?: string;
 }

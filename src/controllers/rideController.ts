@@ -1,6 +1,6 @@
-import { Request, Response } from 'express';
-import { rideService } from '../services/rideService';
-import { IRide, IUser } from '../types';
+import { Request, Response } from "express";
+import { rideService } from "../services/rideService";
+import { IRide, IUser } from "../types";
 
 class RideController {
   /**
@@ -8,9 +8,7 @@ class RideController {
    */
   public async create(req: Request, res: Response): Promise<Response> {
     try {
-      const ride = await rideService.createRide(
-        req.user!,
-        req.body);
+      const ride = await rideService.createRide(req.user!, req.body);
       return res.status(201).json(ride);
     } catch (error: Error | any) {
       return res.status(400).json({ message: error.message });
@@ -22,9 +20,7 @@ class RideController {
    */
   public async createRecurrent(req: Request, res: Response): Promise<Response> {
     try {
-      const rides = await rideService.createRecurrentRide(
-        req.user!,
-        req.body);
+      const rides = await rideService.createRecurrentRide(req.user!, req.body);
       return res.status(201).json(rides);
     } catch (error: Error | any) {
       return res.status(400).json({ message: error.message });
@@ -39,31 +35,45 @@ class RideController {
       const rides = await rideService.searchRides(req.query, req.user!);
       return res.status(200).json(rides);
     } catch (error: Error | any) {
-      return res.status(500).json({ message: 'Erro ao buscar caronas.', error: error.message });
+      return res
+        .status(500)
+        .json({ message: "Erro ao buscar caronas.", error: error.message });
     }
   }
 
   /**
    * Lista as caronas do usuário logado como motorista.
    */
-  public async getMyRidesAsDriver(req: Request, res: Response): Promise<Response> {
+  public async getMyRidesAsDriver(
+    req: Request,
+    res: Response,
+  ): Promise<Response> {
     try {
       const rides = await rideService.getMyRidesAsDriver(req.user!);
       return res.status(200).json(rides);
     } catch (error: Error | any) {
-      return res.status(500).json({ message: 'Erro ao buscar suas caronas como motorista.', error: error.message });
+      return res.status(500).json({
+        message: "Erro ao buscar suas caronas como motorista.",
+        error: error.message,
+      });
     }
   }
 
   /**
    * Lista as caronas do usuário logado como caroneiro.
    */
-  public async getMyRidesAsPassenger(req: Request, res: Response): Promise<Response> {
+  public async getMyRidesAsPassenger(
+    req: Request,
+    res: Response,
+  ): Promise<Response> {
     try {
       const rides = await rideService.getMyRidesAsPassenger(req.user!);
       return res.status(200).json(rides);
     } catch (error: Error | any) {
-      return res.status(500).json({ message: 'Erro ao buscar suas caronas como caroneiro.', error: error.message });
+      return res.status(500).json({
+        message: "Erro ao buscar suas caronas como caroneiro.",
+        error: error.message,
+      });
     }
   }
 
@@ -110,7 +120,10 @@ class RideController {
   /**
    * Permite que um motorista aprove ou rejeite uma solicitação de vaga.
    */
-  public async manageSeatRequest(req: Request, res: Response): Promise<Response> {
+  public async manageSeatRequest(
+    req: Request,
+    res: Response,
+  ): Promise<Response> {
     try {
       const id: IRide = req.params.id as unknown as IRide;
       const passengerId: IUser = req.params.passengerId as unknown as IUser;
@@ -119,7 +132,8 @@ class RideController {
         id,
         req.user!,
         passengerId,
-        action);
+        action,
+      );
       return res.status(200).json(ride);
     } catch (error: Error | any) {
       return res.status(403).json({ message: error.message });
@@ -133,7 +147,9 @@ class RideController {
     try {
       const id: IRide = req.params.id as unknown as IRide;
       const ride = await rideService.cancelRideByDriver(id, req.user!);
-      return res.status(200).json({ message: 'Carona cancelada com sucesso.', ride });
+      return res
+        .status(200)
+        .json({ message: "Carona cancelada com sucesso.", ride });
     } catch (error: Error | any) {
       return res.status(403).json({ message: error.message });
     }
@@ -142,11 +158,16 @@ class RideController {
   /**
    * Permite que o caroneiro cancele sua reserva.
    */
-  public async cancelByPassenger(req: Request, res: Response): Promise<Response> {
+  public async cancelByPassenger(
+    req: Request,
+    res: Response,
+  ): Promise<Response> {
     try {
       const id: IRide = req.params.id as unknown as IRide;
       const ride = await rideService.cancelSeatByPassenger(id, req.user!);
-      return res.status(200).json({ message: 'Reserva cancelada com sucesso.', ride });
+      return res
+        .status(200)
+        .json({ message: "Reserva cancelada com sucesso.", ride });
     } catch (error: Error | any) {
       return res.status(403).json({ message: error.message });
     }

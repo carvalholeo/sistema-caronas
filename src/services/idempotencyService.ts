@@ -1,4 +1,7 @@
-import { IdempotencyRequestModel, IIdempotencyRequest } from '../models/idempotency';
+import {
+  IdempotencyRequestModel,
+  IIdempotencyRequest,
+} from "../models/idempotency";
 
 class IdempotencyService {
   /**
@@ -18,7 +21,7 @@ class IdempotencyService {
     const twentyFourHours = 24 * 60 * 60 * 1000;
     const newRequest = new IdempotencyRequestModel({
       key,
-      status: 'processing',
+      status: "processing",
       expiresAt: new Date(Date.now() + twentyFourHours),
     });
     await newRequest.save();
@@ -30,10 +33,20 @@ class IdempotencyService {
    * @param statusCode - O código de status da resposta.
    * @param body - O corpo da resposta.
    */
-  public async completeRequest(key: string, statusCode: number, body: any): Promise<void> {
+  public async completeRequest(
+    key: string,
+    statusCode: number,
+    body: any,
+  ): Promise<void> {
     await IdempotencyRequestModel.updateOne(
       { key },
-      { $set: { status: 'completed', responseStatusCode: statusCode, responseBody: body } }
+      {
+        $set: {
+          status: "completed",
+          responseStatusCode: statusCode,
+          responseBody: body,
+        },
+      },
     );
   }
 }

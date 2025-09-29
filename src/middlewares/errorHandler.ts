@@ -1,5 +1,5 @@
-import { Request, Response } from 'express';
-import logger from '../utils/logger';
+import { Request, Response } from "express";
+import logger from "../utils/logger";
 
 interface CustomError extends Error {
   statusCode?: number;
@@ -20,9 +20,11 @@ export const errorHandler = (err: CustomError, req: Request, res: Response) => {
   // Monta a resposta de erro
   const errorResponse = {
     success: false,
-    message: err.isOperational ? err.message : 'Ocorreu um erro inesperado no servidor.',
+    message: err.isOperational
+      ? err.message
+      : "Ocorreu um erro inesperado no servidor.",
     // Em ambiente de desenvolvimento, pode ser útil enviar mais detalhes
-    ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
+    ...(process.env.NODE_ENV === "development" && { stack: err.stack }),
   };
 
   res.status(statusCode).json(errorResponse);

@@ -2,10 +2,10 @@ import {
   S3Client,
   PutObjectCommand,
   DeleteObjectCommand,
-} from '@aws-sdk/client-s3';
-import { IStorageProvider } from './IStorageProvider';
-import { randomUUID } from 'crypto';
-import logger from '../../utils/logger';
+} from "@aws-sdk/client-s3";
+import { IStorageProvider } from "./IStorageProvider";
+import { randomUUID } from "node:crypto";
+import logger from "../../utils/logger";
 
 export class S3StorageProvider implements IStorageProvider {
   private s3Client: S3Client;
@@ -21,7 +21,7 @@ export class S3StorageProvider implements IStorageProvider {
       !process.env.S3_BUCKET_NAME
     ) {
       throw new Error(
-        'As credenciais da AWS e o nome do bucket S3 devem ser definidos nas variáveis de ambiente.'
+        "As credenciais da AWS e o nome do bucket S3 devem ser definidos nas variáveis de ambiente.",
       );
     }
 
@@ -45,7 +45,7 @@ export class S3StorageProvider implements IStorageProvider {
       Key: fileKey,
       Body: file.buffer, // Usa o buffer do arquivo em memória
       ContentType: file.mimetype,
-      ACL: 'public-read', // Define o arquivo como publicamente acessível
+      ACL: "public-read", // Define o arquivo como publicamente acessível
     });
 
     try {
@@ -54,8 +54,8 @@ export class S3StorageProvider implements IStorageProvider {
       const fileUrl = `https://${this.bucketName}.s3.${this.region}.amazonaws.com/${fileKey}`;
       return fileUrl;
     } catch (error) {
-      logger.error('Erro ao fazer upload do arquivo para o S3:', error);
-      throw new Error('Falha ao salvar o arquivo no S3.');
+      logger.error("Erro ao fazer upload do arquivo para o S3:", error);
+      throw new Error("Falha ao salvar o arquivo no S3.");
     }
   }
 
@@ -73,7 +73,7 @@ export class S3StorageProvider implements IStorageProvider {
 
       await this.s3Client.send(command);
     } catch (error: Error | any) {
-      logger.error('Erro ao deletar o arquivo do S3:', error);
+      logger.error("Erro ao deletar o arquivo do S3:", error);
       // Não lançamos um erro aqui para não quebrar o fluxo caso o arquivo já tenha sido deletado.
     }
   }

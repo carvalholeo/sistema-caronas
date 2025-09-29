@@ -2,6 +2,16 @@
 
 echo "🔍 Running carpool-specific validations..."
 
+echo "🔍 Validating version and changelog rules..."
+npm run precommit:version
+
+# Validar CHANGELOG apenas para versões semânticas
+CURRENT_VERSION=$(node -p "require('./package.json').version")
+if [[ $CURRENT_VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+  echo "📋 Validating CHANGELOG for semantic version..."
+  npm run precommit:changelog
+fi
+
 # 1. Lint e format código
 echo "📝 Formatting and linting code..."
 npx lint-staged

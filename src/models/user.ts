@@ -1,8 +1,8 @@
-import { Schema, model } from 'mongoose';
-import bcrypt from 'bcrypt';
-import authConfig from '../config/auth';
-import { IAccessibilitySettings, IUser } from '../types';
-import { UserRole, UserStatus } from '../types/enums/enums';
+import { Schema, model } from "mongoose";
+import bcrypt from "bcrypt";
+import authConfig from "../config/auth";
+import { IAccessibilitySettings, IUser } from "../types";
+import { UserRole, UserStatus } from "../types/enums/enums";
 
 // Subdocumento para configurações de acessibilidade
 const AccessibilitySettingsSchema = new Schema<IAccessibilitySettings>({
@@ -12,63 +12,78 @@ const AccessibilitySettingsSchema = new Schema<IAccessibilitySettings>({
   muteSounds: { type: Boolean, default: false },
 });
 
-const UserSchema = new Schema<IUser>({
-  name: { type: String, required: true },
-  email: { type: String, required: true, unique: true, index: true, lowercase: true, trim: true, match: [
-      /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
-      'Please enter a valid email address'
-    ] },
-  matricula: {
-    type: String,
-    required: true,
-    unique: true,
-    index: true,
-    uppercase: true,
-    trim: true,
-    match: [
-      /^[A-Z][A-Z0-9]*$/,
-      'Work ID must start with a letter and contain only letters and numbers'
-    ]
-  },
-  password: {
-    type: String,
-    required: true,
-    minlength: 8,
-    select: false
-  },
-  roles: [{ type: String, enum: Object.values(UserRole) }],
-  permissions: [{ type: String }],
-  status: { type: String, enum: Object.values(UserStatus), default: UserStatus.Pending },
-  twoFactorEnabled: {
-    type: Boolean,
-    default: false
-  },
-  twoFactorSecret: { type: String, select: false, default: '' },
-  forcePasswordChangeOnNextLogin: { type: Boolean, default: false },
-  sessionVersion: { type: Number, default: 0 },
+const UserSchema = new Schema<IUser>(
+  {
+    name: { type: String, required: true },
+    email: {
+      type: String,
+      required: true,
+      unique: true,
+      index: true,
+      lowercase: true,
+      trim: true,
+      match: [
+        /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
+        "Please enter a valid email address",
+      ],
+    },
+    matricula: {
+      type: String,
+      required: true,
+      unique: true,
+      index: true,
+      uppercase: true,
+      trim: true,
+      match: [
+        /^[A-Z][A-Z0-9]*$/,
+        "Work ID must start with a letter and contain only letters and numbers",
+      ],
+    },
+    password: {
+      type: String,
+      required: true,
+      minlength: 8,
+      select: false,
+    },
+    roles: [{ type: String, enum: Object.values(UserRole) }],
+    permissions: [{ type: String }],
+    status: {
+      type: String,
+      enum: Object.values(UserStatus),
+      default: UserStatus.Pending,
+    },
+    twoFactorEnabled: {
+      type: Boolean,
+      default: false,
+    },
+    twoFactorSecret: { type: String, select: false, default: "" },
+    forcePasswordChangeOnNextLogin: { type: Boolean, default: false },
+    sessionVersion: { type: Number, default: 0 },
 
-  lastLogin: { type: Date },
-  accessibilitySettings: { type: AccessibilitySettingsSchema, default: {} },
-  languagePreference: { type: String, default: 'pt-BR' },
-  profilePictureUrl: { type: String },
-}, { timestamps: true });
+    lastLogin: { type: Date },
+    accessibilitySettings: { type: AccessibilitySettingsSchema, default: {} },
+    languagePreference: { type: String, default: "pt-BR" },
+    profilePictureUrl: { type: String },
+  },
+  { timestamps: true },
+);
 
-UserSchema.methods.isTemporaryEmail = function(email: string): boolean {
+UserSchema.methods.isTemporaryEmail = function (email: string): boolean {
   const temporaryDomains = [
-    '10minutemail.com',
-    'guerrillamail.com',
-    'tempmail.org',
-    'throwaway.email',
-    'mailinator.com',
-    'temp-mail.org'
+    "10minutemail.com",
+    "guerrillamail.com",
+    "tempmail.org",
+    "throwaway.email",
+    "mailinator.com",
+    "temp-mail.org",
   ];
 
-  const domain = email.split('@')[1];
+  const domain = email.split("@")[1];
   return temporaryDomains.includes(domain);
 };
 
-UserSchema.pre<IUser>('save', async function(next) {
-  if (!this.isModified('password')) return next();
+UserSchema.pre<IUser>("save", async function (next) {
+  if (!this.isModified("password")) return next();
 
   this.password = await bcrypt.hash(this.password, authConfig.saltRounds);
   this.forcePasswordChangeOnNextLogin = false;
@@ -76,52 +91,85 @@ UserSchema.pre<IUser>('save', async function(next) {
   next();
 });
 
-UserSchema.methods.comparePassword = async function(password: string): Promise<boolean> {
+UserSchema.methods.comparePassword = async function (
+  password: string,
+): Promise<boolean> {
   return await bcrypt.compare(password, this.password);
 };
 
-UserSchema.pre<IUser>('validate', async function (next) {
-  if (!this.isModified('status')) {
+UserSchema.pre<IUser>("validate", async function (next) {
+  if (!this.isModified("status")) {
     return next();
   }
 
-  const isStatusModified = this.isModified('status');
+  const isStatusModified = this.isModified("status");
   if (!this.isNew && isStatusModified) {
-    const getPreviousStatus = await UserModel.findById(this._id).select('status').lean();
-    const previousStatus: UserStatus | undefined = getPreviousStatus ? getPreviousStatus.status : undefined;
+    const getPreviousStatus = await UserModel.findById(this._id)
+      .select("status")
+      .lean();
+    const previousStatus: UserStatus | undefined = getPreviousStatus
+      ? getPreviousStatus.status
+      : undefined;
 
-    const isPreviousStatusDefinedAndModified = previousStatus && previousStatus !== this.status;
-    const isPreviousStatusAnonymizedAndModified = previousStatus === UserStatus.Anonymized && isStatusModified;
+    const isPreviousStatusDefinedAndModified =
+      previousStatus && previousStatus !== this.status;
+    const isPreviousStatusAnonymizedAndModified =
+      previousStatus === UserStatus.Anonymized && isStatusModified;
 
     if (isPreviousStatusDefinedAndModified) {
       const allowedStatuses = allowedTransitions[previousStatus] || [];
-      if (!allowedStatuses.includes(this.status) && !isPreviousStatusAnonymizedAndModified) {
-        return next(new Error(`Invalid status transition from ${previousStatus} to ${this.status}`));
+      if (
+        !allowedStatuses.includes(this.status) &&
+        !isPreviousStatusAnonymizedAndModified
+      ) {
+        return next(
+          new Error(
+            `Invalid status transition from ${previousStatus} to ${this.status}`,
+          ),
+        );
       }
 
       if (isPreviousStatusAnonymizedAndModified) {
-        return next(new Error('User is anonymized (terminal); status cannot change'));
+        return next(
+          new Error("User is anonymized (terminal); status cannot change"),
+        );
       }
     }
   }
 
-
   // documento novo: apenas Pending é permitido por padrão
   if (this.isNew && this.status !== UserStatus.Pending) {
-    return next(new Error(`Invalid initial status: ${this.status}. Must start as "pending"`));
+    return next(
+      new Error(
+        `Invalid initial status: ${this.status}. Must start as "pending"`,
+      ),
+    );
   }
 
   return next();
 });
 
 const allowedTransitions: Record<UserStatus, UserStatus[]> = {
-  [UserStatus.Pending]: [UserStatus.Approved, UserStatus.Rejected, UserStatus.Suspended, UserStatus.Banned, UserStatus.Anonymized],
-  [UserStatus.Approved]: [UserStatus.Suspended, UserStatus.Banned, UserStatus.Anonymized],
-  [UserStatus.Suspended]: [UserStatus.Approved, UserStatus.Banned, UserStatus.Anonymized],
+  [UserStatus.Pending]: [
+    UserStatus.Approved,
+    UserStatus.Rejected,
+    UserStatus.Suspended,
+    UserStatus.Banned,
+    UserStatus.Anonymized,
+  ],
+  [UserStatus.Approved]: [
+    UserStatus.Suspended,
+    UserStatus.Banned,
+    UserStatus.Anonymized,
+  ],
+  [UserStatus.Suspended]: [
+    UserStatus.Approved,
+    UserStatus.Banned,
+    UserStatus.Anonymized,
+  ],
   [UserStatus.Banned]: [UserStatus.Suspended, UserStatus.Anonymized],
   [UserStatus.Rejected]: [UserStatus.Pending, UserStatus.Anonymized],
   [UserStatus.Anonymized]: [],
 };
 
-
-export const UserModel = model<IUser>('User', UserSchema);
+export const UserModel = model<IUser>("User", UserSchema);

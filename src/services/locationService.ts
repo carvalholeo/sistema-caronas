@@ -1,12 +1,11 @@
-import { Server, Socket } from 'socket.io';
-import { RideModel } from '../models/ride';
-import { LocationLogModel } from '../models/locationLog';
-import { BlockModel } from '../models/block';
-import { RideStatus, LocationLogAction } from '../types/enums/enums';
-import { IRide, IUser } from '../types';
+import { Server, Socket } from "socket.io";
+import { RideModel } from "../models/ride";
+import { LocationLogModel } from "../models/locationLog";
+import { BlockModel } from "../models/block";
+import { RideStatus, LocationLogAction } from "../types/enums/enums";
+import { IRide, IUser } from "../types";
 
 export class LocationService {
-
   /**
    * Verifica se um usuário pode entrar na sala de localização de uma carona.
    * @param rideId - O ID da carona.
@@ -18,20 +17,27 @@ export class LocationService {
     const ride = await RideModel.findById(rideId); // .lean() para performance
 
     if (!ride) {
-      throw new Error('Carona não encontrada.');
+      throw new Error("Carona não encontrada.");
     }
 
     const driverId = ride.driver;
     const serviceUserId = userId;
 
     const isDriver = driverId === serviceUserId;
-    const isApprovedPassenger = ride.passengers.some(p => p.user === serviceUserId && p.status === 'approved');
+    const isApprovedPassenger = ride.passengers.some(
+      (p) => p.user === serviceUserId && p.status === "approved",
+    );
 
-    const isRideAbleToShareLocation = [RideStatus.Scheduled, RideStatus.InProgress].includes(ride.status);
+    const isRideAbleToShareLocation = [
+      RideStatus.Scheduled,
+      RideStatus.InProgress,
+    ].includes(ride.status);
     const canUserSendLocation = isDriver || isApprovedPassenger;
 
-    const messageLocationPermissionNotFound = 'Você não tem permissão para acessar a localização desta carona.';
-    const messageRideCannotReceiveLocation = 'Não é possível entrar na sala: a carona não iniciou ou não está em andamento.';
+    const messageLocationPermissionNotFound =
+      "Você não tem permissão para acessar a localização desta carona.";
+    const messageRideCannotReceiveLocation =
+      "Não é possível entrar na sala: a carona não iniciou ou não está em andamento.";
 
     if (!isRideAbleToShareLocation) {
       throw new Error(messageRideCannotReceiveLocation);
@@ -50,7 +56,11 @@ export class LocationService {
    * @param userId - O ID do usuário (motorista).
    * @param action - A ação a ser registrada (início ou fim).
    */
-  public async logSharingActivity(rideId: IRide, userId: IUser, action: LocationLogAction): Promise<void> {
+  public async logSharingActivity(
+    rideId: IRide,
+    userId: IUser,
+    action: LocationLogAction,
+  ): Promise<void> {
     const ride = await RideModel.findById(rideId);
     // Garante que apenas o motorista da carona possa registrar essa atividade
     if (!ride) return;
@@ -62,7 +72,7 @@ export class LocationService {
       await new LocationLogModel({
         ride: rideId,
         user: userId,
-        action
+        action,
       }).save();
     }
   }
@@ -77,7 +87,7 @@ export class LocationService {
   public async broadcastLocationUpdate(
     io: Server,
     socket: Socket,
-    data: { rideId: IRide; lat: number; lng: number }
+    data: { rideId: IRide; lat: number; lng: number },
   ): Promise<void> {
     const { rideId, lat, lng } = data;
     const room = `ride-location-${rideId}`;
@@ -91,7 +101,7 @@ export class LocationService {
     const socketUserId = socket.userId;
 
     const isSenderDriver = driverId === socketUserId;
-    const senderRole = isSenderDriver ? 'driver' : 'passenger';
+    const senderRole = isSenderDriver ? "driver" : "passenger";
 
     const socketsInRoom = await io.in(room).fetchSockets();
 
@@ -108,16 +118,16 @@ export class LocationService {
       const isBlocked = await BlockModel.findOne({
         $or: [
           { blocker: socket.userId, blocked: targetSocket.userId },
-          { blocker: targetSocket.userId, blocked: socket.userId }
-        ]
+          { blocker: targetSocket.userId, blocked: socket.userId },
+        ],
       });
 
       if (!isBlocked) {
-        targetSocket.emit('locationUpdate', {
+        targetSocket.emit("locationUpdate", {
           userId: socket.userId,
           lat,
           lng,
-          role: senderRole
+          role: senderRole,
         });
       }
     }
@@ -129,12 +139,14 @@ export class LocationService {
    */
   public async removeUserLocation(socket: Socket): Promise<void> {
     // Encontra todas as salas de localização das quais o socket fazia parte.
-    const locationRooms = Array.from(socket.rooms).filter(room => room.startsWith('ride-location-'));
+    const locationRooms = Array.from(socket.rooms).filter((room) =>
+      room.startsWith("ride-location-"),
+    );
 
     // Para cada sala, notifica os outros membros que este usuário saiu.
     for (const room of locationRooms) {
       // Emite para todos os outros na sala, exceto o próprio socket que está desconectando.
-      socket.to(room).emit('userLocationRemoved', { userId: socket.userId });
+      socket.to(room).emit("userLocationRemoved", { userId: socket.userId });
     }
   }
 }

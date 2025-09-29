@@ -1,6 +1,12 @@
 # README.md
 
-# Carpool Backend
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=carvalholeo_sistema-caronas&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=carvalholeo_sistema-caronas)
+[![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=carvalholeo_sistema-caronas&metric=sqale_rating)](https://sonarcloud.io/summary/new_code?id=carvalholeo_sistema-caronas)
+[![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=carvalholeo_sistema-caronas&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=carvalholeo_sistema-caronas)
+
+[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=carvalholeo_sistema-caronas&metric=coverage)](https://sonarcloud.io/summary/new_code?id=carvalholeo_sistema-caronas)
+
+## Carpool Backend
 
 This project is a backend application for a carpool system, built with Node.js, TypeScript, and Express. It provides robust authentication and security features, profile and permission management, privacy and data administration, ride and vehicle management, chat and communication, push notifications, and real-time location sharing. The application is structured to run in Docker containers using Docker Compose.
 
@@ -24,12 +30,14 @@ This project is a backend application for a carpool system, built with Node.js, 
 ### Installation
 
 1. Clone the repository:
+
    ```bash
    git clone <repository-url>
    cd carpool-backend
    ```
 
 2. Install dependencies:
+
    ```bash
    npm install
    ```
@@ -45,6 +53,7 @@ This project is a backend application for a carpool system, built with Node.js, 
 ### Running Tests
 
 To run the unit and integration tests, use the following command:
+
 ```bash
 npm test
 ```

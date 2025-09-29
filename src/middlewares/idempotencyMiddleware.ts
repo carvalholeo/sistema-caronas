@@ -1,27 +1,36 @@
-import { Request, Response, NextFunction } from 'express';
-import { idempotencyService } from '../services/idempotencyService';
-import logger from '../utils/logger';
+import { Request, Response, NextFunction } from "express";
+import { idempotencyService } from "../services/idempotencyService";
+import logger from "../utils/logger";
 
-export const idempotencyMiddleware = async (req: Request, res: Response, next: NextFunction) => {
+export const idempotencyMiddleware = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
   // Aplica o middleware apenas para métodos que alteram dados
-  if (!['POST', 'PATCH', 'PUT'].includes(req.method)) {
+  if (!["POST", "PATCH", "PUT"].includes(req.method)) {
     return next();
   }
 
-  const idempotencyKey = req.headers['x-request-key'] as string;
+  const idempotencyKey = req.headers["x-request-key"] as string;
 
   try {
     const existingRequest = await idempotencyService.getRequest(idempotencyKey);
 
     if (existingRequest) {
       // Caso 1: A requisição original ainda está sendo processada
-      if (existingRequest.status === 'processing') {
-        return res.status(409).json({ message: 'Requisição em processamento. Tente novamente em alguns instantes.' });
+      if (existingRequest.status === "processing") {
+        return res.status(409).json({
+          message:
+            "Requisição em processamento. Tente novamente em alguns instantes.",
+        });
       }
 
       // Caso 2: A requisição já foi concluída, retorna a resposta salva
-      if (existingRequest.status === 'completed') {
-        return res.status(existingRequest.responseStatusCode!).json(existingRequest.responseBody);
+      if (existingRequest.status === "completed") {
+        return res
+          .status(existingRequest.responseStatusCode!)
+          .json(existingRequest.responseBody);
       }
     }
 
@@ -37,10 +46,9 @@ export const idempotencyMiddleware = async (req: Request, res: Response, next: N
     };
 
     next();
-
   } catch (error) {
     // Em caso de erro, não bloqueia a requisição, mas loga o problema
-    logger.error('Erro no middleware de idempotência:', error);
+    logger.error("Erro no middleware de idempotência:", error);
     next();
   }
 };
