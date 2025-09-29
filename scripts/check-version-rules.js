@@ -20,9 +20,8 @@ function getCurrentVersion() {
 }
 
 function validateVersionFormat(version, branch) {
-  const semanticRegex = /^[0-9]+\.[0-9]+\.[0-9]+$/;
-  const nonSemanticRegex =
-    /^[0-9]+\.[0-9]+\.[0-9]+-(rc|beta|alpha|dev|feature)\.[0-9]+$/;
+  const semanticRegex = /^\d+\.\d+\.\d+$/;
+  const nonSemanticRegex = /^\d+\.\d+\.\d+-(rc|beta|alpha|dev|feature)\.\d+$/;
 
   const isSemanticBranch = ["main", "develop"].includes(branch);
   const isSemanticVersion = semanticRegex.test(version);

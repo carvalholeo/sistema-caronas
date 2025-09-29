@@ -113,7 +113,7 @@ function addVersionEntry(content, version, date = null) {
 
 function validateVersionEntry(content, version) {
   const versionRegex = new RegExp(
-    `## \\[${version.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\] - \\d{4}-\\d{2}-\\d{2}`,
+    `## \\[${version.replaceAll(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\] - \\d{4}-\\d{2}-\\d{2}`,
   );
 
   if (!versionRegex.test(content)) {
@@ -125,7 +125,9 @@ function validateVersionEntry(content, version) {
 
   // Extrair seção da versão
   const startMatch = content.match(
-    new RegExp(`## \\[${version.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\].*`),
+    new RegExp(
+      `## \\[${version.replaceAll(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\].*`,
+    ),
   );
   if (!startMatch) {
     return {
@@ -221,37 +223,55 @@ function generateChangelogFromCommits(version) {
     Deprecated: [],
   };
 
-  commits.forEach((commit) => {
-    const message = commit.replace(/^[a-f0-9]+ /, "");
+  for (const commit of commits) {
+    const message = commit.replaceAll(/^[a-f0-9]+ /, "");
 
-    if (message.startsWith("feat")) {
-      categories.Added.push(`- ${message.replace(/^feat[:(].*?[)]?\s*/, "")}`);
-    } else if (message.startsWith("fix")) {
-      categories.Fixed.push(`- ${message.replace(/^fix[:(].*?[)]?\s*/, "")}`);
-    } else if (message.startsWith("chore")) {
-      categories.Changed.push(
-        `- ${message.replace(/^chore[:(].*?[)]?\s*/, "")}`,
-      );
-    } else if (message.startsWith("refactor")) {
-      categories.Changed.push(
-        `- ${message.replace(/^refactor[:(].*?[)]?\s*/, "")}`,
-      );
-    } else if (message.startsWith("perf")) {
-      categories.Changed.push(
-        `- ${message.replace(/^perf[:(].*?[)]?\s*/, "")}`,
-      );
-    } else if (message.startsWith("security")) {
-      categories.Security.push(
-        `- ${message.replace(/^security[:(].*?[)]?\s*/, "")}`,
-      );
-    } else {
-      categories.Changed.push(`- ${message}`);
+    switch (message) {
+      case message.startsWith("feat"):
+        categories.Added.push(
+          `- ${message.replaceAll(/^feat[:(].*?[)]?\s*/, "")}`,
+        );
+        break;
+
+      case message.startsWith("fix"):
+        categories.Fixed.push(
+          `- ${message.replaceAll(/^fix[:(].*?[)]?\s*/, "")}`,
+        );
+        break;
+
+      case message.startsWith("chore"):
+        categories.Changed.push(
+          `- ${message.replaceAll(/^chore[:(].*?[)]?\s*/, "")}`,
+        );
+        break;
+
+      case message.startsWith("refactor"):
+        categories.Changed.push(
+          `- ${message.replaceAll(/^refactor[:(].*?[)]?\s*/, "")}`,
+        );
+        break;
+
+      case message.startsWith("perf"):
+        categories.Changed.push(
+          `- ${message.replaceAll(/^perf[:(].*?[)]?\s*/, "")}`,
+        );
+        break;
+
+      case message.startsWith("security"):
+        categories.Security.push(
+          `- ${message.replaceAll(/^security[:(].*?[)]?\s*/, "")}`,
+        );
+        break;
+
+      default:
+        categories.Changed.push(`- ${message}`);
+        break;
     }
-  });
+  }
 
   let versionEntry = `\n## [${version}] - ${date}\n\n`;
 
-  Object.entries(categories).forEach(([category, items]) => {
+  for (const [category, items] of Object.entries(categories)) {
     versionEntry += `### ${category}\n`;
     if (items.length > 0) {
       versionEntry += items.join("\n") + "\n";
@@ -259,7 +279,7 @@ function generateChangelogFromCommits(version) {
       versionEntry += "- \n";
     }
     versionEntry += "\n";
-  });
+  }
 
   return versionEntry;
 }

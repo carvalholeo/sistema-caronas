@@ -1,9 +1,16 @@
 // Lógica de negócio para todas as ações administrativas relacionadas a usuários.
-import { UserModel } from '../../models/user';
-import { authService } from '../../services/authService';
-import { IUser } from '../../types';
-import { UserStatus, UserRole, AuditActionType, AuditLogCategory, AuditLogSeverityLevels, toAuditActionType } from '../../types/enums/enums';
-import { AuditLogModel } from '../../models/auditLog';
+import { UserModel } from "../../models/user";
+import { authService } from "../../services/authService";
+import { IUser } from "../../types";
+import {
+  UserStatus,
+  UserRole,
+  AuditActionType,
+  AuditLogCategory,
+  AuditLogSeverityLevels,
+  toAuditActionType,
+} from "../../types/enums/enums";
+import { AuditLogModel } from "../../models/auditLog";
 
 class AdminUsersService {
   /**
@@ -17,54 +24,70 @@ class AdminUsersService {
     if (filters.role) {
       filter.roles = filters.role;
     }
-    return UserModel.find(filter).select('-password -twoFactorSecret');
+    return UserModel.find(filter).select("-password -twoFactorSecret");
   }
 
   /**
    * Atualiza o status de um usuário.
    */
-  public async updateUserStatus(targetUserId: IUser, adminUser: IUser, status: UserStatus, reason?: string, twoFactorCode?: string): Promise<IUser | null> {
+  public async updateUserStatus(
+    targetUserId: IUser,
+    adminUser: IUser,
+    status: UserStatus,
+    reason?: string,
+    twoFactorCode?: string,
+  ): Promise<IUser | null> {
     const targetUser = await UserModel.findById(targetUserId);
-    if (!targetUser) throw new Error('Usuário alvo não encontrado.');
+    if (!targetUser) throw new Error("Usuário alvo não encontrado.");
 
     const requiredPermissionMap: Partial<Record<UserStatus, string>> = {
-      [UserStatus.Approved]: 'usuarios:aprovar',
-      [UserStatus.Suspended]: 'usuarios:suspender',
-      [UserStatus.Banned]: 'usuarios:banir',
-      [UserStatus.Rejected]: 'usuarios:restaurar',
+      [UserStatus.Approved]: "usuarios:aprovar",
+      [UserStatus.Suspended]: "usuarios:suspender",
+      [UserStatus.Banned]: "usuarios:banir",
+      [UserStatus.Rejected]: "usuarios:restaurar",
     };
 
     const requiredPermission = requiredPermissionMap[status];
-    if (!requiredPermission || !adminUser.permissions.includes(requiredPermission)) {
-      throw new Error('Permissão insuficiente para alterar para este status.');
+    if (
+      !requiredPermission ||
+      !adminUser.permissions.includes(requiredPermission)
+    ) {
+      throw new Error("Permissão insuficiente para alterar para este status.");
     }
 
-    if ([UserStatus.Suspended, UserStatus.Banned, UserStatus.Rejected].includes(status)) {
+    if (
+      [UserStatus.Suspended, UserStatus.Banned, UserStatus.Rejected].includes(
+        status,
+      )
+    ) {
       if (!reason || !twoFactorCode) {
-        throw new Error('Razão e código 2FA são obrigatórios para esta ação.');
+        throw new Error("Razão e código 2FA são obrigatórios para esta ação.");
       }
-      const is2FAValid = await authService.verifyTwoFactorCode(adminUser.twoFactorSecret, twoFactorCode);
-      if (!is2FAValid) throw new Error('Código 2FA do administrador inválido.');
+      const is2FAValid = authService.verifyTwoFactorCode(
+        adminUser.twoFactorSecret,
+        twoFactorCode,
+      );
+      if (!is2FAValid) throw new Error("Código 2FA do administrador inválido.");
     }
 
     const auditEntry = new AuditLogModel({
       actor: {
         userId: adminUser,
         isAdmin: true,
-        ip: '::1',
+        ip: "::1",
       },
       action: {
         actionType: toAuditActionType(status),
         category: AuditLogCategory.USER,
-        detail: reason
+        detail: reason,
       },
       target: {
         resourceType: UserModel.baseModelName,
-        resourceId: targetUserId
+        resourceId: targetUserId,
       },
       metadata: {
-        severity: AuditLogSeverityLevels.CRITICAL
-      }
+        severity: AuditLogSeverityLevels.CRITICAL,
+      },
     });
     await auditEntry.save();
 
@@ -80,42 +103,62 @@ class AdminUsersService {
   /**
    * Edita os dados de um usuário.
    */
-  public async updateUser(targetUserId: IUser, adminUser: IUser, updateData: any): Promise<IUser | null> {
-    const { name, email, forcePasswordChange, disable2FA, reason, twoFactorCode } = updateData;
+  public async updateUser(
+    targetUserId: IUser,
+    adminUser: IUser,
+    updateData: any,
+  ): Promise<IUser | null> {
+    const {
+      name,
+      email,
+      forcePasswordChange,
+      disable2FA,
+      reason,
+      twoFactorCode,
+    } = updateData;
     const targetUser = await UserModel.findById(targetUserId);
-    if (!targetUser) throw new Error('Usuário alvo não encontrado.');
+    if (!targetUser) throw new Error("Usuário alvo não encontrado.");
 
     if (disable2FA) {
-      if (!adminUser.permissions.includes('usuarios:remover_2fa')) throw new Error('Permissão insuficiente para remover 2FA.');
-      if (!reason || !twoFactorCode) throw new Error('Razão e código 2FA são obrigatórios para desativar 2FA.');
-      const is2FAValid = authService.verifyTwoFactorCode(adminUser.toString(), twoFactorCode);
-      if (!is2FAValid) throw new Error('Código 2FA do administrador inválido.');
+      if (!adminUser.permissions.includes("usuarios:remover_2fa"))
+        throw new Error("Permissão insuficiente para remover 2FA.");
+      if (!reason || !twoFactorCode)
+        throw new Error(
+          "Razão e código 2FA são obrigatórios para desativar 2FA.",
+        );
+      const is2FAValid = authService.verifyTwoFactorCode(
+        adminUser.toString(),
+        twoFactorCode,
+      );
+      if (!is2FAValid) throw new Error("Código 2FA do administrador inválido.");
 
-      if (!targetUser.twoFactorEnabled) throw new Error('O 2FA já está desativado para este usuário.');
+      if (!targetUser.twoFactorEnabled)
+        throw new Error("O 2FA já está desativado para este usuário.");
       targetUser.twoFactorEnabled = false;
 
       const auditEntry = new AuditLogModel({
         actor: {
           userId: adminUser,
           isAdmin: true,
-          ip: '::1',
+          ip: "::1",
         },
         action: {
           actionType: AuditActionType.TWO_FACTOR_REMOVED_BY_ADMIN,
           category: AuditLogCategory.USER,
-          detail: reason
+          detail: reason,
         },
         target: {
           resourceType: UserModel.baseModelName,
-          resourceId: targetUserId
+          resourceId: targetUserId,
         },
         metadata: {
-          severity: AuditLogSeverityLevels.CRITICAL
-        }
+          severity: AuditLogSeverityLevels.CRITICAL,
+        },
       });
       await auditEntry.save();
     } else {
-      if (!adminUser.permissions.includes('usuarios:editar')) throw new Error('Permissão insuficiente para editar usuário.');
+      if (!adminUser.permissions.includes("usuarios:editar"))
+        throw new Error("Permissão insuficiente para editar usuário.");
 
       if (name) targetUser.name = name;
       if (email) targetUser.email = email;
@@ -125,20 +168,20 @@ class AdminUsersService {
         actor: {
           userId: adminUser,
           isAdmin: true,
-          ip: '::1',
+          ip: "::1",
         },
         action: {
           actionType: AuditActionType.USER_PROFILE_UPDATED_BY_ADMIN,
           category: AuditLogCategory.USER,
-          detail: reason
+          detail: reason,
         },
         target: {
           resourceType: UserModel.baseModelName,
-          resourceId: targetUserId
+          resourceId: targetUserId,
         },
         metadata: {
-          severity: AuditLogSeverityLevels.CRITICAL
-        }
+          severity: AuditLogSeverityLevels.CRITICAL,
+        },
       });
       await auditEntry.save();
     }
@@ -151,26 +194,37 @@ class AdminUsersService {
   /**
    * Promove um usuário a administrador.
    */
-  public async promoteToAdmin(targetUserId: IUser, promoterAdmin: IUser, promoterTwoFactorCode: string): Promise<IUser | null> {
+  public async promoteToAdmin(
+    targetUserId: IUser,
+    promoterAdmin: IUser,
+    promoterTwoFactorCode: string,
+  ): Promise<IUser | null> {
     const targetUser = await UserModel.findById(targetUserId);
-    if (!targetUser) throw new Error('Usuário alvo não encontrado.');
-    if (targetUser.roles.includes(UserRole.Admin)) throw new Error('Usuário já é um administrador.');
+    if (!targetUser) throw new Error("Usuário alvo não encontrado.");
+    if (targetUser.roles.includes(UserRole.Admin))
+      throw new Error("Usuário já é um administrador.");
     if (!targetUser.twoFactorEnabled || !targetUser.twoFactorSecret) {
-      throw new Error('Promoção recusada. O usuário precisa ter o 2FA ativo antes de ser promovido.');
+      throw new Error(
+        "Promoção recusada. O usuário precisa ter o 2FA ativo antes de ser promovido.",
+      );
     }
 
-    const isPromoter2FAValid = await authService.verifyTwoFactorCode(promoterAdmin.toString(), promoterTwoFactorCode);
-    if (!isPromoter2FAValid) throw new Error('Código 2FA do administrador inválido.');
+    const isPromoter2FAValid = authService.verifyTwoFactorCode(
+      promoterAdmin.toString(),
+      promoterTwoFactorCode,
+    );
+    if (!isPromoter2FAValid)
+      throw new Error("Código 2FA do administrador inválido.");
 
     targetUser.roles.push(UserRole.Admin);
-    targetUser.permissions = ['painel:acesso']; // Permissão base
+    targetUser.permissions = ["painel:acesso"]; // Permissão base
     targetUser.sessionVersion = (targetUser.sessionVersion || 0) + 1;
 
     const auditEntry = new AuditLogModel({
       actor: {
         userId: promoterAdmin,
         isAdmin: true,
-        ip: '::1',
+        ip: "::1",
       },
       action: {
         actionType: AuditActionType.USER_PROMOTED_TO_ADMIN,
@@ -178,11 +232,11 @@ class AdminUsersService {
       },
       target: {
         resourceType: UserModel.baseModelName,
-        resourceId: targetUserId
+        resourceId: targetUserId,
       },
       metadata: {
-        severity: AuditLogSeverityLevels.CRITICAL
-      }
+        severity: AuditLogSeverityLevels.CRITICAL,
+      },
     });
     await auditEntry.save();
 
@@ -193,14 +247,25 @@ class AdminUsersService {
   /**
    * Rebaixa um administrador para usuário comum.
    */
-  public async demoteAdmin(targetUserId: IUser, adminUser: IUser, reason: string, twoFactorCode: string): Promise<IUser | null> {
+  public async demoteAdmin(
+    targetUserId: IUser,
+    adminUser: IUser,
+    reason: string,
+    twoFactorCode: string,
+  ): Promise<IUser | null> {
     const targetUser = await UserModel.findById(targetUserId);
-    if (!targetUser || !targetUser.roles.includes(UserRole.Admin)) throw new Error('Administrador alvo não encontrado.');
+    if (!targetUser || !targetUser.roles.includes(UserRole.Admin))
+      throw new Error("Administrador alvo não encontrado.");
 
-    const is2FAValid = await authService.verifyTwoFactorCode(adminUser.twoFactorSecret, twoFactorCode);
-    if (!is2FAValid) throw new Error('Código 2FA do administrador inválido.');
+    const is2FAValid = authService.verifyTwoFactorCode(
+      adminUser.twoFactorSecret,
+      twoFactorCode,
+    );
+    if (!is2FAValid) throw new Error("Código 2FA do administrador inválido.");
 
-    targetUser.roles = targetUser.roles.filter(role => role !== UserRole.Admin);
+    targetUser.roles = targetUser.roles.filter(
+      (role) => role !== UserRole.Admin,
+    );
     targetUser.permissions = [];
     targetUser.sessionVersion = (targetUser.sessionVersion || 0) + 1;
 
@@ -208,20 +273,20 @@ class AdminUsersService {
       actor: {
         userId: adminUser,
         isAdmin: true,
-        ip: '::1',
+        ip: "::1",
       },
       action: {
         actionType: AuditActionType.USER_DEMOTED_FROM_ADMIN,
         category: AuditLogCategory.USER,
-        detail: reason
+        detail: reason,
       },
       target: {
         resourceType: UserModel.baseModelName,
-        resourceId: targetUserId
+        resourceId: targetUserId,
       },
       metadata: {
-        severity: AuditLogSeverityLevels.CRITICAL
-      }
+        severity: AuditLogSeverityLevels.CRITICAL,
+      },
     });
     await auditEntry.save();
 
@@ -232,9 +297,14 @@ class AdminUsersService {
   /**
    * Atualiza as permissões de um administrador.
    */
-  public async updateAdminPermissions(targetUserId: IUser, adminUser: IUser, permissions: string[]): Promise<IUser | null> {
+  public async updateAdminPermissions(
+    targetUserId: IUser,
+    adminUser: IUser,
+    permissions: string[],
+  ): Promise<IUser | null> {
     const targetUser = await UserModel.findById(targetUserId);
-    if (!targetUser || !targetUser.roles.includes(UserRole.Admin)) throw new Error('Administrador alvo não encontrado.');
+    if (!targetUser || !targetUser.roles.includes(UserRole.Admin))
+      throw new Error("Administrador alvo não encontrado.");
 
     // // Valida se as permissões existem
     // permissions.forEach(p => {
@@ -249,7 +319,7 @@ class AdminUsersService {
       actor: {
         userId: adminUser,
         isAdmin: true,
-        ip: '::1',
+        ip: "::1",
       },
       action: {
         actionType: AuditActionType.ADMIN_PERMISSIONS_UPDATED,
@@ -259,11 +329,11 @@ class AdminUsersService {
         resourceType: UserModel.baseModelName,
         resourceId: targetUserId,
         beforeState: oldPermissions,
-        afterState: permissions
+        afterState: permissions,
       },
       metadata: {
         severity: AuditLogSeverityLevels.CRITICAL,
-      }
+      },
     });
     await auditEntry.save();
 
@@ -274,13 +344,16 @@ class AdminUsersService {
   /**
    * Obtém as permissões de um administrador.
    */
-  public async getAdminPermissions(targetUserId: IUser): Promise<{ permissions: string[] }> {
-    const targetUser = await UserModel.findById(targetUserId).select('permissions roles');
+  public async getAdminPermissions(
+    targetUserId: IUser,
+  ): Promise<{ permissions: string[] }> {
+    const targetUser =
+      await UserModel.findById(targetUserId).select("permissions roles");
     if (!targetUser) {
-      throw new Error('Usuário não encontrado.');
+      throw new Error("Usuário não encontrado.");
     }
     if (!targetUser.roles.includes(UserRole.Admin)) {
-      throw new Error('Este usuário não é um administrador.');
+      throw new Error("Este usuário não é um administrador.");
     }
     return { permissions: targetUser.permissions };
   }

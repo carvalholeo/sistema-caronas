@@ -63,3 +63,4 @@ coverage/
 *.lcov.info
 coverage-final.json
 coverage.json
+.scannerwork

@@ -1,15 +1,24 @@
-import mongoose, { Types } from 'mongoose';
-import { AuditLogModel } from '../../../src/models/auditLog';
-import { UserModel } from '../../../src/models/user';
-import { IAuditLog, IUser } from '../../../src/types';
-import { AuditActionType, AuditLogCategory, AuditLogSeverityLevels } from '../../../src/types/enums/enums';
+import mongoose from "mongoose";
+import { AuditLogModel } from "../../../src/models/auditLog";
+import { UserModel } from "../../../src/models/user";
+import { IAuditLog, IUser } from "../../../src/types";
+import {
+  AuditActionType,
+  AuditLogCategory,
+  AuditLogSeverityLevels,
+} from "../../../src/types/enums/enums";
 
-describe('AuditLog Model', () => {
+describe("AuditLog Model", () => {
   let actorUser: IUser;
 
   beforeEach(async () => {
     await UserModel.deleteMany({});
-    actorUser = await new UserModel({ name: 'Test Actor', email: 'actor@test.com', matricula: 'ACTOR123', password: 'password123' }).save();
+    actorUser = await new UserModel({
+      name: "Test Actor",
+      email: "actor@test.com",
+      matricula: "ACTOR123",
+      password: "password123",
+    }).save();
   });
 
   function createAuditLogData(overrides = {}): Partial<IAuditLog> {
@@ -17,15 +26,15 @@ describe('AuditLog Model', () => {
       actor: {
         userId: actorUser,
         isAdmin: true,
-        ip: '127.0.0.1',
+        ip: "127.0.0.1",
       },
       action: {
         actionType: AuditActionType.LOGIN_SUCCESS,
         category: AuditLogCategory.AUTH,
-        detail: 'User created',
+        detail: "User created",
       },
       target: {
-        resourceType: 'User',
+        resourceType: "User",
         resourceId: new mongoose.Types.ObjectId(),
       },
       metadata: {
@@ -35,43 +44,61 @@ describe('AuditLog Model', () => {
     };
   }
 
-  describe('Log Creation', () => {
-    it('should create a new audit log with valid data', async () => {
+  describe("Log Creation", () => {
+    it("should create a new audit log with valid data", async () => {
       const logData = createAuditLogData();
       const log = await new AuditLogModel(logData).save();
       expect(log._id).toBeDefined();
-      expect(log.action.detail).toBe('User created');
+      expect(log.action.detail).toBe("User created");
       expect(log.createdAt).toBeInstanceOf(Date);
     });
 
-    it('should fail if required fields are missing', async () => {
-      await expect(new AuditLogModel(createAuditLogData({ actor: undefined })).save()).rejects.toThrow('actor.userId');
-      await expect(new AuditLogModel(createAuditLogData({ action: undefined })).save()).rejects.toThrow('action.actionType');
-      await expect(new AuditLogModel(createAuditLogData({ target: undefined })).save()).rejects.toThrow('target.resourceType');
+    it("should fail if required fields are missing", async () => {
+      await expect(
+        new AuditLogModel(createAuditLogData({ actor: undefined })).save(),
+      ).rejects.toThrow("actor.userId");
+      await expect(
+        new AuditLogModel(createAuditLogData({ action: undefined })).save(),
+      ).rejects.toThrow("action.actionType");
+      await expect(
+        new AuditLogModel(createAuditLogData({ target: undefined })).save(),
+      ).rejects.toThrow("target.resourceType");
     });
 
-    it('should fail with an invalid IP address', async () => {
-      const logData = createAuditLogData({ actor: { userId: actorUser, isAdmin: true, ip: 'invalid-ip' } });
-      await expect(new AuditLogModel(logData).save()).rejects.toThrow('Invalid IP address format');
-    });
-
-    it('should fail if extra metadata contains sensitive information', async () => {
+    it("should fail with an invalid IP address", async () => {
       const logData = createAuditLogData({
-        metadata: { extra: { password: '12345' } },
+        actor: { userId: actorUser, isAdmin: true, ip: "invalid-ip" },
       });
-      await expect(new AuditLogModel(logData).save()).rejects.toThrow('cannot contain sensitive information');
+      await expect(new AuditLogModel(logData).save()).rejects.toThrow(
+        "Invalid IP address format",
+      );
+    });
+
+    it("should fail if extra metadata contains sensitive information", async () => {
+      const logData = createAuditLogData({
+        metadata: { extra: { password: "12345" } },
+      });
+      await expect(new AuditLogModel(logData).save()).rejects.toThrow(
+        "cannot contain sensitive information",
+      );
     });
   });
 
-  describe('Immutability', () => {
-    it('should prevent updating an audit log', async () => {
+  describe("Immutability", () => {
+    it("should prevent updating an audit log", async () => {
       const log = await new AuditLogModel(createAuditLogData()).save();
-      await expect(AuditLogModel.findByIdAndUpdate(log._id, { 'action.detail': 'New Detail' })).rejects.toThrow('Audit logs are immutable and cannot be updated');
+      await expect(
+        AuditLogModel.findByIdAndUpdate(log._id, {
+          "action.detail": "New Detail",
+        }),
+      ).rejects.toThrow("Audit logs are immutable and cannot be updated");
     });
 
-    it('should prevent deleting an audit log', async () => {
+    it("should prevent deleting an audit log", async () => {
       const log = await new AuditLogModel(createAuditLogData()).save();
-      await expect(AuditLogModel.findByIdAndDelete(log._id)).rejects.toThrow('Audit logs cannot be deleted');
+      await expect(AuditLogModel.findByIdAndDelete(log._id)).rejects.toThrow(
+        "Audit logs cannot be deleted",
+      );
     });
   });
 });

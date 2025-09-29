@@ -16,7 +16,7 @@ const VehicleSchema = new Schema<IVehicle>(
       uppercase: true,
       trim: true,
       match: [
-        /^[A-Z]{3}[0-9]{4}$|^[A-Z]{3}[0-9][A-Z][0-9]{2}$/,
+        /^[A-Z]{3}\d{4}$|^[A-Z]{3}\d[A-J]\d{2}$/,
         "Please enter a valid license plate format (ABC1234 or ABC1A23)",
       ],
     },

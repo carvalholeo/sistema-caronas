@@ -1,7 +1,7 @@
-import { Request, Response } from 'express';
+import { Request, Response } from "express";
 
 // Mock all external dependencies first
-jest.mock('../../../src/services/authService', () => ({
+jest.mock("../../../src/services/authService", () => ({
   authService: {
     register: jest.fn(),
     login: jest.fn(),
@@ -9,27 +9,26 @@ jest.mock('../../../src/services/authService', () => ({
     verifyTwoFactorCode: jest.fn(),
     initiateReset: jest.fn(),
     completeReset: jest.fn(),
-  }
+  },
 }));
 
-jest.mock('../../../src/config/auth', () => ({
-  default: { jwtExpiration: '1h' }
+jest.mock("../../../src/config/auth", () => ({
+  default: { jwtExpiration: "1h" },
 }));
 
-jest.mock('../../../src/utils/security', () => ({
+jest.mock("../../../src/utils/security", () => ({
   verifyToken: jest.fn(),
   generateToken: jest.fn(),
 }));
-jest.mock('../../../src/models/user', () => ({ UserModel: {} }));
-jest.mock('qrcode', () => ({ toDataURL: jest.fn() }));
+jest.mock("../../../src/models/user", () => ({ UserModel: {} }));
+jest.mock("qrcode", () => ({ toDataURL: jest.fn() }));
 
 // Now import the controller and mocked modules
-import { authController } from '../../../src/controllers/authController';
-import { generateToken } from '../../../src/utils/security';
-const { authService } = require('../../../src/services/authService');
-const qrcode = require('qrcode');
+import { authController } from "../../../src/controllers/authController";
+const { authService } = require("../../../src/services/authService");
+const qrcode = require("qrcode");
 
-describe('AuthController', () => {
+describe("AuthController", () => {
   let req: Partial<Request>;
   let res: Partial<Response>;
 
@@ -38,8 +37,8 @@ describe('AuthController', () => {
 
     req = {
       body: {},
-      ip: '127.0.0.1',
-      headers: { 'user-agent': 'jest' }
+      ip: "127.0.0.1",
+      headers: { "user-agent": "jest" },
     };
 
     res = {
@@ -48,25 +47,25 @@ describe('AuthController', () => {
     };
   });
 
-  describe('register', () => {
-    it('should return 201 on successful registration', async () => {
-      const mockUser = { id: 'user123', email: 'test@user.com' };
+  describe("register", () => {
+    it("should return 201 on successful registration", async () => {
+      const mockUser = { id: "user123", email: "test@user.com" };
       authService.register.mockResolvedValue(mockUser);
-      req.body = { email: 'new@user.com', password: 'pass' };
+      req.body = { email: "new@user.com", password: "pass" };
 
       await authController.register(req as Request, res as Response);
 
       expect(authService.register).toHaveBeenCalledWith(req.body);
       expect(res.status).toHaveBeenCalledWith(201);
       expect(res.json).toHaveBeenCalledWith({
-        message: "Cadastro realizado com sucesso. Aguardando aprovação."
+        message: "Cadastro realizado com sucesso. Aguardando aprovação.",
       });
     });
 
-    it('should return 409 on registration error', async () => {
-      const errorMessage = 'Email already exists';
+    it("should return 409 on registration error", async () => {
+      const errorMessage = "Email already exists";
       authService.register.mockRejectedValue(new Error(errorMessage));
-      req.body = { email: 'existing@user.com', password: 'pass' };
+      req.body = { email: "existing@user.com", password: "pass" };
 
       await authController.register(req as Request, res as Response);
 
@@ -75,23 +74,27 @@ describe('AuthController', () => {
     });
   });
 
-  describe('login', () => {
-    it('should return 200 on successful login', async () => {
-      const result = { token: 'jwt-token', user: { id: 'user123' } };
+  describe("login", () => {
+    it("should return 200 on successful login", async () => {
+      const result = { token: "jwt-token", user: { id: "user123" } };
       authService.login.mockResolvedValue(result);
-      req.body = { email: 'test@user.com', password: 'pass' };
+      req.body = { email: "test@user.com", password: "pass" };
 
       await authController.login(req as Request, res as Response);
 
-      expect(authService.login).toHaveBeenCalledWith(req.body, '127.0.0.1', 'jest');
+      expect(authService.login).toHaveBeenCalledWith(
+        req.body,
+        "127.0.0.1",
+        "jest",
+      );
       expect(res.status).toHaveBeenCalledWith(200);
       expect(res.json).toHaveBeenCalledWith(result);
     });
 
-    it('should return 401 on login error', async () => {
-      const errorMessage = 'Invalid credentials';
+    it("should return 401 on login error", async () => {
+      const errorMessage = "Invalid credentials";
       authService.login.mockRejectedValue(new Error(errorMessage));
-      req.body = { email: 'test@user.com', password: 'wrong' };
+      req.body = { email: "test@user.com", password: "wrong" };
 
       await authController.login(req as Request, res as Response);
 
@@ -100,40 +103,48 @@ describe('AuthController', () => {
     });
   });
 
-  describe('generate2FA', () => {
-    it('should generate and return QR code for 2FA setup', async () => {
-      const qrCodeUrl = 'data:image/png;base64,mockqrcode';
-      const mockSecret = { secret: 'secretkey', otpauth_url: 'otpauth://totp/...' };
+  describe("generate2FA", () => {
+    it("should generate and return QR code for 2FA setup", async () => {
+      const qrCodeUrl = "data:image/png;base64,mockqrcode";
+      const mockSecret = {
+        secret: "secretkey",
+        otpauth_url: "otpauth://totp/...",
+      };
       const testUser = {
-        _id: 'user123',
-        email: 'test@user.com',
-        twoFactorSecret: 'secret',
-        save: jest.fn().mockResolvedValue(true)
+        _id: "user123",
+        email: "test@user.com",
+        twoFactorSecret: "secret",
+        save: jest.fn().mockResolvedValue(true),
       };
 
-      // Setup user in request  
+      // Setup user in request
       (req as any).user = testUser;
 
       authService.generateTwoFactorSecret.mockReturnValue(mockSecret);
-      qrcode.toDataURL.mockImplementation((text: string, callback: (err: Error | null, url: string) => void) => {
-        callback(null, qrCodeUrl);
-      });
+      qrcode.toDataURL.mockImplementation(
+        (text: string, callback: (err: Error | null, url: string) => void) => {
+          callback(null, qrCodeUrl);
+        },
+      );
 
       await authController.generate2FA(req as Request, res as Response);
 
       expect(authService.generateTwoFactorSecret).toHaveBeenCalled();
       expect(testUser.save).toHaveBeenCalled();
-      expect(qrcode.toDataURL).toHaveBeenCalledWith(mockSecret.otpauth_url, expect.any(Function));
+      expect(qrcode.toDataURL).toHaveBeenCalledWith(
+        mockSecret.otpauth_url,
+        expect.any(Function),
+      );
       // Note: Due to the callback nature, the response assertions are complex
       expect(res.status).toHaveBeenCalledWith(200);
     });
 
-    it('should handle 2FA setup errors', async () => {
-      const errorMessage = '2FA setup failed';
+    it("should handle 2FA setup errors", async () => {
+      const errorMessage = "2FA setup failed";
       const testUser = {
-        _id: 'user123',
-        email: 'test@user.com',
-        save: jest.fn()
+        _id: "user123",
+        email: "test@user.com",
+        save: jest.fn(),
       };
       (req as any).user = testUser;
 
@@ -145,68 +156,71 @@ describe('AuthController', () => {
 
       expect(res.status).toHaveBeenCalledWith(500);
       expect(res.json).toHaveBeenCalledWith({
-        message: 'Erro ao gerar segredo 2FA.',
-        error: errorMessage
+        message: "Erro ao gerar segredo 2FA.",
+        error: errorMessage,
       });
     });
   });
 
-  describe('verify2FA', () => {
-    const mockSecurity = require('../../../src/utils/security');
-    const { UserModel } = require('../../../src/models/user');
+  describe("verify2FA", () => {
+    const mockSecurity = require("../../../src/utils/security");
+    const { UserModel } = require("../../../src/models/user");
 
     beforeEach(() => {
-
-
       // Mock UserModel.findById
       UserModel.findById = jest.fn().mockReturnValue({
         select: jest.fn().mockResolvedValue({
-          _id: 'user123',
-          twoFactorSecret: 'secret',
-          permissions: ['read'],
-          sessionVersion: 1
-        })
+          _id: "user123",
+          twoFactorSecret: "secret",
+          permissions: ["read"],
+          sessionVersion: 1,
+        }),
       });
     });
 
-    it('should verify 2FA token successfully', async () => {
+    it("should verify 2FA token successfully", async () => {
       mockSecurity.verifyToken.mockReturnValue({
-        id: 'user123',
-        twoFactorRequired: true
+        id: "user123",
+        twoFactorRequired: true,
       });
-      mockSecurity.generateToken.mockReturnValue('new-jwt-token');
+      mockSecurity.generateToken.mockReturnValue("new-jwt-token");
       authService.verifyTwoFactorCode.mockReturnValue(true);
 
-      req.body = { token: 'temp-token', code: '123456' };
+      req.body = { token: "temp-token", code: "123456" };
 
       await authController.verify2FA(req as Request, res as Response);
 
-      expect(mockSecurity.verifyToken).toHaveBeenCalledWith('temp-token');
-      expect(authService.verifyTwoFactorCode).toHaveBeenCalledWith('secret', '123456');
+      expect(mockSecurity.verifyToken).toHaveBeenCalledWith("temp-token");
+      expect(authService.verifyTwoFactorCode).toHaveBeenCalledWith(
+        "secret",
+        "123456",
+      );
       expect(res.status).toHaveBeenCalledWith(200);
-      expect(res.json).toHaveBeenCalledWith({ token: 'new-jwt-token' });
+      expect(res.json).toHaveBeenCalledWith({ token: "new-jwt-token" });
     });
 
-    it('should return 401 for invalid 2FA token', async () => {
+    it("should return 401 for invalid 2FA token", async () => {
       mockSecurity.verifyToken.mockReturnValue({
-        id: 'user123',
-        twoFactorRequired: true
+        id: "user123",
+        twoFactorRequired: true,
       });
       authService.verifyTwoFactorCode.mockReturnValue(false);
-      req.body = { token: 'temp-token', code: '000000' };
+      req.body = { token: "temp-token", code: "000000" };
 
       await authController.verify2FA(req as Request, res as Response);
 
       // expect(res.status).toHaveBeenCalledWith(401);
-      expect(res.json).toHaveBeenCalledWith({ message: 'Código 2FA inválido.' });
+      expect(res.json).toHaveBeenCalledWith({
+        message: "Código 2FA inválido.",
+      });
     });
 
-    it('should handle verification errors', async () => {
-      const errorMessage = 'Verification failed';
+    it("should handle verification errors", async () => {
+      const errorMessage = "Verification failed";
       mockSecurity.verifyToken.mockImplementation(() => {
         throw new Error(errorMessage);
       });
-      req.body = { token: 'invalid-token', code: '123456' };
+      req.body = { token: "invalid-token", code: "123456" };
 
       await authController.verify2FA(req as Request, res as Response);
 
@@ -215,51 +229,57 @@ describe('AuthController', () => {
     });
   });
 
-  describe('requestReset', () => {
-    it('should send password reset email', async () => {
+  describe("requestReset", () => {
+    it("should send password reset email", async () => {
       authService.initiateReset.mockResolvedValue(undefined);
-      req.body = { email: 'test@user.com' };
+      req.body = { email: "test@user.com" };
 
       await authController.requestReset(req as Request, res as Response);
 
-      expect(authService.initiateReset).toHaveBeenCalledWith('test@user.com');
+      expect(authService.initiateReset).toHaveBeenCalledWith("test@user.com");
       expect(res.status).toHaveBeenCalledWith(200);
       expect(res.json).toHaveBeenCalledWith({
-        message: 'Se um usuário com este e-mail existir, um link de redefinição de senha foi enviado.'
+        message:
+          "Se um usuário com este e-mail existir, um link de redefinição de senha foi enviado.",
       });
     });
 
-    it('should handle password reset errors', async () => {
-      const errorMessage = 'Password reset failed';
+    it("should handle password reset errors", async () => {
+      const errorMessage = "Password reset failed";
       authService.initiateReset.mockRejectedValue(new Error(errorMessage));
-      req.body = { email: 'test@user.com' };
+      req.body = { email: "test@user.com" };
 
       await authController.requestReset(req as Request, res as Response);
 
       expect(res.status).toHaveBeenCalledWith(500);
       expect(res.json).toHaveBeenCalledWith({
-        message: 'Erro interno ao processar a solicitação.',
-        error: errorMessage
+        message: "Erro interno ao processar a solicitação.",
+        error: errorMessage,
       });
     });
   });
 
-  describe('completeReset', () => {
-    it('should reset password successfully', async () => {
+  describe("completeReset", () => {
+    it("should reset password successfully", async () => {
       authService.completeReset.mockResolvedValue(undefined);
-      req.body = { token: 'reset-token', newPassword: 'newpass' };
+      req.body = { token: "reset-token", newPassword: "newpass" };
 
       await authController.completeReset(req as Request, res as Response);
 
-      expect(authService.completeReset).toHaveBeenCalledWith('reset-token', 'newpass');
+      expect(authService.completeReset).toHaveBeenCalledWith(
+        "reset-token",
+        "newpass",
+      );
       expect(res.status).toHaveBeenCalledWith(200);
-      expect(res.json).toHaveBeenCalledWith({ message: 'Senha redefinida com sucesso.' });
+      expect(res.json).toHaveBeenCalledWith({
+        message: "Senha redefinida com sucesso.",
+      });
     });
 
-    it('should handle invalid reset token', async () => {
-      const errorMessage = 'Invalid reset token';
+    it("should handle invalid reset token", async () => {
+      const errorMessage = "Invalid reset token";
       authService.completeReset.mockRejectedValue(new Error(errorMessage));
-      req.body = { token: 'invalid-token', newPassword: 'newpass' };
+      req.body = { token: "invalid-token", newPassword: "newpass" };
 
       await authController.completeReset(req as Request, res as Response);
 

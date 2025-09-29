@@ -1,6 +1,6 @@
-import { MongoMemoryServer } from 'mongodb-memory-server';
-import { RedisMemoryServer } from 'redis-memory-server';
-import mongoose from 'mongoose';
+import { MongoMemoryServer } from "mongodb-memory-server";
+import { RedisMemoryServer } from "redis-memory-server";
+import mongoose from "mongoose";
 
 declare global {
   var __MONGO_URI__: string;
@@ -30,15 +30,15 @@ export const setupTestDatabase = async () => {
   mongoServer = await MongoMemoryServer.create();
   const mongoUri = mongoServer.getUri();
 
-  global.__MONGO_URI__ = mongoUri;
-  global.__MONGO_DB_NAME__ = 'test-carpool-db';
+  globalThis.__MONGO_URI__ = mongoUri;
+  globalThis.__MONGO_DB_NAME__ = "test-carpool-db";
 
   await mongoose.connect(mongoUri, {
-    dbName: global.__MONGO_DB_NAME__,
+    dbName: globalThis.__MONGO_DB_NAME__,
     autoIndex: true,
   });
 
-  mongoose.set('runValidators', true);
+  mongoose.set("runValidators", true);
 };
 
 export const teardownTestDatabase = async () => {
@@ -70,10 +70,10 @@ if (!process.env.DEBUG) {
 }
 
 // Set test environment variables
-process.env.NODE_ENV = 'test';
-process.env.JWT_SECRET = 'test-jwt-secret-key-for-unit-tests';
-process.env.JWT_REFRESH_SECRET = 'test-refresh-secret-key-for-unit-tests';
-process.env.MONGODB_URI = global.__MONGO_URI__;
+process.env.NODE_ENV = "test";
+process.env.JWT_SECRET = "test-jwt-secret-key-for-unit-tests";
+process.env.JWT_REFRESH_SECRET = "test-refresh-secret-key-for-unit-tests";
+process.env.MONGODB_URI = globalThis.__MONGO_URI__;
 
 beforeAll(async () => {
   await setupTestDatabase();
@@ -88,7 +88,6 @@ afterEach(async () => {
   await clearDatabase();
   jest.resetModules();
 });
-
 
 afterAll(async () => {
   await teardownTestDatabase();

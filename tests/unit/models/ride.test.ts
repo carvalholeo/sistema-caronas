@@ -1,11 +1,21 @@
-import mongoose from 'mongoose';
-import { RideModel } from '../../../src/models/ride';
-import { UserModel } from '../../../src/models/user';
-import { VehicleModel } from '../../../src/models/vehicle';
-import { RideStatus, VehicleStatus, PassengerStatus } from '../../../src/types/enums/enums';
-import { ILocation, IRide, IRidePassenger, IUser, IVehicle } from '../../../src/types';
+import mongoose from "mongoose";
+import { RideModel } from "../../../src/models/ride";
+import { UserModel } from "../../../src/models/user";
+import { VehicleModel } from "../../../src/models/vehicle";
+import {
+  RideStatus,
+  VehicleStatus,
+  PassengerStatus,
+} from "../../../src/types/enums/enums";
+import {
+  ILocation,
+  IRide,
+  IRidePassenger,
+  IUser,
+  IVehicle,
+} from "../../../src/types";
 
-describe('Ride Model', () => {
+describe("Ride Model", () => {
   let driver: IUser;
   let vehicle: IVehicle;
   let passenger: IUser;
@@ -17,33 +27,33 @@ describe('Ride Model', () => {
     await UserModel.deleteMany({});
 
     driver = await new UserModel({
-      name: 'Test Driver',
-      email: 'driver@example.com',
-      matricula: 'DRIVER123',
-      password: 'password123',
+      name: "Test Driver",
+      email: "driver@example.com",
+      matricula: "DRIVER123",
+      password: "password123",
     }).save();
 
     passenger = await new UserModel({
-      name: 'Test Passenger',
-      email: 'passenger@example.com',
-      matricula: 'PASSENGER123',
-      password: 'password123',
+      name: "Test Passenger",
+      email: "passenger@example.com",
+      matricula: "PASSENGER123",
+      password: "password123",
     }).save();
 
     otherPassenger = await new UserModel({
-      name: 'Other Passenger',
-      email: 'otherpassenger@example.com',
-      matricula: 'OTHERPASSENGER123',
-      password: 'password123',
+      name: "Other Passenger",
+      email: "otherpassenger@example.com",
+      matricula: "OTHERPASSENGER123",
+      password: "password123",
     }).save();
 
     vehicle = await new VehicleModel({
       owner: driver,
-      plate: 'RID1234',
-      make: 'Honda',
-      carModel: 'Civic',
+      plate: "RID1234",
+      make: "Honda",
+      carModel: "Civic",
       year: 2022,
-      color: 'Black',
+      color: "Black",
       capacity: 4,
       status: VehicleStatus.Active,
     }).save();
@@ -51,13 +61,19 @@ describe('Ride Model', () => {
 
   function createRideData(overrides = {}): Partial<IRide> {
     const departureTime = new Date(Date.now() + 3 * 60 * 60 * 1000); // 3 hours from now
-    const origin = { type: 'Point' as const, coordinates: [-46.6333, -23.5505] } as unknown as ILocation;
-    const destination = { type: 'Point' as const, coordinates: [-46.6388, -23.5555] } as unknown as ILocation;
+    const origin = {
+      type: "Point" as const,
+      coordinates: [-46.6333, -23.5505],
+    } as unknown as ILocation;
+    const destination = {
+      type: "Point" as const,
+      coordinates: [-46.6388, -23.5555],
+    } as unknown as ILocation;
     return {
       driver: driver!,
       vehicle: vehicle!,
-      origin: { location: 'Origin', point: origin },
-      destination: { location: 'Destination', point: destination },
+      origin: { location: "Origin", point: origin },
+      destination: { location: "Destination", point: destination },
       departureTime,
       availableSeats: 3,
       price: 50,
@@ -66,8 +82,8 @@ describe('Ride Model', () => {
     } as Partial<IRide>;
   }
 
-  describe('Ride Creation', () => {
-    it('should create a new ride with valid data', async () => {
+  describe("Ride Creation", () => {
+    it("should create a new ride with valid data", async () => {
       const rideData = createRideData();
       const ride = new RideModel(rideData);
       const savedRide = await ride.save();
@@ -77,66 +93,88 @@ describe('Ride Model', () => {
       expect(savedRide.driver).toEqual(driver);
     });
 
-    it('should fail if departure time is less than 2 hours in the future', async () => {
+    it("should fail if departure time is less than 2 hours in the future", async () => {
       const departureTime = new Date(Date.now() + 1 * 60 * 60 * 1000); // 1 hour from now
       const rideData = createRideData({ departureTime });
       const ride = new RideModel(rideData);
-      await expect(ride.save()).rejects.toThrow('Departure time must be at least 2 hours in the future');
+      await expect(ride.save()).rejects.toThrow(
+        "Departure time must be at least 2 hours in the future",
+      );
     });
 
-    it('should fail with invalid coordinates', async () => {
-      const rideData = createRideData({ origin: { location: 'Invalid', point: { type: 'Point', coordinates: [200, 200] } } });
+    it("should fail with invalid coordinates", async () => {
+      const rideData = createRideData({
+        origin: {
+          location: "Invalid",
+          point: { type: "Point", coordinates: [200, 200] },
+        },
+      });
       const ride = new RideModel(rideData);
-      await expect(ride.save()).rejects.toThrow('Coordinates must be [longitude, latitude] with valid ranges');
+      await expect(ride.save()).rejects.toThrow(
+        "Coordinates must be [longitude, latitude] with valid ranges",
+      );
     });
 
-    it('should fail if the vehicle is not active', async () => {
+    it("should fail if the vehicle is not active", async () => {
       // Update the vehicle to inactive specifically for this test
       const newVehicle = await new VehicleModel({
         owner: driver,
-        plate: 'RID4321',
-        make: 'Honda',
-        carModel: 'Civic',
+        plate: "RID4321",
+        make: "Honda",
+        carModel: "Civic",
         year: 2022,
-        color: 'Black',
+        color: "Black",
         capacity: 4,
         status: VehicleStatus.Active,
-      }).save()
+      }).save();
       const myVechicle = await VehicleModel.findById(newVehicle._id);
       myVechicle!.status = VehicleStatus.Inactive;
       await myVechicle!.save();
 
-
       const rideData = createRideData({ vehicle: myVechicle });
       const ride = new RideModel(rideData);
-      await expect(ride.save()).rejects.toThrow('Vehicle must be active and approved to create rides');
+      await expect(ride.save()).rejects.toThrow(
+        "Vehicle must be active and approved to create rides",
+      );
     });
 
-    it('should fail if the driver does not own the vehicle', async () => {
-      const otherDriver = await new UserModel({ name: 'Other Driver', email: 'other@test.com', matricula: 'OTHER123', password: 'password123' }).save();
+    it("should fail if the driver does not own the vehicle", async () => {
+      const otherDriver = await new UserModel({
+        name: "Other Driver",
+        email: "other@test.com",
+        matricula: "OTHER123",
+        password: "password123",
+      }).save();
       const rideData = createRideData({ driver: otherDriver });
       const ride = new RideModel(rideData);
-      await expect(ride.save()).rejects.toThrow('Driver must own the vehicle');
+      await expect(ride.save()).rejects.toThrow("Driver must own the vehicle");
     });
 
-    it('should fail if driver has another ride within one hour', async () => {
+    it("should fail if driver has another ride within one hour", async () => {
       const rideData1 = createRideData();
       await new RideModel(rideData1).save();
 
-      const conflictingDeparture = new Date(rideData1.departureTime!.getTime() + 30 * 60 * 1000); // 30 mins later
+      const conflictingDeparture = new Date(
+        rideData1.departureTime!.getTime() + 30 * 60 * 1000,
+      ); // 30 mins later
       const rideData2 = createRideData({ departureTime: conflictingDeparture });
       const ride2 = new RideModel(rideData2);
 
-      await expect(ride2.save()).rejects.toThrow('Driver already has a scheduled ride within one hour of this departure time.');
+      await expect(ride2.save()).rejects.toThrow(
+        "Driver already has a scheduled ride within one hour of this departure time.",
+      );
     });
 
-    it('should fail if driver has more than 4 rides on the same day', async () => {
+    it("should fail if driver has more than 4 rides on the same day", async () => {
       const baseDate = new Date();
       baseDate.setHours(8, 0, 0, 0); // 8:00 AM hoje
       baseDate.setDate(baseDate.getDate() + 1); // Amanhã às 8:00
-      const rideData = (minutesOffset: number) => createRideData({
-        departureTime: new Date(baseDate.getTime() + minutesOffset * 60 * 1000)
-      });
+      const rideData = (minutesOffset: number) =>
+        createRideData({
+          departureTime: new Date(
+            baseDate.getTime() + minutesOffset * 60 * 1000,
+          ),
+        });
 
       await new RideModel(rideData(0)).save();
       await new RideModel(rideData(120)).save();
@@ -144,58 +182,67 @@ describe('Ride Model', () => {
       await new RideModel(rideData(360)).save();
 
       const ride5 = new RideModel(rideData(480));
-      await expect(ride5.save()).rejects.toThrow('A driver cannot have more than 4 rides on the same day');
+      await expect(ride5.save()).rejects.toThrow(
+        "A driver cannot have more than 4 rides on the same day",
+      );
     });
   });
 
-  describe('Ride Update Logic', () => {
-    it('should not allow editing with pending passengers', async () => {
+  describe("Ride Update Logic", () => {
+    it("should not allow editing with pending passengers", async () => {
       const ride = await new RideModel(createRideData()).save();
       ride.passengers.push({ user: new mongoose.Types.ObjectId() } as any);
       await ride.save();
 
       ride.price = 100;
-      await expect(ride.save()).rejects.toThrow('Ride cannot be edited while there are pending or approved passengers');
+      await expect(ride.save()).rejects.toThrow(
+        "Ride cannot be edited while there are pending or approved passengers",
+      );
     });
 
-    it('should not allow editing within 1 hour of departure', async () => {
+    it("should not allow editing within 1 hour of departure", async () => {
       const departureTime = new Date(Date.now() + 180 * 60 * 1000); // 3 hours from now
-      const ride = await new RideModel(createRideData({ departureTime })).save();
+      const ride = await new RideModel(
+        createRideData({ departureTime }),
+      ).save();
 
       // Mock Date.now to simulate time passing
       const mockTime = departureTime.getTime() - 50 * 60 * 1000; // 50 mins before departure
-      jest.spyOn(Date, 'now').mockReturnValue(mockTime);
+      jest.spyOn(Date, "now").mockReturnValue(mockTime);
 
       ride.price = 100;
-      await expect(ride.save()).rejects.toThrow('Ride cannot be edited within 1 hour before departureTime');
+      await expect(ride.save()).rejects.toThrow(
+        "Ride cannot be edited within 1 hour before departureTime",
+      );
 
       // Restore Date.now
       jest.restoreAllMocks();
     });
 
-    it('should allow cancellation with pending passengers', async () => {
+    it("should allow cancellation with pending passengers", async () => {
       const ride = await new RideModel(createRideData()).save();
       ride.passengers.push({ user: new mongoose.Types.ObjectId() } as any);
       await ride.save();
 
       ride.status = RideStatus.Cancelled;
-      ride.cancelReason = 'Test reason';
+      ride.cancelReason = "Test reason";
       await expect(ride.save()).resolves.toBeDefined();
       expect(ride.status).toBe(RideStatus.Cancelled);
     });
 
-    it('should require cancelReason when status is Cancelled', async () => {
+    it("should require cancelReason when status is Cancelled", async () => {
       const ride = await new RideModel(createRideData()).save();
       ride.status = RideStatus.Cancelled;
-      await expect(ride.save()).rejects.toThrow('Cancel reason is required when cancelling a ride');
+      await expect(ride.save()).rejects.toThrow(
+        "Cancel reason is required when cancelling a ride",
+      );
 
-      ride.cancelReason = 'Driver cancelled';
+      ride.cancelReason = "Driver cancelled";
       await expect(ride.save()).resolves.toBeDefined();
     });
-
   });
 
-  describe('RideStatus Transitions', () => {
+  describe("RideStatus Transitions", () => {
     const allowedTransitionsRide: Record<RideStatus, RideStatus[]> = {
       [RideStatus.Scheduled]: [RideStatus.InProgress, RideStatus.Cancelled],
       [RideStatus.InProgress]: [RideStatus.Completed, RideStatus.Cancelled],
@@ -203,9 +250,9 @@ describe('Ride Model', () => {
       [RideStatus.Cancelled]: [],
     };
 
-    it('should only allow Scheduled as the initial status', async () => {
+    it("should only allow Scheduled as the initial status", async () => {
       await expect(
-        new RideModel(createRideData({ status: RideStatus.InProgress })).save()
+        new RideModel(createRideData({ status: RideStatus.InProgress })).save(),
       ).rejects.toThrow(/Invalid initial status/i);
     });
 
@@ -219,7 +266,7 @@ describe('Ride Model', () => {
             await ride.save();
 
             ride.status = toStatus;
-            ride.cancelReason = 'Test reason for cancellation';
+            ride.cancelReason = "Test reason for cancellation";
             await expect(ride.save()).resolves.toBeDefined();
           });
         } else {
@@ -234,7 +281,9 @@ describe('Ride Model', () => {
         }
       }
 
-      const disallowed = Object.values(RideStatus).filter(s => !allowed.includes(s) && s !== fromStatus);
+      const disallowed = Object.values(RideStatus).filter(
+        (s) => !allowed.includes(s) && s !== fromStatus,
+      );
       for (const toStatus of disallowed) {
         it(`should block transition from ${fromStatus} to ${toStatus}`, async () => {
           const ride = new RideModel(createRideData());
@@ -243,7 +292,7 @@ describe('Ride Model', () => {
             await RideModel.findByIdAndUpdate(
               ride._id,
               { status: fromStatus },
-              { new: true, runValidators: false } // Importante: runValidators: false
+              { new: true, runValidators: false }, // Importante: runValidators: false
             );
           }
           ride.status = fromStatus;
@@ -251,16 +300,23 @@ describe('Ride Model', () => {
           await ride.save();
 
           ride.status = toStatus;
-          await expect(ride.save()).rejects.toThrow(/Invalid status transition/i);
+          await expect(ride.save()).rejects.toThrow(
+            /Invalid status transition/i,
+          );
         });
       }
     }
 
-    it('should cancel pending/approved passengers when ride status changes from Scheduled', async () => {
+    it("should cancel pending/approved passengers when ride status changes from Scheduled", async () => {
       const ride = await new RideModel(createRideData()).save();
 
-      ride.passengers.push({ user: passenger, status: PassengerStatus.Pending } as IRidePassenger);
-      ride.passengers.push({ user: otherPassenger, status: PassengerStatus.Pending } as IRidePassenger);
+      ride.passengers.push(
+        { user: passenger, status: PassengerStatus.Pending } as IRidePassenger,
+        {
+          user: otherPassenger,
+          status: PassengerStatus.Pending,
+        } as IRidePassenger,
+      );
       await ride.save();
 
       ride.passengers[0].status = PassengerStatus.Approved;
@@ -279,10 +335,13 @@ describe('Ride Model', () => {
     });
   });
 
-  describe('Passenger Management', () => {
-    it('should add a passenger with pending status', async () => {
+  describe("Passenger Management", () => {
+    it("should add a passenger with pending status", async () => {
       const ride = await new RideModel(createRideData()).save();
-      ride.passengers.push({ user: passenger, status: PassengerStatus.Pending } as IRidePassenger);
+      ride.passengers.push({
+        user: passenger,
+        status: PassengerStatus.Pending,
+      } as IRidePassenger);
       await ride.save();
 
       const updatedRide = await RideModel.findById(ride._id);
@@ -291,23 +350,37 @@ describe('Ride Model', () => {
       expect(passengerData?.status).toBe(PassengerStatus.Pending);
     });
 
-    it('should not allow more approved passengers than available seats', async () => {
-      const ride = await new RideModel(createRideData({ availableSeats: 1 })).save();
-      ride.passengers.push({ user: passenger, status: PassengerStatus.Pending } as IRidePassenger);
+    it("should not allow more approved passengers than available seats", async () => {
+      const ride = await new RideModel(
+        createRideData({ availableSeats: 1 }),
+      ).save();
+      ride.passengers.push({
+        user: passenger,
+        status: PassengerStatus.Pending,
+      } as IRidePassenger);
       await ride.save();
       ride.passengers[0].status = PassengerStatus.Approved;
       await ride.save();
 
-      ride.passengers.push({ user: otherPassenger, status: PassengerStatus.Pending } as IRidePassenger);
+      ride.passengers.push({
+        user: otherPassenger,
+        status: PassengerStatus.Pending,
+      } as IRidePassenger);
       ride.passengers[1].status = PassengerStatus.Approved;
 
-      await expect(ride.save()).rejects.toThrow('Approved passengers (2) exceed available seats (1)');
+      await expect(ride.save()).rejects.toThrow(
+        "Approved passengers (2) exceed available seats (1)",
+      );
     });
 
-    it('should not allow reducing available seats below approved passengers', async () => {
-      const ride = await new RideModel(createRideData({ availableSeats: 2 })).save();
-      ride.passengers.push({ user: passenger, status: PassengerStatus.Pending } as IRidePassenger);
-      ride.passengers.push({ user: passenger, status: PassengerStatus.Pending } as IRidePassenger);
+    it("should not allow reducing available seats below approved passengers", async () => {
+      const ride = await new RideModel(
+        createRideData({ availableSeats: 2 }),
+      ).save();
+      ride.passengers.push(
+        { user: passenger, status: PassengerStatus.Pending } as IRidePassenger,
+        { user: passenger, status: PassengerStatus.Pending } as IRidePassenger,
+      );
       await ride.save();
       ride.passengers[0].status = PassengerStatus.Approved;
       ride.passengers[1].status = PassengerStatus.Approved;
@@ -320,19 +393,32 @@ describe('Ride Model', () => {
     });
   });
 
-  describe('PassengerStatus Transitions', () => {
-    const allowedTransitionsPassengers: Record<PassengerStatus, PassengerStatus[]> = {
-      [PassengerStatus.Pending]: [PassengerStatus.Approved, PassengerStatus.Rejected, PassengerStatus.Cancelled],
+  describe("PassengerStatus Transitions", () => {
+    const allowedTransitionsPassengers: Record<
+      PassengerStatus,
+      PassengerStatus[]
+    > = {
+      [PassengerStatus.Pending]: [
+        PassengerStatus.Approved,
+        PassengerStatus.Rejected,
+        PassengerStatus.Cancelled,
+      ],
       [PassengerStatus.Approved]: [PassengerStatus.Cancelled],
       [PassengerStatus.Rejected]: [],
       [PassengerStatus.Cancelled]: [],
     };
 
-    it('should allow updating passenger status when only passenger is modified', async () => {
+    it("should allow updating passenger status when only passenger is modified", async () => {
       const ride = await new RideModel(createRideData()).save();
-      ride.passengers.push({ user: passenger, status: PassengerStatus.Pending } as IRidePassenger);
+      ride.passengers.push({
+        user: passenger,
+        status: PassengerStatus.Pending,
+      } as IRidePassenger);
       await ride.save();
-      ride.passengers.push({ user: otherPassenger, status: PassengerStatus.Pending } as IRidePassenger);
+      ride.passengers.push({
+        user: otherPassenger,
+        status: PassengerStatus.Pending,
+      } as IRidePassenger);
       await ride.save();
       ride.passengers[0].status = PassengerStatus.Approved;
       await expect(ride.save()).resolves.toBeDefined();
@@ -340,43 +426,57 @@ describe('Ride Model', () => {
       ride.passengers[1].status = PassengerStatus.Rejected;
       await expect(ride.save()).resolves.toBeDefined();
 
-      ride.passengers.push({ user: new mongoose.Types.ObjectId(), status: PassengerStatus.Pending } as any);
+      ride.passengers.push({
+        user: new mongoose.Types.ObjectId(),
+        status: PassengerStatus.Pending,
+      } as any);
       await expect(ride.save()).resolves.toBeDefined();
 
       ride.passengers[2].status = PassengerStatus.Approved;
       await expect(ride.save()).resolves.toBeDefined();
     });
 
-    it('should only allow Pending as the initial status', async () => {
+    it("should only allow Pending as the initial status", async () => {
       const ride = await new RideModel(createRideData()).save();
-      ride.passengers.push({ user: passenger, status: PassengerStatus.Pending } as IRidePassenger);
+      ride.passengers.push({
+        user: passenger,
+        status: PassengerStatus.Pending,
+      } as IRidePassenger);
       await ride.save();
 
       ride.passengers[0].status = PassengerStatus.Approved;
       await ride.save();
 
-      ride.passengers.push({ user: passenger, status: PassengerStatus.Approved } as IRidePassenger);
+      ride.passengers.push({
+        user: passenger,
+        status: PassengerStatus.Approved,
+      } as IRidePassenger);
       await expect(ride.save()).rejects.toThrow(/Invalid initial status/i);
     });
 
     for (const fromStatus of Object.values(PassengerStatus)) {
       const allowed = allowedTransitionsPassengers[fromStatus] || [];
-      const disallowed = Object.values(PassengerStatus).filter(s => !allowed.includes(s) && s !== fromStatus);
+      const disallowed = Object.values(PassengerStatus).filter(
+        (s) => !allowed.includes(s) && s !== fromStatus,
+      );
 
       for (const toStatus of disallowed) {
         it(`should block transition from ${fromStatus} to ${toStatus}`, async () => {
           // 1. Cria uma carona com um passageiro no estado inicial (fromStatus)
           const ride = new RideModel(createRideData());
           // (Se o estado inicial for diferente de Pending, precisamos salvar e atualizar)
-          if (fromStatus !== PassengerStatus.Pending) {
-            ride.passengers.push({ user: passenger, status: PassengerStatus.Pending });
+          if (fromStatus === PassengerStatus.Pending) {
+            ride.passengers.push({ user: passenger, status: fromStatus });
+            await ride.save();
+          } else {
+            ride.passengers.push({
+              user: passenger,
+              status: PassengerStatus.Pending,
+            });
             await ride.save();
             const tempRide = await RideModel.findById(ride._id);
             tempRide!.passengers[0].status = fromStatus;
             await tempRide!.save();
-          } else {
-            ride.passengers.push({ user: passenger, status: fromStatus });
-            await ride.save();
           }
 
           // 2. Busca a carona recém-salva
@@ -387,7 +487,9 @@ describe('Ride Model', () => {
           rideToUpdate!.passengers[0].status = toStatus;
 
           // 4. Espera que o .save() do documento PAI seja rejeitado pelo hook pre('validate')
-          await expect(rideToUpdate!.save()).rejects.toThrow(`Invalid passenger status transition: ${fromStatus} -> ${toStatus}`);
+          await expect(rideToUpdate!.save()).rejects.toThrow(
+            `Invalid passenger status transition: ${fromStatus} -> ${toStatus}`,
+          );
         });
       }
     }
@@ -416,7 +518,4 @@ describe('Ride Model', () => {
     //   await expect(ride.save()).rejects.toThrow('managedAt cannot be earlier than requestedAt');
     // });
   });
-
 });
-
-

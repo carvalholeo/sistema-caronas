@@ -39,11 +39,11 @@ function parseVersion(version) {
   }
 
   return {
-    major: parseInt(match[1]),
-    minor: parseInt(match[2]),
-    patch: parseInt(match[3]),
+    major: Number.parseInt(match[1]),
+    minor: Number.parseInt(match[2]),
+    patch: Number.parseInt(match[3]),
     suffix: match[4] || null,
-    suffixNumber: match[5] ? parseInt(match[5]) : null,
+    suffixNumber: match[5] ? Number.parseInt(match[5]) : null,
   };
 }
 

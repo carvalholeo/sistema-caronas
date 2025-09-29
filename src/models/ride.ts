@@ -345,12 +345,12 @@ RideSchema.pre<IRide>("save", async function (next) {
       // Se a carona está começando, rejeita os passageiros pendentes
       if (this.status === RideStatus.InProgress) {
         let modified = false;
-        this.passengers.forEach((p) => {
+        for (const p of this.passengers) {
           if (p.status === PassengerStatus.Pending) {
             p.status = PassengerStatus.Rejected;
             modified = true;
           }
-        });
+        }
         if (modified) this.markModified("passengers");
       }
     }

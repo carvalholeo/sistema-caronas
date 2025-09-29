@@ -1,9 +1,9 @@
-import { UserModel } from '../../../src/models/user';
-import { UserStatus } from '../../../src/types/enums/enums';
-import { IUser } from '../../../src/types';
-import { Types } from 'mongoose';
+import { UserModel } from "../../../src/models/user";
+import { UserStatus } from "../../../src/types/enums/enums";
+import { IUser } from "../../../src/types";
+import { Types } from "mongoose";
 
-describe('User Model', () => {
+describe("User Model", () => {
   beforeEach(async () => {
     await UserModel.deleteMany({});
   });
@@ -11,77 +11,96 @@ describe('User Model', () => {
   function createTestUser(overrides?: Partial<IUser>) {
     const userData: IUser = {
       _id: new Types.ObjectId(),
-      name: 'Test User',
+      name: "Test User",
       email: `test.${Date.now()}@example.com`,
       matricula: `TEST${Date.now()}`,
-      password: 'password123',
+      password: "password123",
       ...overrides,
     } as IUser;
 
     return new UserModel(userData);
   }
 
-  describe('Core Validations', () => {
-    it('should hash password and increment sessionVersion on save', async () => {
+  describe("Core Validations", () => {
+    it("should hash password and increment sessionVersion on save", async () => {
       const user = createTestUser();
       const initialVersion = user.sessionVersion;
       await user.save();
 
-      const userInDb = await UserModel.findById(user._id).select('+password');
+      const userInDb = await UserModel.findById(user._id).select("+password");
 
-      expect(userInDb?.password).not.toBe('password123');
-      expect(await userInDb?.comparePassword('password123')).toBe(true);
+      expect(userInDb?.password).not.toBe("password123");
+      expect(await userInDb?.comparePassword("password123")).toBe(true);
       expect(userInDb?.sessionVersion).toBe(initialVersion + 1);
     });
 
-    it('should correctly compare a bad password', async () => {
+    it("should correctly compare a bad password", async () => {
       const user = createTestUser();
       await user.save();
-      const userInDb = await UserModel.findById(user._id).select('+password');
-      expect(await userInDb?.comparePassword('wrongpassword')).toBe(false);
+      const userInDb = await UserModel.findById(user._id).select("+password");
+      expect(await userInDb?.comparePassword("wrongpassword")).toBe(false);
     });
 
-    it('should not allow duplicate emails', async () => {
-      const email = 'duplicate@example.com';
+    it("should not allow duplicate emails", async () => {
+      const email = "duplicate@example.com";
       await createTestUser({ email }).save();
-      const duplicateUser = createTestUser({ email, matricula: 'DIFFERENT' });
-      await expect(duplicateUser.save()).rejects.toThrow('E11000 duplicate key error collection');
+      const duplicateUser = createTestUser({ email, matricula: "DIFFERENT" });
+      await expect(duplicateUser.save()).rejects.toThrow(
+        "E11000 duplicate key error collection",
+      );
     });
 
-    it('should fail for invalid email format', async () => {
-      const user = createTestUser({ email: 'invalid-email' });
-      await expect(user.save()).rejects.toThrow('Please enter a valid email address');
+    it("should fail for invalid email format", async () => {
+      const user = createTestUser({ email: "invalid-email" });
+      await expect(user.save()).rejects.toThrow(
+        "Please enter a valid email address",
+      );
     });
 
-    it('should fail for invalid matricula format', async () => {
-      const user = createTestUser({ matricula: '123ABC' }); // Must start with a letter
-      await expect(user.save()).rejects.toThrow('Work ID must start with a letter');
+    it("should fail for invalid matricula format", async () => {
+      const user = createTestUser({ matricula: "123ABC" }); // Must start with a letter
+      await expect(user.save()).rejects.toThrow(
+        "Work ID must start with a letter",
+      );
     });
   });
 
-  describe('Static Methods', () => {
-    it('should identify temporary emails', () => {
+  describe("Static Methods", () => {
+    it("should identify temporary emails", () => {
       const newUser = new UserModel();
-      expect(newUser.isTemporaryEmail('test@mailinator.com')).toBe(true);
-      expect(newUser.isTemporaryEmail('test@gmail.com')).toBe(false);
+      expect(newUser.isTemporaryEmail("test@mailinator.com")).toBe(true);
+      expect(newUser.isTemporaryEmail("test@gmail.com")).toBe(false);
     });
   });
 
-  describe('Status State Machine', () => {
+  describe("Status State Machine", () => {
     const allowedTransitions: Record<UserStatus, UserStatus[]> = {
-      [UserStatus.Pending]: [UserStatus.Approved, UserStatus.Rejected, UserStatus.Suspended, UserStatus.Banned, UserStatus.Anonymized],
-      [UserStatus.Approved]: [UserStatus.Suspended, UserStatus.Banned, UserStatus.Anonymized],
-      [UserStatus.Suspended]: [UserStatus.Approved, UserStatus.Banned, UserStatus.Anonymized],
+      [UserStatus.Pending]: [
+        UserStatus.Approved,
+        UserStatus.Rejected,
+        UserStatus.Suspended,
+        UserStatus.Banned,
+        UserStatus.Anonymized,
+      ],
+      [UserStatus.Approved]: [
+        UserStatus.Suspended,
+        UserStatus.Banned,
+        UserStatus.Anonymized,
+      ],
+      [UserStatus.Suspended]: [
+        UserStatus.Approved,
+        UserStatus.Banned,
+        UserStatus.Anonymized,
+      ],
       [UserStatus.Banned]: [UserStatus.Suspended, UserStatus.Anonymized],
       [UserStatus.Rejected]: [UserStatus.Pending, UserStatus.Anonymized],
       [UserStatus.Anonymized]: [],
     };
 
-    it('should only allow Pending as the initial status', async () => {
+    it("should only allow Pending as the initial status", async () => {
       const user = createTestUser({ status: UserStatus.Approved });
       await expect(user.save()).rejects.toThrow(/Invalid initial status/i);
     });
-
 
     for (const fromStatus of Object.values(UserStatus)) {
       const allowed = allowedTransitions[fromStatus] || [];
@@ -95,15 +114,19 @@ describe('User Model', () => {
         });
       }
 
-      const disallowed = Object.values(UserStatus).filter(s => !allowed.includes(s) && s !== fromStatus);
+      const disallowed = Object.values(UserStatus).filter(
+        (s) => !allowed.includes(s) && s !== fromStatus,
+      );
       for (const toStatus of disallowed) {
-        if (fromStatus !== UserStatus.Anonymized) {
+        if (fromStatus === UserStatus.Anonymized) {
           it(`should block transition from ${fromStatus} to ${toStatus}`, async () => {
             const user = await createTestUser().save();
             user.status = fromStatus;
             await user.save();
             user.status = toStatus;
-            await expect(user.save()).rejects.toThrow(`Invalid status transition from ${fromStatus} to ${toStatus}`);
+            await expect(user.save()).rejects.toThrow(
+              "User is anonymized (terminal); status cannot change",
+            );
           });
         } else {
           it(`should block transition from ${fromStatus} to ${toStatus}`, async () => {
@@ -111,7 +134,9 @@ describe('User Model', () => {
             user.status = fromStatus;
             await user.save();
             user.status = toStatus;
-            await expect(user.save()).rejects.toThrow('User is anonymized (terminal); status cannot change');
+            await expect(user.save()).rejects.toThrow(
+              `Invalid status transition from ${fromStatus} to ${toStatus}`,
+            );
           });
         }
       }
@@ -127,20 +152,24 @@ describe('User Model', () => {
 
       user.status = UserStatus.Pending;
 
-      await expect(user.save()).rejects.toThrow('User is anonymized (terminal); status cannot change');
+      await expect(user.save()).rejects.toThrow(
+        "User is anonymized (terminal); status cannot change",
+      );
     });
 
-    it('should allow non-status writes without triggering state machine', async () => {
+    it("should allow non-status writes without triggering state machine", async () => {
       const user = await createTestUser().save();
-      user.name = 'Alice Updated';
+      user.name = "Alice Updated";
       await expect(user.save()).resolves.toBeDefined();
       expect(user.status).toBe(UserStatus.Pending);
     });
 
-    it('should validate status enum values', async () => {
+    it("should validate status enum values", async () => {
       const user = createTestUser();
-      user.set('status', 'invalid-status');
-      await expect(user.save()).rejects.toThrow('Invalid initial status: invalid-status. Must start as "pending"');
+      user.set("status", "invalid-status");
+      await expect(user.save()).rejects.toThrow(
+        'Invalid initial status: invalid-status. Must start as "pending"',
+      );
     });
   });
 });
