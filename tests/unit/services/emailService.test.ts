@@ -118,102 +118,102 @@ describe("EmailService", () => {
     });
   });
 
-  // describe("initializeTemplates", () => {
-  //   beforeEach(() => {
-  //     emailServiceInstance = new EmailService();
-  //   });
+  describe("initializeTemplates", () => {
+    beforeEach(() => {
+      emailServiceInstance = new EmailService();
+    });
 
-  //   // it("should load layout template successfully", async () => {
-  //   //   // Act - Aguardar a inicialização
-  //   //   await new Promise((resolve) => setTimeout(resolve, 5));
+    it("should load layout template successfully", async () => {
+      // Act - Aguardar a inicialização
+      await new Promise((resolve) => setTimeout(resolve, 0));
 
-  //   //   // Assert
-  //   //   expect(mockedPath.join).toHaveBeenCalledWith(
-  //   //     expect.any(String), // __dirname
-  //   //     "templates",
-  //   //   );
-  //   //   expect(mockedFs.readFile).toHaveBeenCalledWith(
-  //   //     expect.stringContaining("base.hbs"),
-  //   //     "utf-8",
-  //   //   );
-  //   //   expect(mockedHandlebars.compile).toHaveBeenCalledWith(mockLayoutTemplate);
-  //   // });
+      // Assert
+      expect(mockedPath.join).toHaveBeenCalledWith(
+        expect.any(String), // __dirname
+        "templates",
+      );
+      expect(mockedFs.readFile).toHaveBeenCalledWith(
+        expect.stringContaining("base.hbs"),
+        "utf-8",
+      );
+      expect(mockedHandlebars.compile).toHaveBeenCalledWith(mockLayoutTemplate);
+    });
 
-  //   // it("should load all individual templates successfully", async () => {
-  //   //   // Act - Aguardar a inicialização
-  //   //   await new Promise((resolve) => setTimeout(resolve, 0));
+    it("should load all individual templates successfully", async () => {
+      // Act - Aguardar a inicialização
+      await new Promise((resolve) => setTimeout(resolve, 0));
 
-  //   //   // Assert
-  //   //   expect(Object.values).toHaveBeenCalledWith(EmailTemplate);
-  //   //   expect(mockedFs.readFile).toHaveBeenCalledTimes(4); // 1 layout + 3 templates
-  //   //   expect(mockedHandlebars.compile).toHaveBeenCalledTimes(4); // 1 layout + 3 templates
-  //   // });
+      // Assert
+      expect(Object.values).toHaveBeenCalledWith(EmailTemplate);
+      expect(mockedFs.readFile).toHaveBeenCalledTimes(4); // 1 layout + 3 templates
+      expect(mockedHandlebars.compile).toHaveBeenCalledTimes(4); // 1 layout + 3 templates
+    });
 
-  //   it("should handle missing template files gracefully", async () => {
-  //     // Arrange
-  //     mockedFs.readFile
-  //       .mockResolvedValueOnce(mockLayoutTemplate) // Layout succeeds
-  //       .mockRejectedValueOnce(new Error("Template not found")) // First template fails
-  //       .mockResolvedValueOnce(mockEmailTemplate) // Second template succeeds
-  //       .mockResolvedValueOnce(mockEmailTemplate); // Third template succeeds
+    it("should handle missing template files gracefully", async () => {
+      // Arrange
+      mockedFs.readFile
+        .mockResolvedValueOnce(mockLayoutTemplate) // Layout succeeds
+        .mockRejectedValueOnce(new Error("Template not found")) // First template fails
+        .mockResolvedValueOnce(mockEmailTemplate) // Second template succeeds
+        .mockResolvedValueOnce(mockEmailTemplate); // Third template succeeds
 
-  //     // Act
-  //     emailServiceInstance = new EmailService();
-  //     await new Promise((resolve) => setTimeout(resolve, 0));
+      // Act
+      emailServiceInstance = new EmailService();
+      await new Promise((resolve) => setTimeout(resolve, 0));
 
-  //     // Assert
-  //     expect(mockedLogger.warn).toHaveBeenCalledWith(
-  //       `Template de e-mail não encontrado: ${MockEmailTemplate.PasswordResetRequest}.hbs`,
-  //     );
-  //     expect(mockedLogger.warn).toHaveBeenCalledTimes(1);
-  //   });
+      // Assert
+      expect(mockedLogger.warn).toHaveBeenCalledWith(
+        `Template de e-mail não encontrado: ${MockEmailTemplate.PasswordResetRequest}.hbs`,
+      );
+      expect(mockedLogger.warn).toHaveBeenCalledTimes(1);
+    });
 
-  //   it("should handle layout file loading failure", async () => {
-  //     // Arrange
-  //     mockedFs.readFile.mockRejectedValueOnce(
-  //       new Error("Layout file not found"),
-  //     );
+    it("should handle layout file loading failure", async () => {
+      // Arrange
+      mockedFs.readFile.mockRejectedValueOnce(
+        new Error("Layout file not found"),
+      );
 
-  //     // Act
-  //     emailServiceInstance = new EmailService();
-  //     await new Promise((resolve) => setTimeout(resolve, 0));
+      // Act
+      emailServiceInstance = new EmailService();
+      await new Promise((resolve) => setTimeout(resolve, 0));
 
-  //     // Assert
-  //     expect(mockedLogger.error).toHaveBeenCalledWith(
-  //       "Erro ao inicializar templates de e-mail:",
-  //       expect.any(Error),
-  //     );
-  //   });
+      // Assert
+      expect(mockedLogger.error).toHaveBeenCalledWith(
+        "Erro ao inicializar templates de e-mail:",
+        expect.any(Error),
+      );
+    });
 
-  //   it("should handle handlebars compilation failure", async () => {
-  //     // Arrange
-  //     mockedHandlebars.compile.mockImplementationOnce(() => {
-  //       throw new Error("Compilation failed");
-  //     });
+    it("should handle handlebars compilation failure", async () => {
+      // Arrange
+      mockedHandlebars.compile.mockImplementationOnce(() => {
+        throw new Error("Compilation failed");
+      });
 
-  //     // Act
-  //     emailServiceInstance = new EmailService();
-  //     await new Promise((resolve) => setTimeout(resolve, 0));
+      // Act
+      emailServiceInstance = new EmailService();
+      await new Promise((resolve) => setTimeout(resolve, 0));
 
-  //     // Assert
-  //     expect(mockedLogger.error).toHaveBeenCalledWith(
-  //       "Erro ao inicializar templates de e-mail:",
-  //       expect.any(Error),
-  //     );
-  //   });
+      // Assert
+      expect(mockedLogger.error).toHaveBeenCalledWith(
+        "Erro ao inicializar templates de e-mail:",
+        expect.any(Error),
+      );
+    });
 
-  //   it("should call fs.readFile with correct paths for each template", async () => {
-  //     // Act
-  //     emailServiceInstance = new EmailService();
-  //     await new Promise((resolve) => setTimeout(resolve, 0));
+    it("should call fs.readFile with correct paths for each template", async () => {
+      // Act
+      emailServiceInstance = new EmailService();
+      await new Promise((resolve) => setTimeout(resolve, 0));
 
-  //     // Assert
-  //     expect(mockedFs.readFile).toHaveBeenCalledWith(
-  //       expect.stringContaining("passwordResetRequest.hbs"),
-  //       "utf-8",
-  //     );
-  //   });
-  // });
+      // Assert
+      expect(mockedFs.readFile).toHaveBeenCalledWith(
+        expect.stringContaining("passwordResetRequest.hbs"),
+        "utf-8",
+      );
+    });
+  });
 
   describe("prepareEmailTemplate", () => {
     beforeEach(async () => {
