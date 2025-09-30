@@ -29,61 +29,67 @@ PasswordResetSchema.pre<IPasswordReset>("save", function (next) {
   return next();
 });
 
+function validateCompletedAt(doc: IPasswordReset): Error | undefined {
+  if (doc.completedAt) {
+    if (doc.status !== PasswordResetStatus.COMPLETED) {
+      return new Error(
+        `completedAt present but status is ${doc.status.toUpperCase()}`,
+      );
+    }
+    if (doc.completedAt < doc.initiatedAt) {
+      return new Error("completedAt cannot be earlier than initiatedAt");
+    }
+  }
+  return undefined;
+}
+
+function validateInitialStatus(doc: IPasswordReset): Error | undefined {
+  if (doc.isNew && doc.status !== PasswordResetStatus.INITIATED) {
+    return new Error(
+      `Invalid initial status: ${doc.status}. Must start as INITIATED`,
+    );
+  }
+  return undefined;
+}
+
+async function validateStatusTransition(
+  doc: IPasswordReset,
+): Promise<Error | undefined> {
+  if (!doc.isNew && doc.isModified("status")) {
+    let fromStatus: PasswordResetStatus | undefined;
+    try {
+      const prev = await (doc.constructor as Model<IPasswordReset>).findById(
+        doc._id,
+      );
+      fromStatus = prev ? prev.status : undefined;
+    } catch {
+      return new Error("Previous status not found");
+    }
+    if (!fromStatus) {
+      return new Error("Previous status not found");
+    }
+    const allowed = allowedTransitions[fromStatus] || [];
+    if (!allowed.includes(doc.status)) {
+      return new Error(`Invalid transition: ${fromStatus} -> ${doc.status}`);
+    }
+  }
+  return undefined;
+}
+
 PasswordResetSchema.pre<IPasswordReset>("save", async function (next) {
-  // Ensure consistent initiatedAt value
   if (!this.initiatedAt) {
     this.initiatedAt = new Date();
   }
 
-  // Validate completedAt rules first
-  if (this.completedAt) {
-    if (this.status !== PasswordResetStatus.COMPLETED) {
-      return next(
-        new Error(
-          `completedAt present but status is ${this.status.toUpperCase()}`,
-        ),
-      );
-    }
-    if (this.completedAt < this.initiatedAt) {
-      return next(new Error("completedAt cannot be earlier than initiatedAt"));
-    }
-  }
+  const completedAtError = validateCompletedAt(this);
+  if (completedAtError) return next(completedAtError);
 
-  // Status validations
-  if (this.isNew && this.status !== PasswordResetStatus.INITIATED) {
-    return next(
-      new Error(
-        `Invalid initial status: ${this.status}. Must start as INITIATED`,
-      ),
-    );
-  }
+  const initialStatusError = validateInitialStatus(this);
+  if (initialStatusError) return next(initialStatusError);
 
-  // Only validate transitions for existing documents with status changes
-  if (!this.isNew && this.isModified("status")) {
-    // Always fetch previous status from DB for existing docs
-    let fromStatus: PasswordResetStatus | undefined;
-    try {
-      const prev = await (this.constructor as Model<IPasswordReset>).findById(
-        this._id,
-      );
-      fromStatus = prev ? prev.status : undefined;
-    } catch {
-      return next(new Error("Previous status not found"));
-    }
-    if (!fromStatus) {
-      return next(new Error("Previous status not found"));
-    }
+  const transitionError = await validateStatusTransition(this);
+  if (transitionError) return next(transitionError);
 
-    // Always block any status change from a terminal state or not allowed
-    const allowed = allowedTransitions[fromStatus] || [];
-    if (!allowed.includes(this.status)) {
-      return next(
-        new Error(`Invalid transition: ${fromStatus} -> ${this.status}`),
-      );
-    }
-  }
-
-  // For newly COMPLETED requests, set completedAt
   if (
     this.isModified("status") &&
     this.status === PasswordResetStatus.COMPLETED &&

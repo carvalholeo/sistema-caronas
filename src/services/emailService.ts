@@ -7,12 +7,16 @@ import { TemplateDataMap } from "../types/types/email";
 import logger from "../utils/logger";
 
 export class EmailService {
-  private templates: Map<EmailTemplate, handlebars.TemplateDelegate> =
+  private readonly templates: Map<EmailTemplate, handlebars.TemplateDelegate> =
     new Map();
   private layout!: handlebars.TemplateDelegate;
 
-  constructor() {
-    this.initializeTemplates().catch((err) =>
+  /**
+   * Inicializa os templates de e-mail.
+   * Deve ser chamado explicitamente antes de usar o serviço.
+   */
+  public async init(): Promise<void> {
+    await this.initializeTemplates().catch((err) =>
       logger.error("Erro ao inicializar templates de e-mail:", err),
     );
   }
@@ -34,7 +38,7 @@ export class EmailService {
       try {
         const source = await fs.readFile(filePath, "utf-8");
         this.templates.set(templateName, handlebars.compile(source));
-      } catch (error) {
+      } catch {
         logger.warn(`Template de e-mail não encontrado: ${templateName}.hbs`);
       }
     }
@@ -53,6 +57,8 @@ export class EmailService {
     if (!templateFn) {
       throw new Error(`Template de e-mail "${template}" não foi inicializado.`);
     }
+
+    await this.init();
 
     // Renderiza o corpo do e-mail
     const bodyHtml = templateFn(data);

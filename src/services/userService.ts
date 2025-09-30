@@ -7,7 +7,7 @@ import { isCloudUploadDestination } from "../config/uploadAndMulter";
 import { S3StorageProvider } from "../providers/storage/S3StorageProvider";
 
 export class UserService {
-  private storageProvider: IStorageProvider;
+  private readonly storageProvider: IStorageProvider;
 
   constructor() {
     // Aqui você pode facilmente trocar para um S3Provider, etc.
