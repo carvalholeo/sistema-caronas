@@ -21,7 +21,7 @@
     "lint": "eslint src --ext .ts",
     "lint:fix": "eslint src --ext .ts --fix",
     "db:seed": "ts-node src/scripts/seed.ts",
-    "prepare": "husky install",
+    "prepare": "husky",
     "precommit": "lint-staged",
     "format:code:check": "prettier --check src/**/*.ts",
     "format:code:fix": "prettier --write src/**/*.ts",
