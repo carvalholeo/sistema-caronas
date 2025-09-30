@@ -7,7 +7,7 @@ npm run precommit:version
 
 # Validar CHANGELOG apenas para versões semânticas
 CURRENT_VERSION=$(node -p "require('./package.json').version")
-if [[ $CURRENT_VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+if [[ $CURRENT_VERSION =~ ^\d+\.\d+\.\d+$ ]]; then
   echo "📋 Validating CHANGELOG for semantic version..."
   npm run precommit:changelog
 fi

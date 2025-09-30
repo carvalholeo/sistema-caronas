@@ -10,21 +10,21 @@ export class EmailService {
   private readonly templates: Map<EmailTemplate, handlebars.TemplateDelegate> =
     new Map();
   private layout!: handlebars.TemplateDelegate;
+  private isInitialized = false;
 
-  /**
-   * Inicializa os templates de e-mail.
-   * Deve ser chamado explicitamente antes de usar o serviço.
-   */
-  public async init(): Promise<void> {
-    await this.initializeTemplates().catch((err) =>
-      logger.error("Erro ao inicializar templates de e-mail:", err),
-    );
+  constructor() {
+    this.initializeTemplates();
   }
 
   /**
    * Carrega e compila todos os templates de e-mail na memória ao iniciar.
    */
   private async initializeTemplates(): Promise<void> {
+    if (this.isInitialized) {
+      return;
+    }
+    this.isInitialized = true;
+
     const templatesDir = path.join(__dirname, "templates");
 
     // Carrega o layout principal
@@ -57,8 +57,6 @@ export class EmailService {
     if (!templateFn) {
       throw new Error(`Template de e-mail "${template}" não foi inicializado.`);
     }
-
-    await this.init();
 
     // Renderiza o corpo do e-mail
     const bodyHtml = templateFn(data);
