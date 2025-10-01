@@ -19,7 +19,7 @@ import { NotificationScope } from "../types/enums/enums";
 import { SuppressedNotificationModel } from "../models/suppressedNotification";
 
 export class NotificationService {
-  private providers: Map<string, INotificationProvider>;
+  private readonly providers: Map<string, INotificationProvider>;
 
   constructor() {
     this.providers = new Map();

@@ -1,6 +1,6 @@
 {
   "name": "carpool-backend",
-  "version": "1.0.0-alpha.9",
+  "version": "1.0.0-alpha.10",
   "description": "Backend for the Carpool System, implementing robust authentication, user management, ride management, and real-time communication.",
   "main": "dist/server.ts",
   "scripts": {

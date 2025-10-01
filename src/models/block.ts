@@ -90,7 +90,7 @@ BlockSchema.pre<IBlock>("validate", async function (next) {
   }
 
   const allowed = allowedTransitions[prevStatus!] || [];
-  if (!allowed.includes(this.status as BlockStatus)) {
+  if (!allowed.includes(this.status)) {
     return next(
       new Error(`Invalid transition: ${prevStatus} -> ${this.status}`),
     );

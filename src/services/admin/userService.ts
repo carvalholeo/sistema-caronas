@@ -306,11 +306,6 @@ class AdminUsersService {
     if (!targetUser || !targetUser.roles.includes(UserRole.Admin))
       throw new Error("Administrador alvo não encontrado.");
 
-    // // Valida se as permissões existem
-    // permissions.forEach(p => {
-    //     if (!AllPermissions.includes(p)) throw new Error(`Permissão inválida: ${p}`);
-    // });
-
     const oldPermissions = targetUser.permissions;
     targetUser.permissions = permissions;
     targetUser.sessionVersion += 1;

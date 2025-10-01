@@ -1,258 +1,113 @@
-import mongoose from 'mongoose';
-import { BlockModel } from '../../../src/models/block';
-import { BlockStatus } from '../../../src/types/enums/enums';
+import mongoose from "mongoose";
+import { BlockModel } from "../../../src/models/block";
+import { BlockStatus } from "../../../src/types/enums/enums";
 
-describe('Block state machine + unique constraint', () => {
-  function newBlockPair() {
-    return {
-      blocker: new mongoose.Types.ObjectId(),
-      blocked: new mongoose.Types.ObjectId()
-    };
-  }
-
-  it('cria com status applied e appliedAt setado', async () => {
-    const { blocker, blocked } = newBlockPair();
-
-    // Mock do método create
-    const mockBlock = {
-      blockerUser: blocker,
-      blockedUser: blocked,
-      reason: 'spam',
-      status: BlockStatus.APPLIED,
-      appliedAt: new Date()
-    };
-
-    jest.spyOn(BlockModel, 'create').mockResolvedValue(mockBlock as any);
-
-    const b = await BlockModel.create({ blockerUser: blocker, blockedUser: blocked, reason: 'spam' });
-    expect(b.status).toBe(BlockStatus.APPLIED);
-    expect(BlockModel.create).toHaveBeenCalledWith({
-      blockerUser: blocker,
-      blockedUser: blocked,
-      reason: 'spam'
-    });
+describe("Block Model Integration Test", () => {
+  // Limpa a coleção antes de cada teste para garantir isolamento
+  afterEach(async () => {
+    await BlockModel.deleteMany({});
   });
 
-  it('bloqueia status inicial diferente de applied', async () => {
-    const { blocker, blocked } = newBlockPair();
+  // --- Funções Auxiliares ---
+  const createBlockData = () => ({
+    blockerUser: new mongoose.Types.ObjectId(),
+    blockedUser: new mongoose.Types.ObjectId(),
+    reason: "spam",
+  });
 
-    const mockBlockInstance = {
-      blockerUser: blocker,
-      blockedUser: blocked,
-      reason: 'abuse',
-      status: BlockStatus.REVERSED,
-      save: jest.fn().mockRejectedValue(new Error('Invalid initial status'))
+  // --- Testes da Lógica de Negócio Real ---
+
+  it('deve criar um bloqueio com o status "applied" por padrão', async () => {
+    // Act
+    const block = await BlockModel.create(createBlockData());
+
+    // Assert
+    expect(block.status).toBe(BlockStatus.APPLIED);
+    expect(block.createdAt).toBeInstanceOf(Date);
+  });
+
+  it('deve falhar ao tentar criar um bloqueio com um status inicial diferente de "applied"', async () => {
+    // Arrange
+    const blockData = { ...createBlockData(), status: BlockStatus.REVERSED };
+    const block = new BlockModel(blockData);
+
+    // Act & Assert
+    // O hook pre('validate') será acionado aqui e lançará o erro.
+    await expect(block.save()).rejects.toThrow(/Invalid initial status/i);
+  });
+
+  it("deve falhar se o blockerUser for igual ao blockedUser", async () => {
+    // Arrange
+    const userId = new mongoose.Types.ObjectId();
+    const blockData = {
+      blockerUser: userId,
+      blockedUser: userId,
+      reason: "self-block",
     };
+    const block = new BlockModel(blockData);
 
-    // Mock do construtor
-    jest.spyOn(BlockModel.prototype, 'save').mockRejectedValue(
-      new Error('Invalid initial status')
+    // Act & Assert
+    await expect(block.save()).rejects.toThrow(
+      /blockedUser must be different from blockerUser/i,
     );
+  });
 
-    const b = new BlockModel({
-      blockerUser: blocker,
-      blockedUser: blocked,
-      reason: 'abuse',
-      status: BlockStatus.REVERSED,
+  it('deve permitir a transição de "applied" para "reversed"', async () => {
+    // Arrange
+    const block = await BlockModel.create(createBlockData());
+    expect(block.status).toBe(BlockStatus.APPLIED);
+
+    // Act
+    block.status = BlockStatus.REVERSED;
+    const updatedBlock = await block.save();
+
+    // Assert
+    expect(updatedBlock.status).toBe(BlockStatus.REVERSED);
+  });
+
+  it("deve bloquear transições a partir de um estado terminal (ex: REVERSED)", async () => {
+    // Arrange
+    let block = await BlockModel.create(createBlockData());
+    block.status = BlockStatus.REVERSED;
+    await block.save();
+
+    // Act & Assert
+    block.status = BlockStatus.APPLIED; // Tenta fazer uma transição inválida
+    await expect(block.save()).rejects.toThrow(/Block is terminal/i);
+  });
+
+  describe("Unique Partial Index", () => {
+    it('deve impedir a criação de um segundo bloqueio "applied" para o mesmo par de usuários', async () => {
+      // Arrange
+      const blockData = createBlockData();
+      await BlockModel.create(blockData); // Cria o primeiro bloqueio
+
+      // Act & Assert
+      // O motor do MongoDB vai disparar o erro de chave duplicada aqui.
+      await expect(BlockModel.create(blockData)).rejects.toThrow(
+        /E11000 duplicate key error/,
+      );
     });
 
-    await expect(b.save()).rejects.toThrow(/Invalid initial status/i);
-  });
+    it('deve PERMITIR a criação de um novo bloqueio "applied" se o anterior foi revertido', async () => {
+      // Arrange
+      const blockData = createBlockData();
+      const firstBlock = await BlockModel.create(blockData);
 
-  it('permite applied -> reversed e seta reversedAt', async () => {
-    const { blocker, blocked } = newBlockPair();
+      // Reverte o primeiro bloqueio
+      firstBlock.status = BlockStatus.REVERSED;
+      await firstBlock.save();
 
-    const mockBlock = {
-      blockerUser: blocker,
-      blockedUser: blocked,
-      reason: 'spam',
-      status: BlockStatus.APPLIED,
-      appliedAt: new Date(),
-      save: jest.fn()
-    };
+      // Act: Tenta criar um novo bloqueio para o mesmo par
+      const secondBlock = await BlockModel.create({
+        ...blockData,
+        reason: "recidivism",
+      });
 
-    // Simular mudança de status
-    mockBlock.status = BlockStatus.REVERSED;
-    mockBlock.save.mockResolvedValue(mockBlock);
-
-    jest.spyOn(BlockModel, 'create').mockResolvedValue(mockBlock as any);
-
-    const b = await BlockModel.create({ blockerUser: blocker, blockedUser: blocked, reason: 'spam' });
-    b.status = BlockStatus.REVERSED;
-
-    await expect(b.save()).resolves.toBeDefined();
-    expect(b.status).toBe(BlockStatus.REVERSED);
-  });
-
-  it('permite applied -> reversed_by_admin e mantém reversedBy preenchido', async () => {
-    const { blocker, blocked } = newBlockPair();
-
-    const mockBlock = {
-      blockerUser: blocker,
-      blockedUser: blocked,
-      reason: 'abuse',
-      status: BlockStatus.APPLIED,
-      appliedAt: new Date(),
-      save: jest.fn()
-    };
-
-    // Simular mudança de status
-    mockBlock.status = BlockStatus.REVERSED_BY_ADMIN;
-    mockBlock.save.mockResolvedValue(mockBlock);
-
-    jest.spyOn(BlockModel, 'create').mockResolvedValue(mockBlock as any);
-
-    const b = await BlockModel.create({ blockerUser: blocker, blockedUser: blocked, reason: 'abuse' });
-    b.status = BlockStatus.REVERSED_BY_ADMIN;
-
-    await expect(b.save()).resolves.toBeDefined();
-    expect(b.status).toBe(BlockStatus.REVERSED_BY_ADMIN);
-  });
-
-  it('bloqueia transições a partir de estados terminais', async () => {
-    const { blocker, blocked } = newBlockPair();
-
-    const mockBlock = {
-      blockerUser: blocker,
-      blockedUser: blocked,
-      reason: 'abuse',
-      status: BlockStatus.APPLIED,
-      appliedAt: new Date(),
-      save: jest.fn()
-    };
-
-    // Primeiro save: applied -> reversed (permitido)
-    mockBlock.status = BlockStatus.REVERSED;
-    mockBlock.save.mockResolvedValueOnce(mockBlock);
-
-    // Segundo save: reversed -> applied (não permitido)
-    mockBlock.save.mockRejectedValueOnce(new Error('Cannot transition from terminal state'));
-
-    jest.spyOn(BlockModel, 'create').mockResolvedValue(mockBlock as any);
-
-    const b = await BlockModel.create({ blockerUser: blocker, blockedUser: blocked, reason: 'abuse' });
-    b.status = BlockStatus.REVERSED;
-    await b.save();
-
-    b.status = BlockStatus.APPLIED;
-    await expect(b.save()).rejects.toThrow(/terminal/i);
-  });
-
-  it('impede duplicidade de applied para o mesmo par (índice único parcial)', async () => {
-    const blocker = new mongoose.Types.ObjectId();
-    const blocked = new mongoose.Types.ObjectId();
-
-    const mockBlock1 = {
-      blockerUser: blocker,
-      blockedUser: blocked,
-      reason: 'spam',
-      status: BlockStatus.APPLIED
-    };
-
-    // Primeiro create bem-sucedido
-    jest.spyOn(BlockModel, 'create')
-      .mockResolvedValueOnce(mockBlock1 as any)
-      .mockRejectedValueOnce(new Error('E11000 duplicate key error'));
-
-    const b1 = await BlockModel.create({ blockerUser: blocker, blockedUser: blocked, reason: 'spam' });
-    expect(b1).toBeTruthy();
-
-    // Segunda tentativa "applied" para o mesmo par deve falhar por índice único parcial
-    await expect(
-      BlockModel.create({ blockerUser: blocker, blockedUser: blocked, reason: 'spam again' })
-    ).rejects.toThrow(); // MongoServerError duplicate key
-  });
-
-  it('permite histórico: após reverter, um novo applied pode ser criado (índice parcial)', async () => {
-    const blocker = new mongoose.Types.ObjectId();
-    const blocked = new mongoose.Types.ObjectId();
-
-    const mockBlock1 = {
-      blockerUser: blocker,
-      blockedUser: blocked,
-      reason: 'spam',
-      status: BlockStatus.APPLIED,
-      save: jest.fn()
-    };
-
-    const mockBlock2 = {
-      blockerUser: blocker,
-      blockedUser: blocked,
-      reason: 'recidivism',
-      status: BlockStatus.APPLIED
-    };
-
-    // Primeiro: criar block
-    mockBlock1.save.mockResolvedValue(mockBlock1);
-
-    // Simular reversão
-    mockBlock1.status = BlockStatus.REVERSED;
-
-    jest.spyOn(BlockModel, 'create')
-      .mockResolvedValueOnce(mockBlock1 as any)
-      .mockResolvedValueOnce(mockBlock2 as any);
-
-    const b = await BlockModel.create({ blockerUser: blocker, blockedUser: blocked, reason: 'spam' });
-    b.status = BlockStatus.REVERSED;
-    await b.save();
-
-    // agora, novo applied é permitido pois o índice parcial só considera status='applied' atuais
-    const b2 = await BlockModel.create({ blockerUser: blocker, blockedUser: blocked, reason: 'recidivism' });
-    expect(b2.status).toBe(BlockStatus.APPLIED);
-  });
-
-  it('permite inserir quando IDs são diferentes', async () => {
-    const a = new mongoose.Types.ObjectId();
-    const b = new mongoose.Types.ObjectId();
-
-    const mockDoc = {
-      blockerUser: a,
-      blockedUser: b,
-      reason: 'spam',
-      status: BlockStatus.APPLIED
-    };
-
-    jest.spyOn(BlockModel, 'create').mockResolvedValue(mockDoc as any);
-
-    const doc = await BlockModel.create({ blockerUser: a, blockedUser: b, reason: 'spam' });
-    expect(doc.status).toBe(BlockStatus.APPLIED);
-  });
-
-  it('rejeita inserir quando IDs são iguais (apenas na inserção)', async () => {
-    const a = new mongoose.Types.ObjectId();
-
-    jest.spyOn(BlockModel, 'create').mockRejectedValue(
-      new Error('blockedUser must be different from blockerUser')
-    );
-
-    await expect(
-      BlockModel.create({ blockerUser: a, blockedUser: a, reason: 'self-block' })
-    ).rejects.toThrow(/blockedUser must be different from blockerUser/i);
-  });
-
-  it('não bloqueia updates subsequentes por essa regra', async () => {
-    const a = new mongoose.Types.ObjectId();
-    const b = new mongoose.Types.ObjectId();
-
-    const mockDoc = {
-      blockerUser: a,
-      blockedUser: b,
-      reason: 'abuse',
-      status: BlockStatus.APPLIED,
-      save: jest.fn().mockResolvedValue({
-        blockerUser: a,
-        blockedUser: b,
-        reason: 'updated reason',
-        status: BlockStatus.APPLIED
-      })
-    };
-
-    jest.spyOn(BlockModel, 'create').mockResolvedValue(mockDoc as any);
-
-    const doc = await BlockModel.create({ blockerUser: a, blockedUser: b, reason: 'abuse' });
-    doc.reason = 'updated reason';
-
-    await expect(doc.save()).resolves.toBeDefined();
-    expect(mockDoc.save).toHaveBeenCalled();
+      // Assert
+      expect(secondBlock).toBeDefined();
+      expect(secondBlock.status).toBe(BlockStatus.APPLIED);
+      expect(secondBlock.reason).toBe("recidivism");
+    });
   });
 });
