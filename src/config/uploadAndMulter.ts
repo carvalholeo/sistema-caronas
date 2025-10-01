@@ -1,5 +1,5 @@
 import path from "node:path";
-import crypto from "crypto";
+import crypto from "node:crypto";
 import multer from "multer";
 
 const diskStorage = multer.diskStorage({
