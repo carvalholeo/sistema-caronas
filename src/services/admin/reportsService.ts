@@ -1,22 +1,31 @@
 // Lógica de negócio para todos os relatórios do painel administrativo.
-import { PipelineStage } from 'mongoose';
-import { UserModel } from '../../models/user';
-import { VehicleModel } from '../../models/vehicle';
-import { RideModel } from '../../models/ride';
-import { ChatMessageModel } from '../../models/chat';
-import { NotificationEventModel, RideViewEventModel, SearchEventModel } from '../../models/event';
-import { LoginAttemptModel } from '../../models/loginAttempt';
-import { PasswordResetModel } from '../../models/passwordReset';
-import { AuditLogModel } from '../../models/auditLog';
-import { PrivacyRequestModel } from '../../models/privacyRequest';
-import { DataReportModel } from '../../models/dataReport';
-import { BlockModel } from '../../models/block';
-import { UserStatus, VehicleStatus, RideStatus, AuditActionType, AuditLogCategory } from '../../types/enums/enums';
-import { NotificationSubscriptionModel } from '../../models/notificationSubscription';
-import { SuppressedNotificationModel } from '../../models/suppressedNotification';
+import { PipelineStage } from "mongoose";
+import { UserModel } from "../../models/user";
+import { VehicleModel } from "../../models/vehicle";
+import { RideModel } from "../../models/ride";
+import { ChatMessageModel } from "../../models/chat";
+import {
+  NotificationEventModel,
+  RideViewEventModel,
+  SearchEventModel,
+} from "../../models/event";
+import { LoginAttemptModel } from "../../models/loginAttempt";
+import { PasswordResetModel } from "../../models/passwordReset";
+import { AuditLogModel } from "../../models/auditLog";
+import { PrivacyRequestModel } from "../../models/privacyRequest";
+import { DataReportModel } from "../../models/dataReport";
+import { BlockModel } from "../../models/block";
+import {
+  UserStatus,
+  VehicleStatus,
+  RideStatus,
+  AuditActionType,
+  AuditLogCategory,
+} from "../../types/enums/enums";
+import { NotificationSubscriptionModel } from "../../models/notificationSubscription";
+import { SuppressedNotificationModel } from "../../models/suppressedNotification";
 
 class AdminReportsService {
-
   // =================================================================
   // == RELATÓRIOS DE USUÁRIOS
   // =================================================================
@@ -26,82 +35,113 @@ class AdminReportsService {
     const pipeline: PipelineStage[] = [
       // 1. Encontrar todos os usuários registrados no período
       {
-        $match: dateFilter
+        $match: dateFilter,
       },
       // 2. Para cada usuário, buscar o primeiro log de decisão (aprovação/rejeição)
       {
         $lookup: {
-          from: 'AuditLog', // O nome da coleção do AuditLogModel
-          let: { userId: '$_id' },
+          from: "AuditLog", // O nome da coleção do AuditLogModel
+          let: { userId: "$_id" },
           pipeline: [
             {
               $match: {
                 $expr: {
                   $and: [
-                    { $eq: ['$target.resourceId', '$$userId'] },
-                    { $eq: ['$target.resourceType', 'User'] },
-                    { $in: ['$action.actionType', [
-                        AuditActionType.USER_APPROVED_BY_ADMIN,
-                        AuditActionType.USER_REJECTED_BY_ADMIN
-                      ]]
-                    }
-                  ]
-                }
-              }
+                    { $eq: ["$target.resourceId", "$$userId"] },
+                    { $eq: ["$target.resourceType", "User"] },
+                    {
+                      $in: [
+                        "$action.actionType",
+                        [
+                          AuditActionType.USER_APPROVED_BY_ADMIN,
+                          AuditActionType.USER_REJECTED_BY_ADMIN,
+                        ],
+                      ],
+                    },
+                  ],
+                },
+              },
             },
             { $sort: { createdAt: 1 } }, // Pega o mais antigo primeiro
-            { $limit: 1 }
+            { $limit: 1 },
           ],
-          as: 'decisionLog'
-        }
+          as: "decisionLog",
+        },
       },
       // 3. Transforma o array 'decisionLog' em um único objeto (ou null se não houver decisão)
       {
         $addFields: {
-          decisionEntry: { $arrayElemAt: ['$decisionLog', 0] }
-        }
+          decisionEntry: { $arrayElemAt: ["$decisionLog", 0] },
+        },
       },
       // 4. Agrupar tudo para calcular os KPIs
       {
         $group: {
           _id: null,
           totalRegistrations: { $sum: 1 },
-          approved: { $sum: { $cond: [{ $eq: ['$status', UserStatus.Approved] }, 1, 0] } },
-          rejected: { $sum: { $cond: [{ $eq: ['$status', UserStatus.Rejected] }, 1, 0] } },
-          pending: { $sum: { $cond: [{ $eq: ['$status', UserStatus.Pending] }, 1, 0] } },
+          approved: {
+            $sum: { $cond: [{ $eq: ["$status", UserStatus.Approved] }, 1, 0] },
+          },
+          rejected: {
+            $sum: { $cond: [{ $eq: ["$status", UserStatus.Rejected] }, 1, 0] },
+          },
+          pending: {
+            $sum: { $cond: [{ $eq: ["$status", UserStatus.Pending] }, 1, 0] },
+          },
           totalDecisionTime: {
             $sum: {
               $cond: [
-                '$decisionEntry',
-                { $subtract: ['$decisionEntry.createdAt', '$createdAt'] }, // Usa o createdAt do log
-                0
-              ]
-            }
+                "$decisionEntry",
+                { $subtract: ["$decisionEntry.createdAt", "$createdAt"] }, // Usa o createdAt do log
+                0,
+              ],
+            },
           },
-          decidedCount: { $sum: { $cond: ['$decisionEntry', 1, 0] } }
-        }
-      }
+          decidedCount: { $sum: { $cond: ["$decisionEntry", 1, 0] } },
+        },
+      },
     ];
 
     const result = await UserModel.aggregate(pipeline);
     const data = result[0] || {};
-    const avgDecisionTimeMs = ((data?.decidedCount || 0) > 0 ) ? (data.totalDecisionTime / data.decidedCount) : 0;
+    const avgDecisionTimeMs =
+      (data?.decidedCount || 0) > 0
+        ? data.totalDecisionTime / data.decidedCount
+        : 0;
 
     return {
       totalRegistrations: data.totalRegistrations || 0,
-      approvalRate: (data.totalRegistrations > 0) ? (data.approved / data.totalRegistrations) : 0,
-      rejectionRate: (data.totalRegistrations > 0) ? (data.rejected / data.totalRegistrations) : 0,
-      averageDecisionTimeHours: (avgDecisionTimeMs / (1000 * 60 * 60)).toFixed(2),
-      pendingCount: data.pending || 0
+      approvalRate:
+        data.totalRegistrations > 0
+          ? data.approved / data.totalRegistrations
+          : 0,
+      rejectionRate:
+        data.totalRegistrations > 0
+          ? data.rejected / data.totalRegistrations
+          : 0,
+      averageDecisionTimeHours: (avgDecisionTimeMs / (1000 * 60 * 60)).toFixed(
+        2,
+      ),
+      pendingCount: data.pending || 0,
     };
   }
 
   public async getEngagementReport(endDate: Date) {
-    const thirtyDaysAgo = new Date(new Date(endDate).setDate(endDate.getDate() - 30));
-    const twentyFourHoursAgo = new Date(new Date(endDate).setHours(endDate.getHours() - 24));
+    const thirtyDaysAgo = new Date(
+      new Date(endDate).setDate(endDate.getDate() - 30),
+    );
+    const twentyFourHoursAgo = new Date(
+      new Date(endDate).setHours(endDate.getHours() - 24),
+    );
 
-    const mau = await UserModel.countDocuments({ status: UserStatus.Approved, lastLogin: { $gte: thirtyDaysAgo, $lte: endDate } });
-    const dau = await UserModel.countDocuments({ status: UserStatus.Approved, lastLogin: { $gte: twentyFourHoursAgo, $lte: endDate } });
+    const mau = await UserModel.countDocuments({
+      status: UserStatus.Approved,
+      lastLogin: { $gte: thirtyDaysAgo, $lte: endDate },
+    });
+    const dau = await UserModel.countDocuments({
+      status: UserStatus.Approved,
+      lastLogin: { $gte: twentyFourHoursAgo, $lte: endDate },
+    });
 
     // Churn (simplificado) e outros KPIs exigiriam agregações mais complexas
     return {
@@ -117,30 +157,39 @@ class AdminReportsService {
 
     const failedLogins = await LoginAttemptModel.aggregate([
       { $match: { ...dateFilter, wasSuccessful: false } },
-      { $group: { _id: '$email', count: { $sum: 1 } } },
+      { $group: { _id: "$email", count: { $sum: 1 } } },
       { $sort: { count: -1 } },
-      { $limit: 10 }
+      { $limit: 10 },
     ]);
 
     const twoFactorUsage = await UserModel.aggregate([
-      { $match: { status: 'approved' } },
+      { $match: { status: "approved" } },
       {
         $group: {
-          _id: '$roles',
+          _id: "$roles",
           total: { $sum: 1 },
-          with2FA: { $sum: { $cond: [{ $ifNull: ['$twoFactorSecret', false] }, 1, 0] } }
-        }
-      }
+          with2FA: {
+            $sum: { $cond: [{ $ifNull: ["$twoFactorSecret", false] }, 1, 0] },
+          },
+        },
+      },
     ]);
 
-    const passwordResets = await PasswordResetModel.countDocuments({ initiatedAt: { $gte: startDate, $lte: endDate } });
-    const sessionRevocations = await AuditLogModel.countDocuments({ ...dateFilter, action: { actionType: AuditActionType.SECURITY_USER_SESSIONS_REVOKED_BY_ADMIN }})
+    const passwordResets = await PasswordResetModel.countDocuments({
+      initiatedAt: { $gte: startDate, $lte: endDate },
+    });
+    const sessionRevocations = await AuditLogModel.countDocuments({
+      ...dateFilter,
+      action: {
+        actionType: AuditActionType.SECURITY_USER_SESSIONS_REVOKED_BY_ADMIN,
+      },
+    });
 
     return {
       topFailedLoginUsers: failedLogins,
       twoFactorAdoption: twoFactorUsage,
       passwordResetsInitiated: passwordResets,
-      adminSessionRevocations: sessionRevocations
+      adminSessionRevocations: sessionRevocations,
     };
   }
 
@@ -150,13 +199,13 @@ class AdminReportsService {
     const totalBlocks = await BlockModel.countDocuments(dateFilter);
     const topReasons = await BlockModel.aggregate([
       { $match: dateFilter },
-      { $group: { _id: '$reason', count: { $sum: 1 } } },
+      { $group: { _id: "$reason", count: { $sum: 1 } } },
       { $sort: { count: -1 } },
-      { $limit: 5 }
+      { $limit: 5 },
     ]);
     const adminReversals = await BlockModel.countDocuments({
       ...dateFilter,
-      status: 'reversed_by_admin'
+      status: "reversed_by_admin",
     });
 
     return {
@@ -173,19 +222,22 @@ class AdminReportsService {
 
   public async getVehicleInventoryReport(startDate: Date, endDate: Date) {
     const statusCounts = await VehicleModel.aggregate([
-      { $group: { _id: '$status', count: { $sum: 1 } } }
+      { $group: { _id: "$status", count: { $sum: 1 } } },
     ]);
 
     const newVehicles = await VehicleModel.countDocuments({
-      createdAt: { $gte: startDate, $lte: endDate }
+      createdAt: { $gte: startDate, $lte: endDate },
     });
-    const pendingAnalysis = statusCounts.find(s => s._id === VehicleStatus.Pending)?.count || 0;
+    const pendingAnalysis =
+      statusCounts.find((s) => s._id === VehicleStatus.Pending)?.count || 0;
 
     return {
-      activeVehicles: statusCounts.find(s => s._id === VehicleStatus.Active)?.count || 0,
-      inactiveVehicles: statusCounts.find(s => s._id === VehicleStatus.Inactive)?.count || 0,
+      activeVehicles:
+        statusCounts.find((s) => s._id === VehicleStatus.Active)?.count || 0,
+      inactiveVehicles:
+        statusCounts.find((s) => s._id === VehicleStatus.Inactive)?.count || 0,
       newVehiclesInPeriod: newVehicles,
-      pendingAnalysis: pendingAnalysis
+      pendingAnalysis: pendingAnalysis,
     };
   }
 
@@ -207,61 +259,105 @@ class AdminReportsService {
     const dateFilter = { createdAt: { $gte: startDate, $lte: endDate } };
     const rides = await RideModel.find(dateFilter);
     const totalRides = rides.length;
-    const recurrentRides = rides.filter(r => r.isRecurrent).length;
-    const totalSeatsOffered = rides.reduce((sum, ride) => sum + (ride.availableSeats + ride.passengers.filter(p => p.status === 'approved').length), 0);
-    const totalSeatsFilled = rides.reduce((sum, ride) => sum + ride.passengers.filter(p => p.status === 'approved').length, 0);
+    const recurrentRides = rides.filter((r) => r.isRecurrent).length;
+    const totalSeatsOffered = rides.reduce(
+      (sum, ride) =>
+        sum +
+        (ride.availableSeats +
+          ride.passengers.filter((p) => p.status === "approved").length),
+      0,
+    );
+    const totalSeatsFilled = rides.reduce(
+      (sum, ride) =>
+        sum + ride.passengers.filter((p) => p.status === "approved").length,
+      0,
+    );
 
     return {
       ridesPublished: totalRides,
       recurrentRideRatio: totalRides > 0 ? recurrentRides / totalRides : 0,
       totalCapacityOffered: totalSeatsOffered,
-      averageOccupancyRate: totalSeatsOffered > 0 ? totalSeatsFilled / totalSeatsOffered : 0
+      averageOccupancyRate:
+        totalSeatsOffered > 0 ? totalSeatsFilled / totalSeatsOffered : 0,
     };
   }
 
   public async getRideAlterationReport(startDate: Date, endDate: Date) {
     const cancellations = await RideModel.aggregate([
-      { $match: { status: RideStatus.Cancelled, updatedAt: { $gte: startDate, $lte: endDate } } },
+      {
+        $match: {
+          status: RideStatus.Cancelled,
+          updatedAt: { $gte: startDate, $lte: endDate },
+        },
+      },
       {
         $project: {
-          antecedenceHours: { $divide: [{ $subtract: ['$departureTime', '$updatedAt'] }, 3600000] }
-        }
+          antecedenceHours: {
+            $divide: [{ $subtract: ["$departureTime", "$updatedAt"] }, 3600000],
+          },
+        },
       },
       {
         $group: {
           _id: null,
-          critical: { $sum: { $cond: [{ $lt: ['$antecedenceHours', 1] }, 1, 0] } },
-          shortNotice: { $sum: { $cond: [{ $and: [{ $gte: ['$antecedenceHours', 1] }, { $lt: ['$antecedenceHours', 24] }] }, 1, 0] } },
-          standard: { $sum: { $cond: [{ $gte: ['$antecedenceHours', 24] }, 1, 0] } }
-        }
-      }
+          critical: {
+            $sum: { $cond: [{ $lt: ["$antecedenceHours", 1] }, 1, 0] },
+          },
+          shortNotice: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    { $gte: ["$antecedenceHours", 1] },
+                    { $lt: ["$antecedenceHours", 24] },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          standard: {
+            $sum: { $cond: [{ $gte: ["$antecedenceHours", 24] }, 1, 0] },
+          },
+        },
+      },
     ]);
 
     // Ranking de motoristas por cancelamento
     const driverRanking = await RideModel.aggregate([
       {
         $group: {
-          _id: '$driver',
+          _id: "$driver",
           totalRides: { $sum: 1 },
-          cancelledRides: { $sum: { $cond: [{ $eq: ['$status', RideStatus.Cancelled] }, 1, 0] } }
-        }
+          cancelledRides: {
+            $sum: { $cond: [{ $eq: ["$status", RideStatus.Cancelled] }, 1, 0] },
+          },
+        },
       },
       { $match: { totalRides: { $gt: 5 } } }, // Mínimo de 5 caronas para ser relevante
       {
         $project: {
-          cancellationRate: { $divide: ['$cancelledRides', '$totalRides'] }
-        }
+          cancellationRate: { $divide: ["$cancelledRides", "$totalRides"] },
+        },
       },
       { $sort: { cancellationRate: -1 } },
       { $limit: 10 },
-      { $lookup: { from: 'users', localField: '_id', foreignField: '_id', as: 'driverInfo' } },
-      { $unwind: '$driverInfo' },
-      { $project: { 'driverInfo.name': 1, cancellationRate: 1 } }
+      {
+        $lookup: {
+          from: "users",
+          localField: "_id",
+          foreignField: "_id",
+          as: "driverInfo",
+        },
+      },
+      { $unwind: "$driverInfo" },
+      { $project: { "driverInfo.name": 1, cancellationRate: 1 } },
     ]);
 
     return {
       cancellationsByNotice: cancellations[0] || {},
-      driverCancellationRanking: driverRanking
+      driverCancellationRanking: driverRanking,
     };
   }
 
@@ -269,53 +365,81 @@ class AdminReportsService {
     const dateFilter = { createdAt: { $gte: startDate, $lte: endDate } };
 
     const searches = await SearchEventModel.countDocuments({
-      ...dateFilter
+      ...dateFilter,
     });
+
+    console.warn(searches);
     const views = await RideViewEventModel.countDocuments({
-      ...dateFilter
-    })
+      ...dateFilter,
+    });
 
     const bookingAnalysis = await RideModel.aggregate([
-      { $unwind: '$passengers' },
-      { $match: { 'passengers.requestedAt': { $gte: startDate, $lte: endDate } } },
+      { $unwind: "$passengers" },
+      {
+        $match: {
+          "passengers.requestedAt": { $gte: startDate, $lte: endDate },
+        },
+      },
       {
         $group: {
           _id: null,
           totalRequests: { $sum: 1 },
-          approved: { $sum: { $cond: [{ $eq: ['$passengers.status', 'approved'] }, 1, 0] } },
-          totalResponseTime: { $sum: { $cond: ['$passengers.managedAt', { $subtract: ['$passengers.managedAt', '$passengers.requestedAt'] }, 0] } },
-          managedCount: { $sum: { $cond: ['$passengers.managedAt', 1, 0] } }
-        }
-      }
+          approved: {
+            $sum: {
+              $cond: [{ $eq: ["$passengers.status", "approved"] }, 1, 0],
+            },
+          },
+          totalResponseTime: {
+            $sum: {
+              $cond: [
+                "$passengers.managedAt",
+                {
+                  $subtract: [
+                    "$passengers.managedAt",
+                    "$passengers.requestedAt",
+                  ],
+                },
+                0,
+              ],
+            },
+          },
+          managedCount: { $sum: { $cond: ["$passengers.managedAt", 1, 0] } },
+        },
+      },
     ]);
 
     const data = bookingAnalysis[0] || {};
-    const avgResponseTimeMs = data.managedCount > 0 ? data.totalResponseTime / data.managedCount : 0;
+    const avgResponseTimeMs =
+      data.managedCount > 0 ? data.totalResponseTime / data.managedCount : 0;
 
     return {
       searches,
       views,
       requests: data.totalRequests || 0,
       conversionRate: searches > 0 ? (data.approved || 0) / searches : 0,
-      averageDriverResponseTimeHours: (avgResponseTimeMs / 3600000).toFixed(2)
+      averageDriverResponseTimeHours: (avgResponseTimeMs / 3600000).toFixed(2),
     };
   }
 
   public async getRideOccupancyReport(startDate: Date, endDate: Date) {
     const rides = await RideModel.find({
       departureTime: { $gte: startDate, $lte: endDate },
-      status: RideStatus.Completed
+      status: RideStatus.Completed,
     });
     if (rides.length === 0) return { averagePassengers: 0, fullRidesRatio: 0 };
 
-    const totalPassengers = rides.reduce((sum, r) => sum + r.passengers.filter(p => p.status === 'approved').length, 0);
-    const fullRides = rides.filter(r => r.availableSeats === 0).length;
+    const totalPassengers = rides.reduce(
+      (sum, r) =>
+        sum + r.passengers.filter((p) => p.status === "approved").length,
+      0,
+    );
+    const fullRides = rides.filter((r) => r.availableSeats === 0).length;
 
     return {
       averagePassengers: totalPassengers / rides.length,
       fullRidesRatio: fullRides / rides.length,
       noShows: "Not implemented",
-      preventedDuplicateBookings: "Not implemented"
+      preventedDuplicateBookings: "Not implemented",
     };
   }
 
@@ -325,16 +449,37 @@ class AdminReportsService {
 
   public async getGeoAdherenceReport(startDate: Date, endDate: Date) {
     const dateFilter = { departureTime: { $gte: startDate, $lte: endDate } };
-    const morningRides = await RideModel.find({ ...dateFilter, $expr: { $and: [{ $gte: [{ $hour: '$departureTime' }, 6] }, { $lt: [{ $hour: '$departureTime' }, 10] }] } }).select('origin.point destination.point intermediateStops.point');
-    const eveningRides = await RideModel.find({ ...dateFilter, $expr: { $and: [{ $gte: [{ $hour: '$departureTime' }, 16] }, { $lt: [{ $hour: '$departureTime' }, 20] }] } }).select('origin.point destination.point intermediateStops.point');
+    const morningRides = await RideModel.find({
+      ...dateFilter,
+      $expr: {
+        $and: [
+          { $gte: [{ $hour: "$departureTime" }, 6] },
+          { $lt: [{ $hour: "$departureTime" }, 10] },
+        ],
+      },
+    }).select("origin.point destination.point intermediateStops.point");
+    const eveningRides = await RideModel.find({
+      ...dateFilter,
+      $expr: {
+        $and: [
+          { $gte: [{ $hour: "$departureTime" }, 16] },
+          { $lt: [{ $hour: "$departureTime" }, 20] },
+        ],
+      },
+    }).select("origin.point destination.point intermediateStops.point");
 
-    const extractPoints = (rides: any[]) => rides.flatMap(r => [r.origin.point.coordinates, r.destination.point.coordinates, ...r.intermediateStops.map((s: any) => s.point.coordinates)]);
+    const extractPoints = (rides: any[]) =>
+      rides.flatMap((r) => [
+        r.origin.point.coordinates,
+        r.destination.point.coordinates,
+        ...r.intermediateStops.map((s: any) => s.point.coordinates),
+      ]);
 
     return {
       morningHeatmapPoints: extractPoints(morningRides),
       eveningHeatmapPoints: extractPoints(eveningRides),
       averagePassengerDistanceToPickup: "Not implemented",
-      averageDriverRouteDeviation: "Not implemented"
+      averageDriverRouteDeviation: "Not implemented",
     };
   }
 
@@ -345,18 +490,22 @@ class AdminReportsService {
         $group: {
           _id: null,
           totalSearches: { $sum: 1 },
-          totalDuration: { $sum: '$durationMs' },
-          noMatchSearches: { $sum: { $cond: [{ $eq: ['$resultsCount', 0] }, 1, 0] } }
-        }
-      }
+          totalDuration: { $sum: "$durationMs" },
+          noMatchSearches: {
+            $sum: { $cond: [{ $eq: ["$resultsCount", 0] }, 1, 0] },
+          },
+        },
+      },
     ]);
 
     const data = performance[0] || {};
 
     return {
-      averageSearchTimeMs: data.totalSearches > 0 ? data.totalDuration / data.totalSearches : 0,
-      noMatchRate: data.totalSearches > 0 ? data.noMatchSearches / data.totalSearches : 0,
-      matchQuality: "Not implemented (requires impression tracking)"
+      averageSearchTimeMs:
+        data.totalSearches > 0 ? data.totalDuration / data.totalSearches : 0,
+      noMatchRate:
+        data.totalSearches > 0 ? data.noMatchSearches / data.totalSearches : 0,
+      matchQuality: "Not implemented (requires impression tracking)",
     };
   }
 
@@ -371,12 +520,13 @@ class AdminReportsService {
 
     const conversations = await ChatMessageModel.aggregate([
       { $match: dateFilter },
-      { $group: { _id: '$ride' } }
+      { $group: { _id: "$ride" } },
     ]);
     const totalConversations = conversations.length;
 
     return {
-      messagesPerConversation: totalConversations > 0 ? totalMessages / totalConversations : 0,
+      messagesPerConversation:
+        totalConversations > 0 ? totalMessages / totalConversations : 0,
       // Outros KPIs são complexos e deixados como "Não implementados" por enquanto
       messagesPerUser: "Not implemented",
       lateResponseConversations: "Not implemented",
@@ -394,14 +544,35 @@ class AdminReportsService {
 
   public async getChatAdminReport(startDate: Date, endDate: Date) {
     const dateFilter = { timestamp: { $gte: startDate, $lte: endDate } };
-    const adminReads = await AuditLogModel.countDocuments({ ...dateFilter, action: { actionType: AuditActionType.CHAT_HISTORY_VIEWED_BY_ADMIN, category: AuditLogCategory.CHAT } });
+    const adminReads = await AuditLogModel.countDocuments({
+      ...dateFilter,
+      action: {
+        actionType: AuditActionType.CHAT_HISTORY_VIEWED_BY_ADMIN,
+        category: AuditLogCategory.CHAT,
+      },
+    });
 
     const readsByAdmin = await AuditLogModel.aggregate([
-      { $match: { ...dateFilter, action: { actionType: AuditActionType.CHAT_HISTORY_VIEWED_BY_ADMIN, category: AuditLogCategory.CHAT } } },
-      { $group: { _id: '$actor.userId', count: { $sum: 1 } } },
-      { $lookup: { from: 'users', localField: '_id', foreignField: '_id', as: 'adminInfo' } },
-      { $unwind: '$adminInfo' },
-      { $project: { adminName: '$adminInfo.name', count: 1 } }
+      {
+        $match: {
+          ...dateFilter,
+          action: {
+            actionType: AuditActionType.CHAT_HISTORY_VIEWED_BY_ADMIN,
+            category: AuditLogCategory.CHAT,
+          },
+        },
+      },
+      { $group: { _id: "$actor.userId", count: { $sum: 1 } } },
+      {
+        $lookup: {
+          from: "users",
+          localField: "_id",
+          foreignField: "_id",
+          as: "adminInfo",
+        },
+      },
+      { $unwind: "$adminInfo" },
+      { $project: { adminName: "$adminInfo.name", count: 1 } },
     ]);
 
     return {
@@ -414,17 +585,24 @@ class AdminReportsService {
   public async getChatModerationReport(startDate: Date, endDate: Date) {
     const moderatedMessages = await ChatMessageModel.countDocuments({
       isModerated: true,
-      'moderationDetails.moderatedAt': { $gte: startDate, $lte: endDate }
+      "moderationDetails.moderatedAt": { $gte: startDate, $lte: endDate },
     });
 
     const reincidence = await ChatMessageModel.aggregate([
       { $match: { isModerated: true } },
-      { $group: { _id: '$sender', moderatedCount: { $sum: 1 } } },
+      { $group: { _id: "$sender", moderatedCount: { $sum: 1 } } },
       { $sort: { moderatedCount: -1 } },
       { $limit: 10 },
-      { $lookup: { from: 'users', localField: '_id', foreignField: '_id', as: 'userInfo' } },
-      { $unwind: '$userInfo' },
-      { $project: { userName: '$userInfo.name', moderatedCount: 1 } }
+      {
+        $lookup: {
+          from: "users",
+          localField: "_id",
+          foreignField: "_id",
+          as: "userInfo",
+        },
+      },
+      { $unwind: "$userInfo" },
+      { $project: { userName: "$userInfo.name", moderatedCount: 1 } },
     ]);
 
     return {
@@ -440,7 +618,9 @@ class AdminReportsService {
 
   public async getNotificationDeliveryReport(startDate: Date, endDate: Date) {
     const dateFilter = { createdAt: { $gte: startDate, $lte: endDate } };
-    const totalActiveUsers = await UserModel.countDocuments({ status: UserStatus.Approved });
+    const totalActiveUsers = await UserModel.countDocuments({
+      status: UserStatus.Approved,
+    });
 
     // 1. Taxa de Opt-in
     const optInStats = await NotificationSubscriptionModel.aggregate([
@@ -448,28 +628,61 @@ class AdminReportsService {
         $group: {
           _id: null,
           // Cria um conjunto de IDs de usuários únicos que têm pelo menos uma permissão concedida
-          usersWithAnyPermission: { $addToSet: { $cond: ['$isPermissionGranted', '$user', null] } },
+          usersWithAnyPermission: {
+            $addToSet: { $cond: ["$isPermissionGranted", "$user", null] },
+          },
           // Conta as permissões por categoria
-          ridesOptIn: { $sum: { $cond: ['$notificationsKinds.rides', 1, 0] } },
-          chatsOptIn: { $sum: { $cond: ['$notificationsKinds.chats', 1, 0] } },
-          communicationOptIn: { $sum: { $cond: ['$notificationsKinds.communication', 1, 0] } },
-          totalSubscriptions: { $sum: 1 }
-        }
+          ridesOptIn: { $sum: { $cond: ["$notificationsKinds.rides", 1, 0] } },
+          chatsOptIn: { $sum: { $cond: ["$notificationsKinds.chats", 1, 0] } },
+          communicationOptIn: {
+            $sum: { $cond: ["$notificationsKinds.communication", 1, 0] },
+          },
+          totalSubscriptions: { $sum: 1 },
+        },
       },
       {
         $project: {
           _id: 0,
-          totalUsersWithOptIn: { $size: { $filter: { input: '$usersWithAnyPermission', as: 'user', cond: '$$user' } } },
+          totalUsersWithOptIn: {
+            $size: {
+              $filter: {
+                input: "$usersWithAnyPermission",
+                as: "user",
+                cond: "$$user",
+              },
+            },
+          },
           categoryRates: {
-            rides: { $cond: [{ $gt: ['$totalSubscriptions', 0] }, { $divide: ['$ridesOptIn', '$totalSubscriptions'] }, 0] },
-            chats: { $cond: [{ $gt: ['$totalSubscriptions', 0] }, { $divide: ['$chatsOptIn', '$totalSubscriptions'] }, 0] },
-            communication: { $cond: [{ $gt: ['$totalSubscriptions', 0] }, { $divide: ['$communicationOptIn', '$totalSubscriptions'] }, 0] }
-          }
-        }
-      }
+            rides: {
+              $cond: [
+                { $gt: ["$totalSubscriptions", 0] },
+                { $divide: ["$ridesOptIn", "$totalSubscriptions"] },
+                0,
+              ],
+            },
+            chats: {
+              $cond: [
+                { $gt: ["$totalSubscriptions", 0] },
+                { $divide: ["$chatsOptIn", "$totalSubscriptions"] },
+                0,
+              ],
+            },
+            communication: {
+              $cond: [
+                { $gt: ["$totalSubscriptions", 0] },
+                { $divide: ["$communicationOptIn", "$totalSubscriptions"] },
+                0,
+              ],
+            },
+          },
+        },
+      },
     ]);
     const optInData = optInStats[0] || {};
-    const generalOptInRate = totalActiveUsers > 0 ? (optInData.totalUsersWithOptIn || 0) / totalActiveUsers : 0;
+    const generalOptInRate =
+      totalActiveUsers > 0
+        ? (optInData.totalUsersWithOptIn || 0) / totalActiveUsers
+        : 0;
 
     // 2. Funil de Entrega
     const funnel = await NotificationEventModel.aggregate([
@@ -478,30 +691,35 @@ class AdminReportsService {
         $group: {
           _id: null,
           sent: { $sum: 1 }, // Todos os eventos criados são tentativas de envio
-          delivered: { $sum: { $cond: [{ $in: ['$status', ['delivered']] }, 1, 0] } },
-        }
-      }
+          delivered: {
+            $sum: { $cond: [{ $in: ["$status", ["delivered"]] }, 1, 0] },
+          },
+        },
+      },
     ]);
     const funnelData = funnel[0] || { sent: 0, delivered: 0, clicked: 0 };
 
     // 3. Dispositivos sem permissão
-    const devicesWithoutPermission = await NotificationSubscriptionModel.countDocuments({ isPermissionGranted: false });
+    const devicesWithoutPermission =
+      await NotificationSubscriptionModel.countDocuments({
+        isPermissionGranted: false,
+      });
 
     // 4. Notificações críticas entregues
     const criticalDelivered = await NotificationEventModel.countDocuments({
       ...dateFilter,
-      category: { $in: ['security', 'system'] },
-      status: { $in: ['delivered'] }
+      category: { $in: ["security", "system"] },
+      status: { $in: ["delivered"] },
     });
 
     return {
       optInRate: {
         general: generalOptInRate,
-        byCategory: optInData.categoryRates || {}
+        byCategory: optInData.categoryRates || {},
       },
       deliveryFunnel: funnelData,
       devicesWithoutPermission,
-      criticalNotificationsDelivered: criticalDelivered
+      criticalNotificationsDelivered: criticalDelivered,
     };
   }
 
@@ -510,38 +728,43 @@ class AdminReportsService {
 
     // 1. Eventos suprimidos (assumindo que o SuppressedNotificationModel existe)
     const suppressedEvents = await SuppressedNotificationModel.aggregate([
-        { $match: dateFilter },
-        { $group: { _id: '$reason', count: { $sum: 1 } } }
+      { $match: dateFilter },
+      { $group: { _id: "$reason", count: { $sum: 1 } } },
     ]);
-    const aggregationsApplied = suppressedEvents.find(e => e._id === 'aggregation')?.count || 0;
-    const rateLimitedEvents = suppressedEvents.find(e => e._id === 'rate_limit')?.count || 0;
+    const aggregationsApplied =
+      suppressedEvents.find((e) => e._id === "aggregation")?.count || 0;
+    const rateLimitedEvents =
+      suppressedEvents.find((e) => e._id === "rate_limit")?.count || 0;
 
     // 2. Falhas de entrega por plataforma
     const deliveryFailures = await NotificationEventModel.aggregate([
-      { $match: { ...dateFilter, status: 'failed' } },
-      { $group: { _id: '$platform', count: { $sum: 1 } } },
-      { $sort: { count: -1 } }
+      { $match: { ...dateFilter, status: "failed" } },
+      { $group: { _id: "$platform", count: { $sum: 1 } } },
+      { $sort: { count: -1 } },
     ]);
 
     // 3. Tempo médio até a entrega (da criação do evento até a atualização do status)
     const deliveryTime = await NotificationEventModel.aggregate([
-      { $match: { ...dateFilter, status: { $in: ['delivered'] } } },
+      { $match: { ...dateFilter, status: { $in: ["delivered"] } } },
       {
         $group: {
           _id: null,
-          totalTime: { $sum: { $subtract: ['$updatedAt', '$createdAt'] } },
-          count: { $sum: 1 }
-        }
-      }
+          totalTime: { $sum: { $subtract: ["$updatedAt", "$createdAt"] } },
+          count: { $sum: 1 },
+        },
+      },
     ]);
     const deliveryTimeData = deliveryTime[0] || {};
-    const averageDeliveryTimeMs = deliveryTimeData.count > 0 ? deliveryTimeData.totalTime / deliveryTimeData.count : 0;
+    const averageDeliveryTimeMs =
+      deliveryTimeData.count > 0
+        ? deliveryTimeData.totalTime / deliveryTimeData.count
+        : 0;
 
     return {
       aggregationsApplied,
       eventsSuppressedByLimit: rateLimitedEvents,
       deliveryFailuresByPlatform: deliveryFailures,
-      averageTimeToDeliverySeconds: (averageDeliveryTimeMs / 1000).toFixed(2)
+      averageTimeToDeliverySeconds: (averageDeliveryTimeMs / 1000).toFixed(2),
     };
   }
 
@@ -555,31 +778,43 @@ class AdminReportsService {
         $group: {
           _id: null,
           totalUsers: { $sum: 1 },
-          highContrast: { $sum: { $cond: ['$accessibilitySettings.highContrast', 1, 0] } },
-          largeFont: { $sum: { $cond: ['$accessibilitySettings.largeFont', 1, 0] } },
-          reduceAnimations: { $sum: { $cond: ['$accessibilitySettings.reduceAnimations', 1, 0] } },
-          muteSounds: { $sum: { $cond: ['$accessibilitySettings.muteSounds', 1, 0] } },
-        }
-      }
+          highContrast: {
+            $sum: { $cond: ["$accessibilitySettings.highContrast", 1, 0] },
+          },
+          largeFont: {
+            $sum: { $cond: ["$accessibilitySettings.largeFont", 1, 0] },
+          },
+          reduceAnimations: {
+            $sum: { $cond: ["$accessibilitySettings.reduceAnimations", 1, 0] },
+          },
+          muteSounds: {
+            $sum: { $cond: ["$accessibilitySettings.muteSounds", 1, 0] },
+          },
+        },
+      },
     ]);
     const data = settingsAdoption[0] || {};
     return {
-      highContrastAdoption: data.totalUsers > 0 ? data.highContrast / data.totalUsers : 0,
-      largeFontAdoption: data.totalUsers > 0 ? data.largeFont / data.totalUsers : 0,
-      reduceAnimationsAdoption: data.totalUsers > 0 ? data.reduceAnimations / data.totalUsers : 0,
-      muteSoundsAdoption: data.totalUsers > 0 ? data.muteSounds / data.totalUsers : 0,
+      highContrastAdoption:
+        data.totalUsers > 0 ? data.highContrast / data.totalUsers : 0,
+      largeFontAdoption:
+        data.totalUsers > 0 ? data.largeFont / data.totalUsers : 0,
+      reduceAnimationsAdoption:
+        data.totalUsers > 0 ? data.reduceAnimations / data.totalUsers : 0,
+      muteSoundsAdoption:
+        data.totalUsers > 0 ? data.muteSounds / data.totalUsers : 0,
     };
   }
 
   public async getLocalizationReport() {
     const languageDistribution = await UserModel.aggregate([
-      { $group: { _id: '$languagePreference', count: { $sum: 1 } } },
-      { $sort: { count: -1 } }
+      { $group: { _id: "$languagePreference", count: { $sum: 1 } } },
+      { $sort: { count: -1 } },
     ]);
     return {
       languageDistribution,
       translationFallbacks: "Not implemented",
-      rtlLayoutErrors: "Not implemented"
+      rtlLayoutErrors: "Not implemented",
     };
   }
 
@@ -589,46 +824,57 @@ class AdminReportsService {
 
   public async getComplianceReport(startDate: Date, endDate: Date) {
     const dateFilter = { timestamp: { $gte: startDate, $lte: endDate } };
-    const sensitiveActions = [AuditActionType.CHAT_HISTORY_VIEWED_BY_ADMIN, AuditActionType.PRIVACY_DATA_REPORT_GENERATED, AuditActionType.SECURITY_BLOCK_REASONS_VIEWED_BY_ADMIN];
+    const sensitiveActions = [
+      AuditActionType.CHAT_HISTORY_VIEWED_BY_ADMIN,
+      AuditActionType.PRIVACY_DATA_REPORT_GENERATED,
+      AuditActionType.SECURITY_BLOCK_REASONS_VIEWED_BY_ADMIN,
+    ];
     const sensitiveLogs = await AuditLogModel.countDocuments({
       ...dateFilter,
-      action: { actionType: { $in: sensitiveActions } }
+      action: { actionType: { $in: sensitiveActions } },
     });
     const accessDenied = await AuditLogModel.countDocuments({
       ...dateFilter,
-      action: { actionType: AuditActionType.SECURITY_ACCESS_DENIED }
+      action: { actionType: AuditActionType.SECURITY_ACCESS_DENIED },
     });
     return {
       sensitiveLogsVolume: sensitiveLogs,
-      deniedAccessAttempts: accessDenied
+      deniedAccessAttempts: accessDenied,
     };
   }
 
   public async getPrivacyComplianceReport(startDate: Date, endDate: Date) {
     const requests = await PrivacyRequestModel.aggregate([
       { $match: { requestedAt: { $gte: startDate, $lte: endDate } } },
-      { $group: { _id: '$type', count: { $sum: 1 } } }
+      { $group: { _id: "$type", count: { $sum: 1 } } },
     ]);
-    const reportsIssued = await DataReportModel.countDocuments({ createdAt: { $gte: startDate, $lte: endDate } });
-    const softDeletes = await UserModel.countDocuments({ status: 'anonymized', updatedAt: { $gte: startDate, $lte: endDate } });
+    const reportsIssued = await DataReportModel.countDocuments({
+      createdAt: { $gte: startDate, $lte: endDate },
+    });
+    const softDeletes = await UserModel.countDocuments({
+      status: "anonymized",
+      updatedAt: { $gte: startDate, $lte: endDate },
+    });
 
     return {
       requestsByType: requests,
       softDeletesExecuted: softDeletes,
-      integrityReportsIssued: reportsIssued
+      integrityReportsIssued: reportsIssued,
     };
   }
 
   public async getSessionSecurityReport(startDate: Date, endDate: Date) {
     const globalLogouts = await AuditLogModel.countDocuments({
-      action: { actionType: AuditActionType.SECURITY_USER_SESSIONS_REVOKED_BY_ADMIN },
-      timestamp: { $gte: startDate, $lte: endDate }
+      action: {
+        actionType: AuditActionType.SECURITY_USER_SESSIONS_REVOKED_BY_ADMIN,
+      },
+      timestamp: { $gte: startDate, $lte: endDate },
     });
 
     return {
       globalLogouts,
       refreshTokenRotations: "Not implemented",
-      sessionsByDevice: "Not implemented"
+      sessionsByDevice: "Not implemented",
     };
   }
 
@@ -638,23 +884,41 @@ class AdminReportsService {
 
   public async getEsgReport(startDate: Date, endDate: Date) {
     const result = await RideModel.aggregate([
-      { $match: { status: RideStatus.Completed, departureTime: { $gte: startDate, $lte: endDate }, distanceKm: { $exists: true } } },
+      {
+        $match: {
+          status: RideStatus.Completed,
+          departureTime: { $gte: startDate, $lte: endDate },
+          distanceKm: { $exists: true },
+        },
+      },
       {
         $project: {
           distanceKm: 1,
           price: 1,
-          passengerCount: { $size: { $filter: { input: '$passengers', as: 'p', cond: { $eq: ['$$p.status', 'approved'] } } } }
-        }
+          passengerCount: {
+            $size: {
+              $filter: {
+                input: "$passengers",
+                as: "p",
+                cond: { $eq: ["$$p.status", "approved"] },
+              },
+            },
+          },
+        },
       },
       {
         $group: {
           _id: null,
-          totalSharedKm: { $sum: { $multiply: ['$distanceKm', '$passengerCount'] } },
-          totalPassengerEconomy: { $sum: { $multiply: ['$price', '$passengerCount'] } },
-          totalPassengerRides: { $sum: '$passengerCount' },
-          totalRides: { $sum: 1 }
-        }
-      }
+          totalSharedKm: {
+            $sum: { $multiply: ["$distanceKm", "$passengerCount"] },
+          },
+          totalPassengerEconomy: {
+            $sum: { $multiply: ["$price", "$passengerCount"] },
+          },
+          totalPassengerRides: { $sum: "$passengerCount" },
+          totalRides: { $sum: 1 },
+        },
+      },
     ]);
     const data = result[0] || {};
     // Fator de emissão médio para carros no Brasil: ~130g CO2/km
@@ -663,8 +927,12 @@ class AdminReportsService {
     return {
       sharedKilometers: data.totalSharedKm || 0,
       estimatedCo2EmissionsAvoidedKg: co2AvoidedKg.toFixed(2),
-      averageOccupancyPerTrip: data.totalRides > 0 ? data.totalPassengerRides / data.totalRides : 0,
-      averagePassengerSavings: data.totalPassengerRides > 0 ? data.totalPassengerEconomy / data.totalPassengerRides : 0
+      averageOccupancyPerTrip:
+        data.totalRides > 0 ? data.totalPassengerRides / data.totalRides : 0,
+      averagePassengerSavings:
+        data.totalPassengerRides > 0
+          ? data.totalPassengerEconomy / data.totalPassengerRides
+          : 0,
     };
   }
 }
