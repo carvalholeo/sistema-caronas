@@ -1,8 +1,13 @@
+// @ts-check
+/** @type {import('@stryker-mutator/api/core').PartialStrykerOptions} */
+import jestConfig from './jest.config.js';
+import os from 'node:os';
 const config = {
   packageManager: 'npm',
   reporters: ['html', 'clear-text', 'progress'],
   testRunner: 'jest',
   coverageAnalysis: 'perTest',
+  ignoreStatic: true,
 
   // Files to mutate
   mutate: [
@@ -11,14 +16,16 @@ const config = {
     '!src/**/*.spec.ts',
     '!src/app.ts', // Entry point
     '!src/types/**',
-    '!src/scripts/**'
+    '!src/scripts/**',
+    '!node_modules/**',
+    '!dist/**',
+    '!tests/**'
   ],
 
   // Test files
-  testFramework: 'jest',
   jest: {
     projectType: 'custom',
-    config: require('./jest.config.js'),
+    config: jestConfig,
     enableFindRelatedTests: true
   },
 
@@ -43,17 +50,15 @@ const config = {
   },
 
   // Concurrency
-  concurrency: 4,
-  maxConcurrentTestRunners: 2,
+  concurrency: Math.ceil(os.cpus().length * 0.75),
 
   // Reporting
   htmlReporter: {
-    baseDir: 'reports/mutation'
+    fileName: 'reports/mutation/report.html',
   },
 
   // Incremental testing
   incremental: true,
   incrementalFile: 'reports/stryker-incremental.json'
 };
-
 export default config;

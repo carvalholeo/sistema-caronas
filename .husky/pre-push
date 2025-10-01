@@ -4,7 +4,7 @@ echo "🚀 Running pre-push checks..."
 
 # 1. Executar testes unitários
 echo "📋 Running unit tests..."
-npm run test
+npm test
 if [ $? -ne 0 ]; then
   echo "❌ Unit tests failed. Push aborted."
   exit 1
@@ -78,7 +78,7 @@ if git diff HEAD~1 --name-only | grep -q "src/models/"; then
 
   # Executar testes de model
   echo "🧪 Running model tests..."
-  npm run test -- --testNamePattern="Model"
+  npm test tests/unit/models"
   if [ $? -ne 0 ]; then
     echo "❌ Model tests failed."
     exit 1

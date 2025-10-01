@@ -64,3 +64,4 @@ coverage/
 coverage-final.json
 coverage.json
 .scannerwork
+.stryker-tmp
