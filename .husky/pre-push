@@ -78,7 +78,7 @@ if git diff HEAD~1 --name-only | grep -q "src/models/"; then
 
   # Executar testes de model
   echo "🧪 Running model tests..."
-  npm test tests/unit/models"
+  npm test tests/unit/models
   if [ $? -ne 0 ]; then
     echo "❌ Model tests failed."
     exit 1
