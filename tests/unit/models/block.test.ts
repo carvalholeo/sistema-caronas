@@ -82,6 +82,9 @@ describe("Block Model Integration Test", () => {
       const blockData = createBlockData();
       await BlockModel.create(blockData); // Cria o primeiro bloqueio
 
+      // contorno para quando o Mongo ainda está armazenando o primeiro registro e o segundo está chegando
+      await new Promise((resolve) => setTimeout(resolve, 50));
+
       // Act & Assert
       // O motor do MongoDB vai disparar o erro de chave duplicada aqui.
       await expect(BlockModel.create(blockData)).rejects.toThrow(

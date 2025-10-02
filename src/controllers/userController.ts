@@ -35,7 +35,7 @@ export const updateProfilePicture = async (
 
 export const getUserProfile = async (req: Request, res: Response) => {
   try {
-    const userId = req.params.id;
+    const userId = req.params.id as unknown as IUser;
     const user = await userService.getUserById(userId);
     if (!user) {
       return res.status(404).json({ message: "User not found" });
@@ -48,7 +48,7 @@ export const getUserProfile = async (req: Request, res: Response) => {
 
 export const updateUserProfile = async (req: Request, res: Response) => {
   try {
-    const userId = req.params.id;
+    const userId = req.params.id as unknown as IUser;
     const updatedData: Partial<IUser> = req.body;
     const updatedUser = await userService.updateUser(userId, updatedData);
     if (!updatedUser) {
@@ -62,7 +62,7 @@ export const updateUserProfile = async (req: Request, res: Response) => {
 
 export const approveUserRegistration = async (req: Request, res: Response) => {
   try {
-    const userId = req.params.id;
+    const userId = req.params.id as unknown as IUser;
     const approvedUser = await userService.approveUser(userId);
     if (!approvedUser) {
       return res.status(404).json({ message: "User not found" });

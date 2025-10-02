@@ -24,7 +24,7 @@ export class UserService {
    * @param file - O arquivo da nova foto de perfil.
    * @returns O usuário atualizado com a nova URL da foto.
    */
-  public async updateProfilePicture(userId: string, file: Express.Multer.File) {
+  public async updateProfilePicture(userId: IUser, file: Express.Multer.File) {
     if (!file || file === null) {
       throw new Error("Invalid file");
     }
@@ -53,18 +53,18 @@ export class UserService {
     return await user.save();
   }
 
-  async getUserById(userId: string): Promise<IUser | null> {
+  async getUserById(userId: IUser): Promise<IUser | null> {
     return await UserModel.findById(userId);
   }
 
   async updateUser(
-    userId: string,
+    userId: IUser,
     updateData: Partial<IUser>,
   ): Promise<IUser | null> {
     return await UserModel.findByIdAndUpdate(userId, updateData, { new: true });
   }
 
-  async approveUser(userId: string): Promise<IUser | null> {
+  async approveUser(userId: IUser): Promise<IUser | null> {
     return await UserModel.findByIdAndUpdate(
       userId,
       { approved: true },
@@ -73,7 +73,7 @@ export class UserService {
   }
 
   async validateUserPassword(
-    userId: string,
+    userId: IUser,
     password: string,
   ): Promise<boolean> {
     const user = await this.getUserById(userId);

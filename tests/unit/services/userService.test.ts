@@ -1,60 +1,64 @@
-import { UserService } from '../../../src/services/userService';
-import { UserModel } from '../../../src/models/user';
-import { IUser } from '../../../src/types';
-import { UserStatus } from '../../../src/types/enums/enums';
-import { LocalStorageProvider } from '../../../src/providers/storage/LocalStorageProvider';
-import { S3StorageProvider } from '../../../src/providers/storage/S3StorageProvider';
-import { isCloudUploadDestination } from '../../../src/config/uploadAndMulter';
-import { Readable } from 'stream';
+import { UserService } from "../../../src/services/userService";
+import { UserModel } from "../../../src/models/user";
+import { IUser } from "../../../src/types";
+import { UserStatus } from "../../../src/types/enums/enums";
+import { LocalStorageProvider } from "../../../src/providers/storage/LocalStorageProvider";
+import { S3StorageProvider } from "../../../src/providers/storage/S3StorageProvider";
+import { isCloudUploadDestination } from "../../../src/config/uploadAndMulter";
+import { Readable } from "stream";
 
 // Mocking de TODAS as dependências externas
-jest.mock('../../../src/models/user');
-jest.mock('../../../src/providers/storage/LocalStorageProvider');
-jest.mock('../../../src/providers/storage/S3StorageProvider');
-jest.mock('../../../src/config/uploadAndMulter');
+jest.mock("../../../src/models/user");
+jest.mock("../../../src/providers/storage/LocalStorageProvider");
+jest.mock("../../../src/providers/storage/S3StorageProvider");
+jest.mock("../../../src/config/uploadAndMulter");
 
 // Tipos mockados
 const MockedUserModel = UserModel as jest.MockedClass<typeof UserModel>;
-const MockedLocalStorageProvider = LocalStorageProvider as jest.MockedClass<typeof LocalStorageProvider>;
-const MockedS3StorageProvider = S3StorageProvider as jest.MockedClass<typeof S3StorageProvider>;
+const MockedLocalStorageProvider = LocalStorageProvider as jest.MockedClass<
+  typeof LocalStorageProvider
+>;
+const MockedS3StorageProvider = S3StorageProvider as jest.MockedClass<
+  typeof S3StorageProvider
+>;
 // we'll set the exported flag directly in tests when needed
 
-describe('UserService', () => {
+describe("UserService", () => {
   let userService: UserService;
   let mockStorageProvider: any;
 
   // Dados de teste padronizados
   const mockUser: Partial<IUser> = {
-    _id: 'user123',
-    email: 'test@example.com',
-    name: 'Test User',
-    matricula: '12345',
+    _id: "user123",
+    email: "test@example.com",
+    name: "Test User",
+    matricula: "12345",
     profilePictureUrl: undefined,
     roles: [],
     status: UserStatus.Approved,
     comparePassword: jest.fn(),
-    save: jest.fn()
+    save: jest.fn(),
   };
 
   const mockUserData: Partial<IUser> = {
-    email: 'newuser@example.com',
-    name: 'New User',
-    matricula: '54321',
+    email: "newuser@example.com",
+    name: "New User",
+    matricula: "54321",
     roles: [],
-    status: UserStatus.Pending
+    status: UserStatus.Pending,
   };
 
   const mockFile: Express.Multer.File = {
-    fieldname: 'profilePicture',
-    originalname: 'profile.jpg',
-    encoding: '7bit',
-    mimetype: 'image/jpeg',
+    fieldname: "profilePicture",
+    originalname: "profile.jpg",
+    encoding: "7bit",
+    mimetype: "image/jpeg",
     size: 1024,
-    destination: '/uploads',
-    filename: 'profile123.jpg',
-    path: '/uploads/profile123.jpg',
-    buffer: Buffer.from('fake-image-data'),
-    stream: new Readable()
+    destination: "/uploads",
+    filename: "profile123.jpg",
+    path: "/uploads/profile123.jpg",
+    buffer: Buffer.from("fake-image-data"),
+    stream: new Readable(),
   } as Express.Multer.File;
 
   beforeEach(() => {
@@ -64,19 +68,21 @@ describe('UserService', () => {
     // Configurar mock do storage provider
     mockStorageProvider = {
       saveFile: jest.fn(),
-      deleteFile: jest.fn()
+      deleteFile: jest.fn(),
     };
 
     // Resetar configuração padrão
     (isCloudUploadDestination as unknown as boolean) = false;
-    (MockedLocalStorageProvider as unknown as jest.Mock).mockImplementation(() => mockStorageProvider as unknown as LocalStorageProvider);
+    (MockedLocalStorageProvider as unknown as jest.Mock).mockImplementation(
+      () => mockStorageProvider as unknown as LocalStorageProvider,
+    );
 
     // Criar nova instância para cada teste
     userService = new UserService();
   });
 
-  describe('Constructor', () => {
-    it('should initialize with LocalStorageProvider when cloud upload is disabled', () => {
+  describe("Constructor", () => {
+    it("should initialize with LocalStorageProvider when cloud upload is disabled", () => {
       // Arrange
       (isCloudUploadDestination as unknown as boolean) = false;
       MockedLocalStorageProvider.mockClear();
@@ -90,7 +96,7 @@ describe('UserService', () => {
       expect(MockedS3StorageProvider).not.toHaveBeenCalled();
     });
 
-    it('should initialize with S3StorageProvider when cloud upload is enabled', () => {
+    it("should initialize with S3StorageProvider when cloud upload is enabled", () => {
       // Arrange
       (isCloudUploadDestination as unknown as boolean) = true;
       MockedLocalStorageProvider.mockClear();
@@ -106,174 +112,224 @@ describe('UserService', () => {
     });
   });
 
-  describe('updateProfilePicture', () => {
-    it('should successfully update profile picture for user without existing picture', async () => {
+  describe("updateProfilePicture", () => {
+    it("should successfully update profile picture for user without existing picture", async () => {
       // Arrange
       const userWithoutPicture = {
         ...mockUser,
         profilePictureUrl: null,
-        save: jest.fn().mockResolvedValue(mockUser)
+        save: jest.fn().mockResolvedValue(mockUser),
       };
-      (MockedUserModel.findById as jest.Mock).mockResolvedValue(userWithoutPicture as unknown as Partial<IUser>);
-      mockStorageProvider.saveFile.mockResolvedValue('https://storage.com/new-picture.jpg');
+      (MockedUserModel.findById as jest.Mock).mockResolvedValue(
+        userWithoutPicture as unknown as Partial<IUser>,
+      );
+      mockStorageProvider.saveFile.mockResolvedValue(
+        "https://storage.com/new-picture.jpg",
+      );
 
       // Act
-      const result = await userService.updateProfilePicture('user123', mockFile);
+      const result = await userService.updateProfilePicture(mockUser, mockFile);
 
       // Assert
-      expect(MockedUserModel.findById).toHaveBeenCalledWith('user123');
+      expect(MockedUserModel.findById).toHaveBeenCalledWith(mockUser);
       expect(MockedUserModel.findById).toHaveBeenCalledTimes(1);
       expect(mockStorageProvider.deleteFile).not.toHaveBeenCalled();
       expect(mockStorageProvider.saveFile).toHaveBeenCalledWith(mockFile);
       expect(mockStorageProvider.saveFile).toHaveBeenCalledTimes(1);
-      expect(userWithoutPicture.profilePictureUrl).toBe('https://storage.com/new-picture.jpg');
+      expect(userWithoutPicture.profilePictureUrl).toBe(
+        "https://storage.com/new-picture.jpg",
+      );
       expect(userWithoutPicture.save).toHaveBeenCalledTimes(1);
       expect(result).toBe(userWithoutPicture);
     });
 
-    it('should successfully update profile picture and delete old picture', async () => {
+    it("should successfully update profile picture and delete old picture", async () => {
       // Arrange
       const userWithPicture = {
         ...mockUser,
-        profilePictureUrl: 'https://storage.com/old-picture.jpg',
-        save: jest.fn().mockResolvedValue(mockUser)
+        profilePictureUrl: "https://storage.com/old-picture.jpg",
+        save: jest.fn().mockResolvedValue(mockUser),
       };
-      (MockedUserModel.findById as jest.Mock).mockResolvedValue(userWithPicture as Partial<IUser>);
+      (MockedUserModel.findById as jest.Mock).mockResolvedValue(
+        userWithPicture as Partial<IUser>,
+      );
       mockStorageProvider.deleteFile.mockResolvedValue(undefined);
-      mockStorageProvider.saveFile.mockResolvedValue('https://storage.com/new-picture.jpg');
+      mockStorageProvider.saveFile.mockResolvedValue(
+        "https://storage.com/new-picture.jpg",
+      );
 
       // Act
-      await userService.updateProfilePicture('user123', mockFile);
+      await userService.updateProfilePicture(mockUser, mockFile);
 
       // Assert
-      expect(MockedUserModel.findById).toHaveBeenCalledWith('user123');
-      expect(mockStorageProvider.deleteFile).toHaveBeenCalledWith('https://storage.com/old-picture.jpg');
+      expect(MockedUserModel.findById).toHaveBeenCalledWith(mockUser);
+      expect(mockStorageProvider.deleteFile).toHaveBeenCalledWith(
+        "https://storage.com/old-picture.jpg",
+      );
       expect(mockStorageProvider.deleteFile).toHaveBeenCalledTimes(1);
       expect(mockStorageProvider.saveFile).toHaveBeenCalledWith(mockFile);
       expect(mockStorageProvider.saveFile).toHaveBeenCalledTimes(1);
-      expect(userWithPicture.profilePictureUrl).toBe('https://storage.com/new-picture.jpg');
+      expect(userWithPicture.profilePictureUrl).toBe(
+        "https://storage.com/new-picture.jpg",
+      );
       expect(userWithPicture.save).toHaveBeenCalledTimes(1);
     });
 
-    it('should throw error when user is not found', async () => {
+    it("should throw error when user is not found", async () => {
       // Arrange
       (MockedUserModel.findById as jest.Mock).mockResolvedValue(null);
 
       // Act & Assert
-      await expect(userService.updateProfilePicture('nonexistent', mockFile))
-        .rejects
-        .toThrow('Usuário não encontrado.');
+      await expect(
+        userService.updateProfilePicture("nonexistent", mockFile),
+      ).rejects.toThrow("Usuário não encontrado.");
 
-      expect(MockedUserModel.findById).toHaveBeenCalledWith('nonexistent');
+      expect(MockedUserModel.findById).toHaveBeenCalledWith("nonexistent");
       expect(MockedUserModel.findById).toHaveBeenCalledTimes(1);
       expect(mockStorageProvider.saveFile).not.toHaveBeenCalled();
       expect(mockStorageProvider.deleteFile).not.toHaveBeenCalled();
     });
 
-    it('should handle storage provider saveFile failure', async () => {
+    it("should handle storage provider saveFile failure", async () => {
       // Arrange
       const userWithoutPicture = {
         ...mockUser,
         profilePictureUrl: null,
-        save: jest.fn()
+        save: jest.fn(),
       };
-      (MockedUserModel.findById as jest.Mock).mockResolvedValue(userWithoutPicture as unknown as Partial<IUser>);
-      mockStorageProvider.saveFile.mockRejectedValue(new Error('Storage save failed'));
+      (MockedUserModel.findById as jest.Mock).mockResolvedValue(
+        userWithoutPicture as unknown as Partial<IUser>,
+      );
+      mockStorageProvider.saveFile.mockRejectedValue(
+        new Error("Storage save failed"),
+      );
 
       // Act & Assert
-      await expect(userService.updateProfilePicture('user123', mockFile))
-        .rejects
-        .toThrow('Storage save failed');
+      await expect(
+        userService.updateProfilePicture(mockUser, mockFile),
+      ).rejects.toThrow("Storage save failed");
 
       expect(mockStorageProvider.saveFile).toHaveBeenCalledWith(mockFile);
       expect(mockStorageProvider.saveFile).toHaveBeenCalledTimes(1);
       expect(userWithoutPicture.save).not.toHaveBeenCalled();
     });
 
-    it('should handle storage provider deleteFile failure', async () => {
+    it("should handle storage provider deleteFile failure", async () => {
       // Arrange
       const userWithPicture = {
         ...mockUser,
-        profilePictureUrl: 'https://storage.com/old-picture.jpg',
-        save: jest.fn()
+        profilePictureUrl: "https://storage.com/old-picture.jpg",
+        save: jest.fn(),
       };
-      (MockedUserModel.findById as jest.Mock).mockResolvedValue(userWithPicture as Partial<IUser>);
-      mockStorageProvider.deleteFile.mockRejectedValue(new Error('Delete failed'));
+      (MockedUserModel.findById as jest.Mock).mockResolvedValue(
+        userWithPicture as Partial<IUser>,
+      );
+      mockStorageProvider.deleteFile.mockRejectedValue(
+        new Error("Delete failed"),
+      );
 
       // Act & Assert
-      await expect(userService.updateProfilePicture('user123', mockFile))
-        .rejects
-        .toThrow('Delete failed');
+      await expect(
+        userService.updateProfilePicture(mockUser, mockFile),
+      ).rejects.toThrow("Delete failed");
 
-      expect(mockStorageProvider.deleteFile).toHaveBeenCalledWith('https://storage.com/old-picture.jpg');
+      expect(mockStorageProvider.deleteFile).toHaveBeenCalledWith(
+        "https://storage.com/old-picture.jpg",
+      );
       expect(mockStorageProvider.deleteFile).toHaveBeenCalledTimes(1);
       expect(mockStorageProvider.saveFile).not.toHaveBeenCalled();
       expect(userWithPicture.save).not.toHaveBeenCalled();
     });
 
-    it('should handle user save failure', async () => {
+    it("should handle user save failure", async () => {
       // Arrange
       const userWithError = {
         ...mockUser,
         profilePictureUrl: null,
-        save: jest.fn().mockRejectedValue(new Error('Database save failed'))
+        save: jest.fn().mockRejectedValue(new Error("Database save failed")),
       };
-      (MockedUserModel.findById as jest.Mock).mockResolvedValue(userWithError as unknown as Partial<IUser>);
-      mockStorageProvider.saveFile.mockResolvedValue('https://storage.com/new-picture.jpg');
+      (MockedUserModel.findById as jest.Mock).mockResolvedValue(
+        userWithError as unknown as Partial<IUser>,
+      );
+      mockStorageProvider.saveFile.mockResolvedValue(
+        "https://storage.com/new-picture.jpg",
+      );
 
       // Act & Assert
-      await expect(userService.updateProfilePicture('user123', mockFile))
-        .rejects
-        .toThrow('Database save failed');
+      await expect(
+        userService.updateProfilePicture(mockUser, mockFile),
+      ).rejects.toThrow("Database save failed");
 
-      expect(userWithError.profilePictureUrl).toBe('https://storage.com/new-picture.jpg');
+      expect(userWithError.profilePictureUrl).toBe(
+        "https://storage.com/new-picture.jpg",
+      );
       expect(userWithError.save).toHaveBeenCalledTimes(1);
     });
 
-    it('should handle empty file buffer', async () => {
+    it("should handle empty file buffer", async () => {
       // Arrange
       const emptyFile: Express.Multer.File = {
         ...mockFile,
         size: 0,
-        buffer: Buffer.alloc(0)
+        buffer: Buffer.alloc(0),
       };
 
       const userWithoutPicture = {
         ...mockUser,
         profilePictureUrl: null,
-        save: jest.fn().mockResolvedValue(mockUser)
+        save: jest.fn().mockResolvedValue(mockUser),
       };
-      (MockedUserModel.findById as jest.Mock).mockResolvedValue(userWithoutPicture as unknown as Partial<IUser>);
-      mockStorageProvider.saveFile.mockResolvedValue('https://storage.com/empty-file.jpg');
+      (MockedUserModel.findById as jest.Mock).mockResolvedValue(
+        userWithoutPicture as unknown as Partial<IUser>,
+      );
+      mockStorageProvider.saveFile.mockResolvedValue(
+        "https://storage.com/empty-file.jpg",
+      );
 
       // Act
-      const result = await userService.updateProfilePicture('user123', emptyFile);
+      const result = await userService.updateProfilePicture(
+        mockUser,
+        emptyFile,
+      );
 
       // Assert
       expect(mockStorageProvider.saveFile).toHaveBeenCalledWith(emptyFile);
-      expect(result.profilePictureUrl).toBe('https://storage.com/empty-file.jpg');
+      expect(result.profilePictureUrl).toBe(
+        "https://storage.com/empty-file.jpg",
+      );
     });
 
-    it('should handle null file parameter', async () => {
+    it("should handle null file parameter", async () => {
       // Arrange
-      (MockedUserModel.findById as jest.Mock).mockResolvedValue(mockUser as Partial<IUser>);
+      (MockedUserModel.findById as jest.Mock).mockResolvedValue(
+        mockUser as Partial<IUser>,
+      );
 
       // Act & Assert
-      expect(userService.updateProfilePicture('user123', null as unknown as Express.Multer.File)).rejects.toThrow('Invalid file')
+      expect(
+        userService.updateProfilePicture(
+          mockUser,
+          null as unknown as Express.Multer.File,
+        ),
+      ).rejects.toThrow("Invalid file");
     });
   });
 
-  describe('createUser', () => {
-    it('should successfully create a new user', async () => {
+  describe("createUser", () => {
+    it("should successfully create a new user", async () => {
       // Arrange
       const mockUserInstance = {
         ...mockUser,
-        save: jest.fn().mockResolvedValue(mockUser)
+        save: jest.fn().mockResolvedValue(mockUser),
       };
-      (MockedUserModel as unknown as jest.Mock).mockImplementation(() => mockUserInstance as unknown as IUser);
+      (MockedUserModel as unknown as jest.Mock).mockImplementation(
+        () => mockUserInstance as unknown as IUser,
+      );
 
       // Act
-      const result = await userService.createUser(mockUserData as unknown as IUser);
+      const result = await userService.createUser(
+        mockUserData as unknown as IUser,
+      );
 
       // Assert
       expect(MockedUserModel).toHaveBeenCalledWith({ ...mockUserData });
@@ -282,31 +338,37 @@ describe('UserService', () => {
       expect(result).toBe(mockUser);
     });
 
-    it('should handle database save failure during user creation', async () => {
+    it("should handle database save failure during user creation", async () => {
       // Arrange
       const mockUserInstance = {
-        save: jest.fn().mockRejectedValue(new Error('Database constraint violation'))
+        save: jest
+          .fn()
+          .mockRejectedValue(new Error("Database constraint violation")),
       };
-      (MockedUserModel as unknown as jest.Mock).mockImplementation(() => mockUserInstance as unknown as IUser);
+      (MockedUserModel as unknown as jest.Mock).mockImplementation(
+        () => mockUserInstance as unknown as IUser,
+      );
 
       // Act & Assert
-      await expect(userService.createUser(mockUserData as unknown as IUser))
-        .rejects
-        .toThrow('Database constraint violation');
+      await expect(
+        userService.createUser(mockUserData as unknown as IUser),
+      ).rejects.toThrow("Database constraint violation");
 
       expect(MockedUserModel).toHaveBeenCalledWith({ ...mockUserData });
       expect(mockUserInstance.save).toHaveBeenCalledTimes(1);
     });
 
-    it('should create user with minimal data', async () => {
+    it("should create user with minimal data", async () => {
       // Arrange
       const minimalUserData: IUser = {
-        email: 'minimal@test.com'
+        email: "minimal@test.com",
       } as IUser;
       const mockUserInstance = {
-        save: jest.fn().mockResolvedValue(minimalUserData)
+        save: jest.fn().mockResolvedValue(minimalUserData),
       };
-      (MockedUserModel as unknown as jest.Mock).mockImplementation(() => mockUserInstance as unknown as IUser);
+      (MockedUserModel as unknown as jest.Mock).mockImplementation(
+        () => mockUserInstance as unknown as IUser,
+      );
 
       // Act
       const result = await userService.createUser(minimalUserData);
@@ -316,79 +378,85 @@ describe('UserService', () => {
       expect(result).toBe(minimalUserData);
     });
 
-    it('should handle UserModel constructor failure', async () => {
+    it("should handle UserModel constructor failure", async () => {
       // Arrange
       (MockedUserModel as unknown as jest.Mock).mockImplementation(() => {
-        throw new Error('UserModel constructor failed');
+        throw new Error("UserModel constructor failed");
       });
 
       // Act & Assert
-      await expect(userService.createUser(mockUserData as unknown as IUser))
-        .rejects
-        .toThrow('UserModel constructor failed');
+      await expect(
+        userService.createUser(mockUserData as unknown as IUser),
+      ).rejects.toThrow("UserModel constructor failed");
 
       expect(MockedUserModel).toHaveBeenCalledWith({ ...mockUserData });
     });
   });
 
-  describe('getUserById', () => {
-    it('should successfully retrieve user by ID', async () => {
+  describe("getUserById", () => {
+    it("should successfully retrieve user by ID", async () => {
       // Arrange
-      (MockedUserModel.findById as jest.Mock).mockResolvedValue(mockUser as Partial<IUser>);
+      (MockedUserModel.findById as jest.Mock).mockResolvedValue(
+        mockUser as Partial<IUser>,
+      );
 
       // Act
-      const result = await userService.getUserById('user123');
+      const result = await userService.getUserById(mockUser);
 
       // Assert
-      expect(MockedUserModel.findById).toHaveBeenCalledWith('user123');
+      expect(MockedUserModel.findById).toHaveBeenCalledWith(mockUser);
       expect(MockedUserModel.findById).toHaveBeenCalledTimes(1);
       expect(result).toBe(mockUser);
     });
 
-    it('should return null when user is not found', async () => {
+    it("should return null when user is not found", async () => {
       // Arrange
       (MockedUserModel.findById as jest.Mock).mockResolvedValue(null);
 
       // Act
-      const result = await userService.getUserById('nonexistent');
+      const result = await userService.getUserById("nonexistent");
 
       // Assert
-      expect(MockedUserModel.findById).toHaveBeenCalledWith('nonexistent');
+      expect(MockedUserModel.findById).toHaveBeenCalledWith("nonexistent");
       expect(MockedUserModel.findById).toHaveBeenCalledTimes(1);
       expect(result).toBeNull();
     });
 
-    it('should handle database connection failure', async () => {
+    it("should handle database connection failure", async () => {
       // Arrange
-      (MockedUserModel.findById as jest.Mock).mockRejectedValue(new Error('Database connection failed'));
+      (MockedUserModel.findById as jest.Mock).mockRejectedValue(
+        new Error("Database connection failed"),
+      );
 
       // Act & Assert
-      await expect(userService.getUserById('user123'))
-        .rejects
-        .toThrow('Database connection failed');
+      await expect(userService.getUserById(mockUser)).rejects.toThrow(
+        "Database connection failed",
+      );
 
-      expect(MockedUserModel.findById).toHaveBeenCalledWith('user123');
+      expect(MockedUserModel.findById).toHaveBeenCalledWith(mockUser);
       expect(MockedUserModel.findById).toHaveBeenCalledTimes(1);
     });
 
-    it('should handle empty user ID', async () => {
+    it("should handle empty user ID", async () => {
       // Arrange
       (MockedUserModel.findById as jest.Mock).mockResolvedValue(null);
 
       // Act
-      const result = await userService.getUserById('');
+      const result = await userService.getUserById("");
 
       // Assert
-      expect(MockedUserModel.findById).toHaveBeenCalledWith('');
+      expect(MockedUserModel.findById).toHaveBeenCalledWith("");
       expect(result).toBeNull();
     });
 
-    it('should handle undefined user ID', async () => {
+    it("should handle undefined user ID", async () => {
       // Arrange
       (MockedUserModel.findById as jest.Mock).mockResolvedValue(null);
 
       // Act
-      const result = await userService.getUserById(undefined as unknown as string);
+      const result = await userService.getUserById(
+        undefined as unknown as string,
+      );
 
       // Assert
       expect(MockedUserModel.findById).toHaveBeenCalledWith(undefined);
@@ -396,257 +464,304 @@ describe('UserService', () => {
     });
   });
 
-  describe('updateUser', () => {
-    it('should successfully update user with provided data', async () => {
+  describe("updateUser", () => {
+    it("should successfully update user with provided data", async () => {
       // Arrange
       const updateData: Partial<IUser> = {
-        name: 'Updated Name',
-        email: 'updated@example.com'
+        name: "Updated Name",
+        email: "updated@example.com",
       };
       const updatedUser = { ...mockUser, ...updateData } as Partial<IUser>;
-      (MockedUserModel.findByIdAndUpdate as jest.Mock).mockResolvedValue(updatedUser);
+      (MockedUserModel.findByIdAndUpdate as jest.Mock).mockResolvedValue(
+        updatedUser,
+      );
 
       // Act
-      const result = await userService.updateUser('user123', updateData);
+      const result = await userService.updateUser(mockUser, updateData);
 
       // Assert
       expect(MockedUserModel.findByIdAndUpdate).toHaveBeenCalledWith(
-        'user123',
+        mockUser,
         updateData,
-        { new: true }
+        { new: true },
       );
       expect(MockedUserModel.findByIdAndUpdate).toHaveBeenCalledTimes(1);
       expect(result).toBe(updatedUser);
     });
 
-    it('should return null when user to update is not found', async () => {
+    it("should return null when user to update is not found", async () => {
       // Arrange
       (MockedUserModel.findByIdAndUpdate as jest.Mock).mockResolvedValue(null);
 
       // Act
-      const result = await userService.updateUser('nonexistent', { name: 'New Name' });
+      const result = await userService.updateUser("nonexistent", {
+        name: "New Name",
+      });
 
       // Assert
       expect(MockedUserModel.findByIdAndUpdate).toHaveBeenCalledWith(
-        'nonexistent',
-        { name: 'New Name' },
-        { new: true }
+        "nonexistent",
+        { name: "New Name" },
+        { new: true },
       );
       expect(result).toBeNull();
     });
 
-    it('should handle database update failure', async () => {
+    it("should handle database update failure", async () => {
       // Arrange
-      (MockedUserModel.findByIdAndUpdate as jest.Mock).mockRejectedValue(new Error('Update constraint violation'));
+      (MockedUserModel.findByIdAndUpdate as jest.Mock).mockRejectedValue(
+        new Error("Update constraint violation"),
+      );
 
       // Act & Assert
-      await expect(userService.updateUser('user123', { name: 'Updated Name' }))
-        .rejects
-        .toThrow('Update constraint violation');
+      await expect(
+        userService.updateUser(mockUser, { name: "Updated Name" }),
+      ).rejects.toThrow("Update constraint violation");
 
       expect(MockedUserModel.findByIdAndUpdate).toHaveBeenCalledTimes(1);
     });
 
-    it('should handle empty update data', async () => {
+    it("should handle empty update data", async () => {
       // Arrange
-      (MockedUserModel.findByIdAndUpdate as jest.Mock).mockResolvedValue(mockUser as Partial<IUser>);
+      (MockedUserModel.findByIdAndUpdate as jest.Mock).mockResolvedValue(
+        mockUser as Partial<IUser>,
+      );
 
       // Act
-      const result = await userService.updateUser('user123', {});
+      const result = await userService.updateUser(mockUser, {});
 
       // Assert
       expect(MockedUserModel.findByIdAndUpdate).toHaveBeenCalledWith(
-        'user123',
+        mockUser,
         {},
-        { new: true }
+        { new: true },
       );
       expect(result).toBe(mockUser);
     });
 
-    it('should handle null update data', async () => {
+    it("should handle null update data", async () => {
       // Arrange
-      (MockedUserModel.findByIdAndUpdate as jest.Mock).mockResolvedValue(mockUser as Partial<IUser>);
+      (MockedUserModel.findByIdAndUpdate as jest.Mock).mockResolvedValue(
+        mockUser as Partial<IUser>,
+      );
 
       // Act
-      const result = await userService.updateUser('user123', null as unknown as Partial<IUser>);
+      const result = await userService.updateUser(
+        mockUser,
+        null as unknown as Partial<IUser>,
+      );
 
       // Assert
       expect(MockedUserModel.findByIdAndUpdate).toHaveBeenCalledWith(
-        'user123',
+        mockUser,
         null,
-        { new: true }
+        { new: true },
       );
       expect(result).toBe(mockUser);
     });
   });
 
-  describe('approveUser', () => {
-    it('should successfully approve user', async () => {
+  describe("approveUser", () => {
+    it("should successfully approve user", async () => {
       // Arrange
       const approvedUser = { ...mockUser, approved: true };
-      (MockedUserModel.findByIdAndUpdate as jest.Mock).mockResolvedValue(approvedUser as Partial<IUser>);
+      (MockedUserModel.findByIdAndUpdate as jest.Mock).mockResolvedValue(
+        approvedUser as Partial<IUser>,
+      );
 
       // Act
-      const result = await userService.approveUser('user123');
+      const result = await userService.approveUser(mockUser);
 
       // Assert
       expect(MockedUserModel.findByIdAndUpdate).toHaveBeenCalledWith(
-        'user123',
+        mockUser,
         { approved: true },
-        { new: true }
+        { new: true },
       );
       expect(MockedUserModel.findByIdAndUpdate).toHaveBeenCalledTimes(1);
       expect(result).toBe(approvedUser);
     });
 
-    it('should return null when user to approve is not found', async () => {
+    it("should return null when user to approve is not found", async () => {
       // Arrange
       (MockedUserModel.findByIdAndUpdate as jest.Mock).mockResolvedValue(null);
 
       // Act
-      const result = await userService.approveUser('nonexistent');
+      const result = await userService.approveUser("nonexistent");
 
       // Assert
       expect(MockedUserModel.findByIdAndUpdate).toHaveBeenCalledWith(
-        'nonexistent',
+        "nonexistent",
         { approved: true },
-        { new: true }
+        { new: true },
       );
       expect(MockedUserModel.findByIdAndUpdate).toHaveBeenCalledTimes(1);
       expect(result).toBeNull();
     });
 
-    it('should handle database approval failure', async () => {
+    it("should handle database approval failure", async () => {
       // Arrange
-      (MockedUserModel.findByIdAndUpdate as jest.Mock).mockRejectedValue(new Error('Approval process failed'));
+      (MockedUserModel.findByIdAndUpdate as jest.Mock).mockRejectedValue(
+        new Error("Approval process failed"),
+      );
 
       // Act & Assert
-      await expect(userService.approveUser('user123'))
-        .rejects
-        .toThrow('Approval process failed');
+      await expect(userService.approveUser(mockUser)).rejects.toThrow(
+        "Approval process failed",
+      );
 
       expect(MockedUserModel.findByIdAndUpdate).toHaveBeenCalledTimes(1);
     });
 
-    it('should handle empty user ID', async () => {
+    it("should handle empty user ID", async () => {
       // Arrange
       (MockedUserModel.findByIdAndUpdate as jest.Mock).mockResolvedValue(null);
 
       // Act
-      const result = await userService.approveUser('');
+      const result = await userService.approveUser("");
 
       // Assert
       expect(MockedUserModel.findByIdAndUpdate).toHaveBeenCalledWith(
-        '',
+        "",
         { approved: true },
-        { new: true }
+        { new: true },
       );
       expect(result).toBeNull();
     });
   });
 
-  describe('validateUserPassword', () => {
-    it('should return true for valid password', async () => {
+  describe("validateUserPassword", () => {
+    it("should return true for valid password", async () => {
       // Arrange
       const userWithPassword = {
         ...mockUser,
-        comparePassword: jest.fn().mockResolvedValue(true)
+        comparePassword: jest.fn().mockResolvedValue(true),
       };
-      (MockedUserModel.findById as jest.Mock).mockResolvedValue(userWithPassword as Partial<IUser>);
+      (MockedUserModel.findById as jest.Mock).mockResolvedValue(
+        userWithPassword as Partial<IUser>,
+      );
 
       // Act
-      const result = await userService.validateUserPassword('user123', 'validPassword');
+      const result = await userService.validateUserPassword(
+        mockUser,
+        "validPassword",
+      );
 
       // Assert
-      expect(MockedUserModel.findById).toHaveBeenCalledWith('user123');
+      expect(MockedUserModel.findById).toHaveBeenCalledWith(mockUser);
       expect(MockedUserModel.findById).toHaveBeenCalledTimes(1);
-      expect(userWithPassword.comparePassword).toHaveBeenCalledWith('validPassword');
+      expect(userWithPassword.comparePassword).toHaveBeenCalledWith(
+        "validPassword",
+      );
       expect(userWithPassword.comparePassword).toHaveBeenCalledTimes(1);
       expect(result).toBe(true);
     });
 
-    it('should return false for invalid password', async () => {
+    it("should return false for invalid password", async () => {
       // Arrange
       const userWithPassword = {
         ...mockUser,
-        comparePassword: jest.fn().mockResolvedValue(false)
+        comparePassword: jest.fn().mockResolvedValue(false),
       };
-      (MockedUserModel.findById as jest.Mock).mockResolvedValue(userWithPassword as Partial<IUser>);
+      (MockedUserModel.findById as jest.Mock).mockResolvedValue(
+        userWithPassword as Partial<IUser>,
+      );
 
       // Act
-      const result = await userService.validateUserPassword('user123', 'invalidPassword');
+      const result = await userService.validateUserPassword(
+        mockUser,
+        "invalidPassword",
+      );
 
       // Assert
-      expect(MockedUserModel.findById).toHaveBeenCalledWith('user123');
-      expect(userWithPassword.comparePassword).toHaveBeenCalledWith('invalidPassword');
+      expect(MockedUserModel.findById).toHaveBeenCalledWith(mockUser);
+      expect(userWithPassword.comparePassword).toHaveBeenCalledWith(
+        "invalidPassword",
+      );
       expect(result).toBe(false);
     });
 
-    it('should return false when user is not found', async () => {
+    it("should return false when user is not found", async () => {
       // Arrange
       (MockedUserModel.findById as jest.Mock).mockResolvedValue(null);
 
       // Act
-      const result = await userService.validateUserPassword('nonexistent', 'anyPassword');
+      const result = await userService.validateUserPassword(
+        "nonexistent",
+        "anyPassword",
+      );
 
       // Assert
-      expect(MockedUserModel.findById).toHaveBeenCalledWith('nonexistent');
+      expect(MockedUserModel.findById).toHaveBeenCalledWith("nonexistent");
       expect(MockedUserModel.findById).toHaveBeenCalledTimes(1);
       expect(result).toBe(false);
     });
 
-    it('should handle password comparison failure', async () => {
+    it("should handle password comparison failure", async () => {
       // Arrange
       const userWithPassword = {
         ...mockUser,
-        comparePassword: jest.fn().mockRejectedValue(new Error('Password comparison failed'))
+        comparePassword: jest
+          .fn()
+          .mockRejectedValue(new Error("Password comparison failed")),
       };
-      (MockedUserModel.findById as jest.Mock).mockResolvedValue(userWithPassword as Partial<IUser>);
+      (MockedUserModel.findById as jest.Mock).mockResolvedValue(
+        userWithPassword as Partial<IUser>,
+      );
 
       // Act & Assert
-      await expect(userService.validateUserPassword('user123', 'password'))
-        .rejects
-        .toThrow('Password comparison failed');
+      await expect(
+        userService.validateUserPassword(mockUser, "password"),
+      ).rejects.toThrow("Password comparison failed");
 
       expect(userWithPassword.comparePassword).toHaveBeenCalledTimes(1);
     });
 
-    it('should handle empty password', async () => {
+    it("should handle empty password", async () => {
       // Arrange
       const userWithPassword = {
         ...mockUser,
-        comparePassword: jest.fn().mockResolvedValue(false)
+        comparePassword: jest.fn().mockResolvedValue(false),
       };
-      (MockedUserModel.findById as jest.Mock).mockResolvedValue(userWithPassword as Partial<IUser>);
+      (MockedUserModel.findById as jest.Mock).mockResolvedValue(
+        userWithPassword as Partial<IUser>,
+      );
 
       // Act
-      const result = await userService.validateUserPassword('user123', '');
+      const result = await userService.validateUserPassword(mockUser, "");
 
       // Assert
-      expect(userWithPassword.comparePassword).toHaveBeenCalledWith('');
+      expect(userWithPassword.comparePassword).toHaveBeenCalledWith("");
       expect(result).toBe(false);
     });
 
-    it('should handle getUserById failure', async () => {
+    it("should handle getUserById failure", async () => {
       // Arrange
-      (MockedUserModel.findById as jest.Mock).mockRejectedValue(new Error('Database error'));
+      (MockedUserModel.findById as jest.Mock).mockRejectedValue(
+        new Error("Database error"),
+      );
 
       // Act & Assert
-      await expect(userService.validateUserPassword('user123', 'password'))
-        .rejects
-        .toThrow('Database error');
+      await expect(
+        userService.validateUserPassword(mockUser, "password"),
+      ).rejects.toThrow("Database error");
     });
 
-    it('should handle null password', async () => {
+    it("should handle null password", async () => {
       // Arrange
       const userWithPassword = {
         ...mockUser,
-        comparePassword: jest.fn().mockResolvedValue(false)
+        comparePassword: jest.fn().mockResolvedValue(false),
       };
-      (MockedUserModel.findById as jest.Mock).mockResolvedValue(userWithPassword as Partial<IUser>);
+      (MockedUserModel.findById as jest.Mock).mockResolvedValue(
+        userWithPassword as Partial<IUser>,
+      );
 
       // Act
-      const result = await userService.validateUserPassword('user123', null as unknown as string);
+      const result = await userService.validateUserPassword(
+        mockUser,
+        null as unknown as string,
+      );
 
       // Assert
       expect(userWithPassword.comparePassword).toHaveBeenCalledWith(null);

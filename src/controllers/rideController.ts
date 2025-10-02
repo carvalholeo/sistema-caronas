@@ -8,7 +8,7 @@ class RideController {
    */
   public async create(req: Request, res: Response): Promise<Response> {
     try {
-      const ride = await rideService.createRide(req.user!, req.body);
+      const ride = await rideService.createRide(req.user, req.body);
       return res.status(201).json(ride);
     } catch (error: Error | any) {
       return res.status(400).json({ message: error.message });
@@ -20,7 +20,7 @@ class RideController {
    */
   public async createRecurrent(req: Request, res: Response): Promise<Response> {
     try {
-      const rides = await rideService.createRecurrentRide(req.user!, req.body);
+      const rides = await rideService.createRecurrentRide(req.user, req.body);
       return res.status(201).json(rides);
     } catch (error: Error | any) {
       return res.status(400).json({ message: error.message });
@@ -32,7 +32,7 @@ class RideController {
    */
   public async search(req: Request, res: Response): Promise<Response> {
     try {
-      const rides = await rideService.searchRides(req.query, req.user!);
+      const rides = await rideService.searchRides(req.query, req.user);
       return res.status(200).json(rides);
     } catch (error: Error | any) {
       return res
@@ -49,7 +49,7 @@ class RideController {
     res: Response,
   ): Promise<Response> {
     try {
-      const rides = await rideService.getMyRidesAsDriver(req.user!);
+      const rides = await rideService.getMyRidesAsDriver(req.user);
       return res.status(200).json(rides);
     } catch (error: Error | any) {
       return res.status(500).json({
@@ -67,7 +67,7 @@ class RideController {
     res: Response,
   ): Promise<Response> {
     try {
-      const rides = await rideService.getMyRidesAsPassenger(req.user!);
+      const rides = await rideService.getMyRidesAsPassenger(req.user);
       return res.status(200).json(rides);
     } catch (error: Error | any) {
       return res.status(500).json({
@@ -83,7 +83,7 @@ class RideController {
   public async getDetails(req: Request, res: Response): Promise<Response> {
     try {
       const id: IRide = req.params.id as unknown as IRide;
-      const rideDetails = await rideService.getRideDetails(id, req.user!);
+      const rideDetails = await rideService.getRideDetails(id, req.user);
       return res.status(200).json(rideDetails);
     } catch (error: Error | any) {
       // Usa 403 (Proibido) se o usuário não tiver permissão para ver
@@ -97,7 +97,7 @@ class RideController {
   public async update(req: Request, res: Response): Promise<Response> {
     try {
       const id: IRide = req.params.id as unknown as IRide;
-      const ride = await rideService.updateRide(id, req.user!, req.body);
+      const ride = await rideService.updateRide(id, req.user, req.body);
       return res.status(200).json(ride);
     } catch (error: Error | any) {
       return res.status(403).json({ message: error.message });
@@ -146,7 +146,7 @@ class RideController {
   public async cancelByDriver(req: Request, res: Response): Promise<Response> {
     try {
       const id: IRide = req.params.id as unknown as IRide;
-      const ride = await rideService.cancelRideByDriver(id, req.user!);
+      const ride = await rideService.cancelRideByDriver(id, req.user);
       return res
         .status(200)
         .json({ message: "Carona cancelada com sucesso.", ride });
@@ -164,7 +164,7 @@ class RideController {
   ): Promise<Response> {
     try {
       const id: IRide = req.params.id as unknown as IRide;
-      const ride = await rideService.cancelSeatByPassenger(id, req.user!);
+      const ride = await rideService.cancelSeatByPassenger(id, req.user);
       return res
         .status(200)
         .json({ message: "Reserva cancelada com sucesso.", ride });
