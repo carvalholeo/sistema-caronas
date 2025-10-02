@@ -1,3 +1,5 @@
+const os = require("node:os");
+
 module.exports = {
   preset: "ts-jest",
   testEnvironment: "node",
@@ -5,7 +7,7 @@ module.exports = {
   setupFilesAfterEnv: ["<rootDir>/tests/setup.ts"],
   testPathIgnorePatterns: ["/node_modules/", "/dist/"],
   coverageDirectory: "coverage",
-  maxWorkers: "50%",
+  maxWorkers: Math.ceil(os.cpus().length * 0.75),
   collectCoverageFrom: ["src/**/*.{ts,js}", "!src/**/*.d.ts", "!src/server.ts"],
   moduleNameMapper: {
     "^@/(.*)$": "<rootDir>/src/$1",
