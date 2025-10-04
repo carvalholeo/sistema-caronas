@@ -31,7 +31,7 @@ const config = {
 
   // Timeout settings
   timeoutMS: 60000,
-  timeoutFactor: 1.5,
+  timeoutFactor: 2.5,
 
   // Thresholds
   thresholds: {
@@ -50,7 +50,7 @@ const config = {
   },
 
   // Concurrency
-  concurrency: Math.ceil(os.cpus().length * 0.75),
+  concurrency: Math.ceil(os.cpus().length * 0.75) * 3,
 
   // Reporting
   htmlReporter: {
