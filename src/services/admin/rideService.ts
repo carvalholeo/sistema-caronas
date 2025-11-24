@@ -4,6 +4,7 @@ import { IRide, IUser } from '../../types';
 import { RideModel } from '../../models/ride';
 import { AuditLogModel } from '../../models/auditLog';
 import { AuditActionType, AuditLogCategory, AuditLogSeverityLevels, RideStatus } from '../../types/enums/enums';
+import { IAdminListRidesQuery } from '@/types/requests/admin/rides';
 
 class AdminRidesService {
   public async getRideDetails(rideId: IRide, adminId: IUser): Promise<IRide | null> {
@@ -102,18 +103,24 @@ class AdminRidesService {
 
   /**
    * Lista todas as caronas do sistema com base em filtros de query.
-   * @param queryParams - Objeto com os filtros (ex: status, driverId).
+   * @param filters - Objeto com os filtros (ex: status, driverId).
    */
-  public async listRides(queryParams: any) {
+  public async listRides(filters: IAdminListRidesQuery) {
     const filter: any = {};
-    if (queryParams.status) {
-      filter.status = queryParams.status;
-    }
-    if (queryParams.driverId && Types.ObjectId.isValid(queryParams.driverId)) {
-      filter.driver = queryParams.driverId;
-    }
-    // Adicione mais filtros conforme necessário
-    return RideModel.find(filter).populate('driver', 'name email').populate('passengers.user', 'name email');
+
+    if (filters.status) filter.status = filters.status;
+    if (filters.driverId && Types.ObjectId.isValid(filters.driverId)) filter.driverId = filters.driverId;
+    if (filters.originText) filter.originText = { $regex: filters.originText, $options: 'i' };
+    if (filters.destinationText) filter.destinationText = { $regex: filters.destinationText, $options: 'i' };
+    if (filters.isRecurrent) filter.isRecurrent = filters.isRecurrent;
+
+    const sortOrder = filters.sortOrder === 'desc' ? -1 : 1;
+    const sortBy = filters.sortBy || 'startDate';
+
+    return await RideModel.find(filter)
+      .sort({ [sortBy]: sortOrder })
+      .populate('driver', 'name email')
+      .populate('passengers.user', 'name email');
   }
 
   /**
@@ -129,7 +136,7 @@ class AdminRidesService {
       throw new Error('Carona não encontrada.');
     }
 
-    if ([RideStatus.InProgress, RideStatus.Completed, RideStatus.Cancelled].includes(ride.status as RideStatus)) {
+    if ([RideStatus.InProgress, RideStatus.Completed, RideStatus.Cancelled].includes(ride.status)) {
       throw new Error('Não é possível editar uma carona que já está em andamento, foi concluída ou cancelada.');
     }
 

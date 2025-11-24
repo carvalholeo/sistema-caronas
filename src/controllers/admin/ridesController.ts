@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { adminRidesService } from '../../services/admin/rideService';
 import { IRide } from '../../types';
+import { IAdminListRidesQuery } from '@/types/requests/admin/rides';
 
 class AdminRidesController {
   /**
@@ -8,7 +9,8 @@ class AdminRidesController {
    */
   public async listRides(req: Request, res: Response): Promise<Response> {
     try {
-      const rides = await adminRidesService.listRides(req.query);
+      const query: IAdminListRidesQuery = req.query;
+      const rides = await adminRidesService.listRides(query);
       return res.status(200).json(rides);
     } catch (error: Error | any) {
       return res.status(500).json({ message: 'Erro ao listar caronas.', error: error.message });

@@ -1,12 +1,14 @@
 import { Request, Response } from "express";
 import { rideService } from "../services/rideService";
 import { IRide, IUser } from "../types";
+import { IMyRidesQuery, IRideSearchQuery } from "@/types/requests/rides";
+import { ErrorResponse } from "@/types/responses/ErrorResponse";
 
 class RideController {
   /**
    * Cria uma carona única.
    */
-  public async create(req: Request, res: Response): Promise<Response> {
+  public async create(req: Request, res: Response): Promise<Response | ErrorResponse> {
     try {
       const ride = await rideService.createRide(req.user, req.body);
       return res.status(201).json(ride);
@@ -18,7 +20,7 @@ class RideController {
   /**
    * Cria caronas recorrentes.
    */
-  public async createRecurrent(req: Request, res: Response): Promise<Response> {
+  public async createRecurrent(req: Request, res: Response): Promise<Response | ErrorResponse> {
     try {
       const rides = await rideService.createRecurrentRide(req.user, req.body);
       return res.status(201).json(rides);
@@ -30,9 +32,10 @@ class RideController {
   /**
    * Busca caronas disponíveis com base em critérios.
    */
-  public async search(req: Request, res: Response): Promise<Response> {
+  public async search(req: Request, res: Response): Promise<Response | ErrorResponse> {
     try {
-      const rides = await rideService.searchRides(req.query, req.user);
+      const query: IRideSearchQuery = req.query;
+      const rides = await rideService.searchRides(query, req.user);
       return res.status(200).json(rides);
     } catch (error: Error | any) {
       return res
@@ -47,9 +50,10 @@ class RideController {
   public async getMyRidesAsDriver(
     req: Request,
     res: Response,
-  ): Promise<Response> {
+  ): Promise<Response | ErrorResponse> {
     try {
-      const rides = await rideService.getMyRidesAsDriver(req.user);
+      const filters: IMyRidesQuery = req.query;
+      const rides = await rideService.getMyRidesAsDriver(req.user, filters);
       return res.status(200).json(rides);
     } catch (error: Error | any) {
       return res.status(500).json({
@@ -65,9 +69,10 @@ class RideController {
   public async getMyRidesAsPassenger(
     req: Request,
     res: Response,
-  ): Promise<Response> {
+  ): Promise<Response | ErrorResponse> {
     try {
-      const rides = await rideService.getMyRidesAsPassenger(req.user);
+      const filters: IMyRidesQuery = req.query;
+      const rides = await rideService.getMyRidesAsPassenger(req.user, filters);
       return res.status(200).json(rides);
     } catch (error: Error | any) {
       return res.status(500).json({
@@ -80,7 +85,7 @@ class RideController {
   /**
    * Obtém os detalhes de uma carona específica.
    */
-  public async getDetails(req: Request, res: Response): Promise<Response> {
+  public async getDetails(req: Request, res: Response): Promise<Response | ErrorResponse> {
     try {
       const id: IRide = req.params.id as unknown as IRide;
       const rideDetails = await rideService.getRideDetails(id, req.user);
@@ -94,7 +99,7 @@ class RideController {
   /**
    * Atualiza os dados de uma carona.
    */
-  public async update(req: Request, res: Response): Promise<Response> {
+  public async update(req: Request, res: Response): Promise<Response | ErrorResponse> {
     try {
       const id: IRide = req.params.id as unknown as IRide;
       const ride = await rideService.updateRide(id, req.user, req.body);
@@ -107,7 +112,7 @@ class RideController {
   /**
    * Permite que um caroneiro solicite uma vaga em uma carona.
    */
-  public async requestSeat(req: Request, res: Response): Promise<Response> {
+  public async requestSeat(req: Request, res: Response): Promise<Response | ErrorResponse> {
     try {
       const id: IRide = req.params.id as unknown as IRide;
       const ride = await rideService.requestSeat(id, req.user!);
@@ -123,14 +128,14 @@ class RideController {
   public async manageSeatRequest(
     req: Request,
     res: Response,
-  ): Promise<Response> {
+  ): Promise<Response | ErrorResponse> {
     try {
       const id: IRide = req.params.id as unknown as IRide;
       const passengerId: IUser = req.params.passengerId as unknown as IUser;
       const { action } = req.body; // 'approve' ou 'reject'
       const ride = await rideService.manageSeatRequest(
         id,
-        req.user!,
+        req.user,
         passengerId,
         action,
       );
@@ -143,7 +148,7 @@ class RideController {
   /**
    * Permite que o motorista cancele a carona.
    */
-  public async cancelByDriver(req: Request, res: Response): Promise<Response> {
+  public async cancelByDriver(req: Request, res: Response): Promise<Response | ErrorResponse> {
     try {
       const id: IRide = req.params.id as unknown as IRide;
       const ride = await rideService.cancelRideByDriver(id, req.user);
@@ -161,7 +166,7 @@ class RideController {
   public async cancelByPassenger(
     req: Request,
     res: Response,
-  ): Promise<Response> {
+  ): Promise<Response | ErrorResponse> {
     try {
       const id: IRide = req.params.id as unknown as IRide;
       const ride = await rideService.cancelSeatByPassenger(id, req.user);

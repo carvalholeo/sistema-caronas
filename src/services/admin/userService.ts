@@ -11,20 +11,29 @@ import {
   toAuditActionType,
 } from "../../types/enums/enums";
 import { AuditLogModel } from "../../models/auditLog";
+import { IAdminListUsersQuery } from "@/types/requests/admin/users";
 
 class AdminUsersService {
   /**
    * Lista usuários com base em filtros.
    */
-  public async listUsers(filters: any) {
+  public async listUsers(filters: IAdminListUsersQuery) {
     const filter: any = {};
-    if (filters.status) {
-      filter.status = filters.status;
+    if (filters.status) filter.status = filters.status;
+    if (filters.role) filter.roles = filters.role;
+    if (filters.name) filter.name = { $regex: filters.name, $options: 'i' };
+    if (filters.email) filter.email = { $regex: filters.email, $options: 'i' };
+    if (filters.matricula) filter.matricula = filters.matricula;
+    if (filters.twoFactorEnabled) {
+      filter.twoFactorEnabled = filters.twoFactorEnabled === 'true';
     }
-    if (filters.role) {
-      filter.roles = filters.role;
-    }
-    return UserModel.find(filter).select("-password -twoFactorSecret");
+
+    const sortOrder = filters.sortOrder === 'desc' ? -1 : 1;
+    const sortBy = filters.sortBy || 'createdAt';
+
+    return await UserModel.find(filter)
+      .sort({ [sortBy]: sortOrder })
+      .select("-password -twoFactorSecret");
   }
 
   /**

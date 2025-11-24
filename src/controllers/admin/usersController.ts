@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { adminUsersService } from '../../services/admin/userService';
 import { IUser } from '../../types';
+import { IAdminListUsersQuery } from '@/types/requests/admin/users';
 
 class AdminUsersController {
   /**
@@ -8,7 +9,8 @@ class AdminUsersController {
    */
   public async listUsers(req: Request, res: Response): Promise<Response> {
     try {
-      const users = await adminUsersService.listUsers(req.query);
+      const query: IAdminListUsersQuery = req.query;
+      const users = await adminUsersService.listUsers(query);
       return res.status(200).json(users);
     } catch (error: Error | any) {
       return res.status(500).json({ message: 'Erro ao listar usuários.', error: error.message });
